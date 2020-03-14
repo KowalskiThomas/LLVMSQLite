@@ -1,0 +1,5 @@
+cmake-build*
+*.dSYM
+.target_source
+.idea
+*.o

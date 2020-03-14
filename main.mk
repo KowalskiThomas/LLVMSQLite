@@ -75,7 +75,7 @@ LIBOBJ+= vdbe.o parse.o \
          update.o upsert.o userauth.o util.o vacuum.o \
          vdbeapi.o vdbeaux.o vdbeblob.o vdbemem.o vdbesort.o \
 	 vdbetrace.o wal.o walker.o where.o wherecode.o whereexpr.o \
-         utf.o vtab.o window.o
+         utf.o vtab.o window.o thomas.o
 
 LIBOBJ += sqlite3session.o
 
@@ -183,7 +183,7 @@ SRC = \
   $(TOP)/src/wherecode.c \
   $(TOP)/src/whereexpr.c \
   $(TOP)/src/whereInt.h \
-  $(TOP)/src/window.c
+  $(TOP)/src/window.c $(TOP)/src/thomas.cpp
 
 # Source code for extensions
 #
@@ -551,7 +551,7 @@ libsqlite3.a:	$(LIBOBJ)
 
 sqlite3$(EXE):	shell.c libsqlite3.a sqlite3.h
 	$(TCCX) $(READLINE_FLAGS) -o sqlite3$(EXE) $(SHELL_OPT) \
-		shell.c libsqlite3.a $(LIBREADLINE) $(TLIBS) $(THREADLIB)
+		shell.c libsqlite3.a $(LIBREADLINE) $(TLIBS) $(THREADLIB) -lstdc++
 
 sqldiff$(EXE):	$(TOP)/tool/sqldiff.c sqlite3.c sqlite3.h
 	$(TCCX) -o sqldiff$(EXE) -DSQLITE_THREADSAFE=0 \
@@ -695,6 +695,10 @@ mksourceid:	$(TOP)/tool/mksourceid.c
 #
 %.o: $(TOP)/src/%.c $(HDR)
 	$(TCCX) -c $<
+
+thomas.o: $(TOP)/src/thomas.cpp $(HDR)
+	$(TCCX) -c src/thomas.cpp
+	echo "hello"
 
 tclsqlite.o:	$(TOP)/src/tclsqlite.c $(HDR)
 	$(TCCX) $(TCL_FLAGS) -c $(TOP)/src/tclsqlite.c

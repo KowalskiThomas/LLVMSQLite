@@ -21,6 +21,10 @@
 #include "sqliteInt.h"
 #include "vdbeInt.h"
 
+// THOMAS KOWALSKI
+// #include "../opcodes.h"
+// #define SQLITE_OMIT_TRACE
+
 /*
 ** Invoke this macro on memory cells just prior to changing the
 ** value of the cell.  This macro verifies that shallow copies are
@@ -655,7 +659,7 @@ static Mem *out2Prerelease(Vdbe *p, VdbeOp *pOp){
 ** Execute as much of a VDBE program as we can.
 ** This is the core of sqlite3_step().  
 */
-int sqlite3VdbeExec(
+int sqlite3VdbeExec2(
   Vdbe *p                    /* The VDBE */
 ){
   Op *aOp = p->aOp;          /* Copy of p->aOp */

@@ -206,6 +206,7 @@ LIBOBJ = $(LIBOBJS$(USE_AMALGAMATION))
 #
 SRC = \
   $(TOP)/src/alter.c \
+  $(TOP)/src/thomas.cpp \
   $(TOP)/src/analyze.c \
   $(TOP)/src/attach.c \
   $(TOP)/src/auth.c \
