@@ -1,3 +1,6 @@
+*.db
+tsrc
+*.lo
 cmake-build*
 *.dSYM
 .target_source
