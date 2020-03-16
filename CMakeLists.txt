@@ -11,9 +11,6 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-message("thomas")
-message(${LLVM_INCLUDE_DIRS})
-
 add_library(sqlite
         ${PROJECT_SOURCE_DIR}/src/alter.c 
         ${PROJECT_SOURCE_DIR}/src/thomas.cpp
@@ -122,6 +119,7 @@ add_library(sqlite
         ${PROJECT_SOURCE_DIR}/opcodes.c
         ${PROJECT_SOURCE_DIR}/parse.c
 )
+target_link_libraries(sqlite llvm)
 
 add_executable(shell shell.c)
 # target_link_libraries(shell stdc++)
