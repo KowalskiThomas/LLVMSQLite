@@ -19,7 +19,7 @@ TOP = ../sqlite
 #### C Compiler and options for use in building executables that
 #    will run on the platform that is doing the build.
 #
-BCC = gcc -x none -g -O0
+BCC = gcc -x none -g -O0 -I/usr/local/opt/llvm/include
 #BCC = /opt/ancic/bin/c89 -0
 
 #### If the target operating system supports the "usleep()" system
@@ -68,7 +68,7 @@ EXE =
 #    will run on the target platform.  This is usually the same
 #    as BCC, unless you are cross-compiling.
 #
-TCC = gcc -x none -O0
+TCC = gcc -x none -O0 -I/usr/local/opt/llvm/include
 #TCC = gcc -x none -x none -g -O0 -Wall
 #TCC = gcc -x none -x none -g -O0 -Wall -fprofile-arcs -ftest-coverage
 #TCC = /opt/mingw/bin/i386-mingw32-gcc -x none -x none -O6
@@ -81,7 +81,7 @@ AR = ar cr
 RANLIB = ranlib
 #RANLIB = /opt/mingw/bin/i386-mingw32-ranlib
 
-MKSHLIB = gcc -x none -x none -shared
+MKSHLIB = gcc -x none -shared
 SO = so
 SHPREFIX = lib
 # SO = dll

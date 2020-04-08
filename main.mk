@@ -697,7 +697,7 @@ mksourceid:	$(TOP)/tool/mksourceid.c
 	$(TCCX) -c $<
 
 thomas.o: $(TOP)/src/thomas.cpp $(HDR)
-	$(TCCX) -c src/thomas.cpp
+	$(TCCX) -c src/thomas.cpp -std=c++17
 	echo "hello"
 
 tclsqlite.o:	$(TOP)/src/tclsqlite.c $(HDR)
