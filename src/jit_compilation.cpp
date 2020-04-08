@@ -52,8 +52,8 @@ struct instr {
     int p4;
 };
 
-void foo() {
-    std::cout << "foo called\n";
+void foo(int k) {
+    std::cout << "foo called with " << k << "\n";
 }
 
 int getInt() {
@@ -76,9 +76,8 @@ my_context createMain(LLVMContext& context) {
     auto module = std::make_unique<llvm::Module>("top", context);
     llvm::IRBuilder<> builder(context);
 
-    auto fooType = llvm::FunctionType::get(builder.getVoidTy(), false);
-    auto fooFunc = llvm::Function::Create(fooType,
-                                          llvm::Function::ExternalLinkage, "foo", *module);
+    auto fooType = llvm::FunctionType::get(builder.getVoidTy(), { builder.getInt32Ty() }, false);
+    auto fooFunc = llvm::Function::Create(fooType, llvm::Function::ExternalLinkage, "foo", *module);
     llvm::sys::DynamicLibrary::AddSymbol("foo", reinterpret_cast<void *>(foo));
 
     auto getIntType = llvm::FunctionType::get(builder.getInt32Ty(), false);
@@ -91,8 +90,9 @@ my_context createMain(LLVMContext& context) {
     auto mainFunc = llvm::Function::Create(mainType, llvm::GlobalValue::LinkageTypes::ExternalLinkage,
                                            "myFunction", *module);
 
+    auto three = ConstantInt::get(Type::getInt32Ty(context), 3);
     auto entryBlock = llvm::BasicBlock::Create(context, "entry", mainFunc);
-    // auto three = ConstantInt::get(Type::getInt32Ty(context), 3);
+    CallInst::Create(fooFunc, { three }, "", entryBlock);
     auto callInst = CallInst::Create(getIntFunc, "result", entryBlock);
     /* auto retInst = */ ReturnInst::Create(context, callInst, entryBlock);
 
