@@ -4,7 +4,8 @@ cmake_minimum_required(VERSION 3.15)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(LLVM 9 REQUIRED CONFIG)
+# find_package(LLVM 9 REQUIRED CONFIG)
+find_package(LLVM 10 REQUIRED CONFIG)
 add_definitions(${LLVM_DEFINITIONS})
 link_directories(${LLVM_LIBRARY_DIRS})
 
@@ -16,18 +17,17 @@ add_subdirectory(fmt)
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/src)
-include_directories(${PROJECT_SOURCE_DIR}/thirdparty/codegen/include/)
+# include_directories(${PROJECT_SOURCE_DIR}/thirdparty/codegen/include/)
 include_directories(${PROJECT_SOURCE_DIR}/fmt/include/)
 
-add_library(codegen
-    ${PROJECT_SOURCE_DIR}/thirdparty/codegen/src/compiler.cpp
-    ${PROJECT_SOURCE_DIR}/thirdparty/codegen/src/module_builder.cpp
-    ${PROJECT_SOURCE_DIR}/thirdparty/codegen/src/statements.cpp
-)
+#add_library(codegen
+#    ${PROJECT_SOURCE_DIR}/thirdparty/codegen/src/compiler.cpp
+#    ${PROJECT_SOURCE_DIR}/thirdparty/codegen/src/module_builder.cpp
+#    ${PROJECT_SOURCE_DIR}/thirdparty/codegen/src/statements.cpp
+#)
 
 add_library(sqlite
         ${PROJECT_SOURCE_DIR}/src/alter.c 
-        ${PROJECT_SOURCE_DIR}/src/thomas.cpp
         ${PROJECT_SOURCE_DIR}/src/analyze.c
         ${PROJECT_SOURCE_DIR}/src/attach.c
         ${PROJECT_SOURCE_DIR}/src/auth.c
@@ -134,12 +134,12 @@ add_library(sqlite
         ${PROJECT_SOURCE_DIR}/parse.c
 )
 target_link_libraries(sqlite llvm)
-target_link_libraries(sqlite codegen)
+#target_link_libraries(sqlite codegen)
 target_link_libraries(sqlite fmt::fmt)
 
 add_executable(tests_thomas src/jit_compilation.cpp)
 target_link_libraries(tests_thomas llvm)
-target_link_libraries(tests_thomas codegen)
+#target_link_libraries(tests_thomas codegen)
 target_link_libraries(tests_thomas fmt::fmt)
 
 add_executable(shell shell.c)

@@ -61,6 +61,29 @@ void print_int(int x) {
     std::cout << "PRINTING " << x << std::endl;
 }
 
+typedef struct {
+    int i;
+    float f;
+    int b:1;
+} myStruct;
+
+struct tree {
+    std::map<int, std::string> map;
+};
+
+void myFunc(myStruct* s) {
+    std::cout << "Value of f : " << s->f << " Value of b : " << s->b << std::endl;
+}
+
+void print_tree(tree* t) {
+    std::cout << "I print trees" << std::endl;
+    for(auto &x : t->map) {
+        std::cout << x.first << " -> " << x.second << std::endl;
+    }
+};
+
+// static_assert(sizeof(myStruct) == sizeof(int) + sizeof(float) + 1);
+
 using namespace llvm;
 
 using prog = std::vector<instr>;
@@ -75,13 +98,16 @@ struct my_context {
     BlocksMap blocks;
     using RegsMap = std::unordered_map<size_t, AllocaInst*>;
     RegsMap registers;
+    PointerType* treePointerType;
 };
 
 llvm::Function* printIntFunc;
 llvm::FunctionType* printIntType;
 
-my_context createMain(LLVMContext& context, prog p) {
+my_context createMain(LLVMContext& context, const prog& p) {
     auto intTy = IntegerType::getInt32Ty(context);
+    auto fltTy = IntegerType::getFloatTy(context);
+    auto bitTy = IntegerType::getInt1Ty(context);
 
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
@@ -103,12 +129,36 @@ my_context createMain(LLVMContext& context, prog p) {
                                              llvm::Function::ExternalLinkage, "getInt", *module);
     llvm::sys::DynamicLibrary::AddSymbol("getInt", reinterpret_cast<int *>(getInt));
 
+    auto treeType = StructType::create(context, "tree");
+    auto treePointerType = PointerType::get(treeType, 0);
 
-    auto mainType = llvm::FunctionType::get(builder.getInt32Ty(), false);
+    auto mainType = llvm::FunctionType::get(builder.getInt32Ty(), { treePointerType }, false);
     auto mainFunc = llvm::Function::Create(mainType, llvm::GlobalValue::LinkageTypes::ExternalLinkage,
                                            "myFunction", *module);
 
+    auto printTreeType = FunctionType::get(builder.getVoidTy(), { treePointerType }, false);
+    auto printTreeFunc = Function::Create(printTreeType, GlobalValue::LinkageTypes::ExternalLinkage,
+            "print_tree", *module);
+    sys::DynamicLibrary::AddSymbol("print_tree", reinterpret_cast<void*>(print_tree));
+
     auto entryBlock = llvm::BasicBlock::Create(context, "entry", mainFunc);
+
+    auto args = mainFunc->arg_begin();
+    Value* treeArgument = args++;
+    CallInst::Create(printTreeType, printTreeFunc, { treeArgument }, "", entryBlock);
+
+    Type* structType = StructType::get(context, { intTy, fltTy, bitTy });
+    Value* s = new AllocaInst(structType, 0, "myAggregate", entryBlock);
+
+    auto sPtrTy = PointerType::get(structType, 0);
+    auto aggrFunType = FunctionType::get(builder.getVoidTy(), { sPtrTy }, false);
+    auto aggrFunFunc = Function::Create(aggrFunType, GlobalValue::LinkageTypes::ExternalLinkage,
+                                        "myFunc", *module);
+    sys::DynamicLibrary::AddSymbol("myFunc", reinterpret_cast<void *>(myFunc));
+
+    // GetElementPtrInst::Create(structType, s, )
+    // auto sPtr = GetElementPtrInst::Create(sPtrTy, s, {}, "addr", entryBlock);
+    CallInst::Create(aggrFunType, aggrFunFunc, { s }, "", entryBlock);
 
     my_context::BlocksMap blocks;
     my_context::RegsMap registers;
@@ -123,13 +173,15 @@ my_context createMain(LLVMContext& context, prog p) {
         .context = context,
         .entry = entryBlock,
         .blocks = std::move(blocks),
-        .registers = std::move(registers)
+        .registers = std::move(registers),
+        .treePointerType = treePointerType
     };
 }
 
 void createReg(my_context& ctx, size_t reg) {
     if (ctx.registers.count(reg) == 0)
-        ctx.registers[reg] = new AllocaInst(IntegerType::getInt32Ty(ctx.context), 0, "Reg" + std::to_string(reg), ctx.entry);
+        ctx.registers[reg] = new AllocaInst(
+                IntegerType::getInt32Ty(ctx.context), 0, "Reg" + std::to_string(reg), ctx.entry);
 }
 
 void writeInstruction(my_context& ctx, prog p, size_t pc) {
@@ -190,15 +242,15 @@ void writeInstruction(my_context& ctx, prog p, size_t pc) {
         BranchInst::Create(ctx.blocks[pc + 1], ctx.blocks[pc]);
 }
 
-int main() {
-    auto p = prog {
-            {op_init },
-            {op_set,  1, 1 },         // 1 Initial value of R1 is 1
-            {op_set,  2, 4 },         // 2 Initial value of R2 is 4
-            {op_add,  1, 1 },         // 3 R1 = 1 + R1
-            {op_lt,   1, 3, 2 }, // 4 R3 = R1 < R2
-            {op_jump, 3, 3 },         // 5 If R3 GoTo 3
-            {op_halt }                         // End
+int do_jit() {
+    auto p = prog{
+            {op_init},
+            {op_set,  1, 1},         // 1 Initial value of R1 is 1
+            {op_set,  2, 4},         // 2 Initial value of R2 is 4
+            {op_add,  1, 1},         // 3 R1 = 1 + R1
+            {op_lt,   1, 3, 2}, // 4 R3 = R1 < R2
+            {op_jump, 3, 3},         // 5 If R3 GoTo 3
+            {op_halt}                         // End
     };
 
     auto llvmContext = LLVMContext();
@@ -208,17 +260,20 @@ int main() {
     auto firstRegVal = new LoadInst(intTy, ctx.registers[1], "regVal", ctx.end);
     ReturnInst::Create(llvmContext, firstRegVal, ctx.end);
 
-    for(size_t pc = 0; pc < p.size(); pc++)
+    for (size_t pc = 0; pc < p.size(); pc++)
         writeInstruction(ctx, p, pc);
 
     BranchInst::Create(ctx.blocks[0], ctx.entry);
 
+    std::string module_str;
+    raw_string_ostream module_stream(module_str);
+    ctx.module->print(module_stream, nullptr);
+    std::cout << module_str << std::endl;
 
     std::string error;
     llvm::raw_string_ostream error_os(error);
     if (llvm::verifyModule(*ctx.module, &error_os)) {
         std::cerr << "Module Error: " << error << '\n';
-        ctx.module->print(error_os, nullptr);
         std::cerr << error << std::endl;
         return 1;
     }
@@ -236,11 +291,32 @@ int main() {
     }
     engine->finalizeObject();
 
-    std::vector<GenericValue> NoArgs(0);
+    tree myTree;
+    myTree.map[123] = "qsjkqjskldjqsd";
+
     std::cout << "Calling" << std::endl;
-    GenericValue val = engine->runFunction(ctx.mainFunction, NoArgs);
-    outs() << val.IntVal << '\n';
+
+    // std::vector<GenericValue> NoArgs(0);
+    // std::vector<GenericValue> TreeArgs(1);
+    // TreeArgs[0] = GenericValue(&myTree);
+    // GenericValue val = engine->runFunction(ctx.mainFunction, TreeArgs);
+    // outs() << val.IntVal << '\n';
+
+    auto mainFunction = reinterpret_cast<int(*)(tree*)>(engine->getFunctionAddress("myFunction"));
+    auto result = mainFunction(&myTree);
+    std::cout << result << std::endl;
     std::cout << "OK" << std::endl;
 
+    return 0;
+}
+
+int main() {
+    do_jit();
+    myStruct s;
+    s.b = 1;
+    s.f = 3.14;
+    s.i = 3;
+    // std::cout << sizeof(s.f) << std::endl;
+    std::cout << sizeof(s) << std::endl;
     return 0;
 }
