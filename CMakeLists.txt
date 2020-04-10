@@ -126,7 +126,10 @@ add_library(sqlite
         ${PROJECT_SOURCE_DIR}/src/walker.c
         ${PROJECT_SOURCE_DIR}/src/where.c
         ${PROJECT_SOURCE_DIR}/src/wherecode.c
+        ${PROJECT_SOURCE_DIR}/src/thomas.h
+        ${PROJECT_SOURCE_DIR}/src/write_opcodes.cpp
         ${PROJECT_SOURCE_DIR}/src/thomas.cpp
+        ${PROJECT_SOURCE_DIR}/src/main_function.cpp
         ${PROJECT_SOURCE_DIR}/src/whereexpr.c
         ${PROJECT_SOURCE_DIR}/src/whereInt.h
         ${PROJECT_SOURCE_DIR}/src/window.c
