@@ -71,11 +71,11 @@ struct tree {
     std::map<int, std::string> map;
 };
 
-void myFunc(myStruct* s) {
+void printAgg(myStruct* s) {
     std::cout << "Value of f : " << s->f << " Value of b : " << s->b << std::endl;
 }
 
-void print_tree(tree* t) {
+void printTree(tree* t) {
     std::cout << "I print trees" << std::endl;
     for(auto &x : t->map) {
         std::cout << x.first << " -> " << x.second << std::endl;
@@ -134,12 +134,12 @@ my_context createMain(LLVMContext& context, const prog& p) {
 
     auto mainType = llvm::FunctionType::get(builder.getInt32Ty(), { treePointerType }, false);
     auto mainFunc = llvm::Function::Create(mainType, llvm::GlobalValue::LinkageTypes::ExternalLinkage,
-                                           "myFunction", *module);
+                                           "jitMain", *module);
 
     auto printTreeType = FunctionType::get(builder.getVoidTy(), { treePointerType }, false);
     auto printTreeFunc = Function::Create(printTreeType, GlobalValue::LinkageTypes::ExternalLinkage,
-            "print_tree", *module);
-    sys::DynamicLibrary::AddSymbol("print_tree", reinterpret_cast<void*>(print_tree));
+            "printTree", *module);
+    sys::DynamicLibrary::AddSymbol("printTree", reinterpret_cast<void *>(printTree));
 
     auto entryBlock = llvm::BasicBlock::Create(context, "entry", mainFunc);
 
@@ -147,14 +147,24 @@ my_context createMain(LLVMContext& context, const prog& p) {
     Value* treeArgument = args++;
     CallInst::Create(printTreeType, printTreeFunc, { treeArgument }, "", entryBlock);
 
-    Type* structType = StructType::get(context, { intTy, fltTy, bitTy });
+    // Type* structType = StructType::get(context, { intTy, fltTy, bitTy });
+    Type* structType = StructType::create(context, { intTy, fltTy, bitTy }, "myAggregateType");
     Value* s = new AllocaInst(structType, 0, "myAggregate", entryBlock);
+
+    auto zero = ConstantInt::get(intTy, 0, false);
+    auto one = ConstantInt::get(intTy, 1, false);
+    auto two = ConstantInt::get(intTy, 2, false);
+    // builder.CreateGEP()
+    auto fltPtr = GetElementPtrInst::Create(nullptr, s, { zero, one }, "ptrToFloat", entryBlock);
+
+    auto myFloat = ConstantFP::get(fltTy, 3.1415926);
+    new StoreInst(myFloat, fltPtr, entryBlock);
 
     auto sPtrTy = PointerType::get(structType, 0);
     auto aggrFunType = FunctionType::get(builder.getVoidTy(), { sPtrTy }, false);
     auto aggrFunFunc = Function::Create(aggrFunType, GlobalValue::LinkageTypes::ExternalLinkage,
-                                        "myFunc", *module);
-    sys::DynamicLibrary::AddSymbol("myFunc", reinterpret_cast<void *>(myFunc));
+                                        "printAgg", *module);
+    sys::DynamicLibrary::AddSymbol("printAgg", reinterpret_cast<void *>(printAgg));
 
     // GetElementPtrInst::Create(structType, s, )
     // auto sPtr = GetElementPtrInst::Create(sPtrTy, s, {}, "addr", entryBlock);
@@ -302,7 +312,7 @@ int do_jit() {
     // GenericValue val = engine->runFunction(ctx.mainFunction, TreeArgs);
     // outs() << val.IntVal << '\n';
 
-    auto mainFunction = reinterpret_cast<int(*)(tree*)>(engine->getFunctionAddress("myFunction"));
+    auto mainFunction = reinterpret_cast<int(*)(tree*)>(engine->getFunctionAddress("jitMain"));
     auto result = mainFunction(&myTree);
     std::cout << result << std::endl;
     std::cout << "OK" << std::endl;
