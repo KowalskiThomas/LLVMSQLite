@@ -48,10 +48,7 @@ struct instr {
     int p3;
     int p4;
 };
-
-void foo(int k) {
-    std::cout << "foo called with " << k << "\n";
-}
+using prog = std::vector<instr>;
 
 int getInt() {
     return 31415;
@@ -78,98 +75,110 @@ void printAgg(myStruct* s) {
 void printTree(tree* t) {
     std::cout << "I print trees" << std::endl;
     for(auto &x : t->map) {
-        std::cout << x.first << " -> " << x.second << std::endl;
+        std::cout << '\t' << x.first << " -> " << x.second << std::endl;
     }
 };
 
-// static_assert(sizeof(myStruct) == sizeof(int) + sizeof(float) + 1);
-
-using namespace llvm;
-
-using prog = std::vector<instr>;
-
 struct my_context {
+    // The LLVM module
     std::unique_ptr<Module> module;
+    // The main JITted function
     Function* mainFunction;
+    // The LLVM Context we use in the code generation
     LLVMContext& context;
+    // The entry basic block
     BasicBlock* entry;
+    // The end basic block (end of JITted main)
     BasicBlock* end;
+    // Type used to store the different instruction-basic-blocks
     using BlocksMap = std::unordered_map<size_t, BasicBlock*>;
+    // The instruction basic-blocks
     BlocksMap blocks;
+    // Type used to store the registers
     using RegsMap = std::unordered_map<size_t, AllocaInst*>;
+    // The registers
     RegsMap registers;
-    PointerType* treePointerType;
 };
 
-llvm::Function* printIntFunc;
-llvm::FunctionType* printIntType;
+Function* printIntFunc;
+FunctionType* printIntType;
 
 my_context createMain(LLVMContext& context, const prog& p) {
+    // Initialise JIT
+    InitializeNativeTarget();
+    InitializeNativeTargetAsmPrinter();
+    InitializeNativeTargetAsmParser();
+
+    // Types we use
     auto intTy = IntegerType::getInt32Ty(context);
     auto fltTy = IntegerType::getFloatTy(context);
     auto bitTy = IntegerType::getInt1Ty(context);
 
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-    llvm::InitializeNativeTargetAsmParser();
+    // Our module
+    auto module = std::make_unique<Module>("top", context);
+    IRBuilder<> builder(context);
 
-    auto module = std::make_unique<llvm::Module>("top", context);
-    llvm::IRBuilder<> builder(context);
-
-    auto fooType = llvm::FunctionType::get(builder.getVoidTy(), { builder.getInt32Ty() }, false);
-    auto fooFunc = llvm::Function::Create(fooType, llvm::Function::ExternalLinkage, "foo", *module);
-    llvm::sys::DynamicLibrary::AddSymbol("foo", reinterpret_cast<void *>(foo));
-
+    // The print_int function (defined in C++)
     printIntType = FunctionType::get(builder.getVoidTy(), { builder.getInt32Ty() }, false);
-    printIntFunc = llvm::Function::Create(printIntType, Function::ExternalLinkage, "print_int", *module);
+    printIntFunc = Function::Create(printIntType, Function::ExternalLinkage, "print_int", *module);
     sys::DynamicLibrary::AddSymbol("print_int", reinterpret_cast<void *>(print_int));
 
-    auto getIntType = llvm::FunctionType::get(builder.getInt32Ty(), false);
-    auto getIntFunc = llvm::Function::Create(getIntType,
-                                             llvm::Function::ExternalLinkage, "getInt", *module);
-    llvm::sys::DynamicLibrary::AddSymbol("getInt", reinterpret_cast<int *>(getInt));
+    // The getInt function (allows to return an int) (defined in C++)
+    auto getIntType = FunctionType::get(builder.getInt32Ty(), false);
+    auto getIntFunc = Function::Create(getIntType, Function::ExternalLinkage, "getInt", *module);
+    sys::DynamicLibrary::AddSymbol("getInt", reinterpret_cast<int *>(getInt));
 
+    // The tree structure type (opaque aggregate type)
     auto treeType = StructType::create(context, "tree");
+    // And pointer-to-tree type
     auto treePointerType = PointerType::get(treeType, 0);
 
-    auto mainType = llvm::FunctionType::get(builder.getInt32Ty(), { treePointerType }, false);
-    auto mainFunc = llvm::Function::Create(mainType, llvm::GlobalValue::LinkageTypes::ExternalLinkage,
-                                           "jitMain", *module);
+    // The main function executed by the JIT
+    auto mainType = FunctionType::get(builder.getInt32Ty(), { treePointerType }, false);
+    auto mainFunc = Function::Create(mainType, GlobalValue::LinkageTypes::ExternalLinkage, "jitMain", *module);
 
+    // The printTree function (defined in C++), takes a pointer-to-tree-structure as a parameter
     auto printTreeType = FunctionType::get(builder.getVoidTy(), { treePointerType }, false);
-    auto printTreeFunc = Function::Create(printTreeType, GlobalValue::LinkageTypes::ExternalLinkage,
-            "printTree", *module);
+    auto printTreeFunc = Function::Create(printTreeType, GlobalValue::LinkageTypes::ExternalLinkage, "printTree", *module);
     sys::DynamicLibrary::AddSymbol("printTree", reinterpret_cast<void *>(printTree));
 
-    auto entryBlock = llvm::BasicBlock::Create(context, "entry", mainFunc);
+    // The entry block in the main function
+    auto entryBlock = BasicBlock::Create(context, "entry", mainFunc);
 
+    // Get the arguments passed to the JITted function and use
     auto args = mainFunc->arg_begin();
     Value* treeArgument = args++;
+    // And use them in a call to printTree
     CallInst::Create(printTreeType, printTreeFunc, { treeArgument }, "", entryBlock);
 
-    // Type* structType = StructType::get(context, { intTy, fltTy, bitTy });
+    // An explicitly defined aggregate type
     Type* structType = StructType::create(context, { intTy, fltTy, bitTy }, "myAggregateType");
+    // Allocate an aggregate of the newly defined type
     Value* s = new AllocaInst(structType, 0, "myAggregate", entryBlock);
 
+    // Constants
     auto zero = ConstantInt::get(intTy, 0, false);
     auto one = ConstantInt::get(intTy, 1, false);
     auto two = ConstantInt::get(intTy, 2, false);
-    // builder.CreateGEP()
+
+    // Pointer-to-FP in our aggregate
     auto fltPtr = GetElementPtrInst::Create(nullptr, s, { zero, one }, "ptrToFloat", entryBlock);
 
-    auto myFloat = ConstantFP::get(fltTy, 3.1415926);
-    new StoreInst(myFloat, fltPtr, entryBlock);
+    // The pi FP constant
+    auto pi = ConstantFP::get(fltTy, 3.1415926);
+    // Store it in the pointer we got from the aggregate earlier on
+    new StoreInst(pi, fltPtr, entryBlock);
 
-    auto sPtrTy = PointerType::get(structType, 0);
-    auto aggrFunType = FunctionType::get(builder.getVoidTy(), { sPtrTy }, false);
-    auto aggrFunFunc = Function::Create(aggrFunType, GlobalValue::LinkageTypes::ExternalLinkage,
-                                        "printAgg", *module);
+    // Add a function that takes a pointer-to-aggregate as a parameter
+    auto aggrPtrTy = PointerType::get(structType, 0);
+    auto aggrFunType = FunctionType::get(builder.getVoidTy(), { aggrPtrTy }, false);
+    auto aggrFunFunc = Function::Create(aggrFunType, GlobalValue::LinkageTypes::ExternalLinkage, "printAgg", *module);
     sys::DynamicLibrary::AddSymbol("printAgg", reinterpret_cast<void *>(printAgg));
 
-    // GetElementPtrInst::Create(structType, s, )
-    // auto sPtr = GetElementPtrInst::Create(sPtrTy, s, {}, "addr", entryBlock);
+    // Call discussed function
     CallInst::Create(aggrFunType, aggrFunFunc, { s }, "", entryBlock);
 
+    // Generate all blocks (for each instruction) and all registers (stack variables)
     my_context::BlocksMap blocks;
     my_context::RegsMap registers;
     for(size_t i = 0; i < p.size(); i++) {
@@ -177,6 +186,7 @@ my_context createMain(LLVMContext& context, const prog& p) {
         registers[i] = new AllocaInst(intTy, 0, "Reg" + std::to_string(i), entryBlock);
     }
 
+    // Return our Context
     return {
         .module =  std::move(module),
         .mainFunction = mainFunc,
@@ -184,7 +194,6 @@ my_context createMain(LLVMContext& context, const prog& p) {
         .entry = entryBlock,
         .blocks = std::move(blocks),
         .registers = std::move(registers),
-        .treePointerType = treePointerType
     };
 }
 
@@ -279,20 +288,20 @@ int do_jit() {
     raw_string_ostream module_stream(module_str);
     ctx.module->print(module_stream, nullptr);
     std::cout << module_str << std::endl;
+    std::cout << "------------------------------------------------------------" << std::endl;
 
     std::string error;
-    llvm::raw_string_ostream error_os(error);
-    if (llvm::verifyModule(*ctx.module, &error_os)) {
+    raw_string_ostream error_os(error);
+    if (verifyModule(*ctx.module, &error_os)) {
         std::cerr << "Module Error: " << error << '\n';
         std::cerr << error << std::endl;
         return 1;
     }
 
-    errs() << "Module:\n" << *ctx.module;
-    auto engine = llvm::EngineBuilder(std::move(ctx.module))
+    auto engine = EngineBuilder(std::move(ctx.module))
             .setErrorStr(&error)
-            .setOptLevel(llvm::CodeGenOpt::Aggressive)
-            .setEngineKind(llvm::EngineKind::JIT)
+            .setOptLevel(CodeGenOpt::Aggressive)
+            .setEngineKind(EngineKind::JIT)
             .create();
 
     if (!engine) {
@@ -302,19 +311,12 @@ int do_jit() {
     engine->finalizeObject();
 
     tree myTree;
-    myTree.map[123] = "qsjkqjskldjqsd";
+    myTree.map[123] = "thomas";
 
     std::cout << "Calling" << std::endl;
-
-    // std::vector<GenericValue> NoArgs(0);
-    // std::vector<GenericValue> TreeArgs(1);
-    // TreeArgs[0] = GenericValue(&myTree);
-    // GenericValue val = engine->runFunction(ctx.mainFunction, TreeArgs);
-    // outs() << val.IntVal << '\n';
-
     auto mainFunction = reinterpret_cast<int(*)(tree*)>(engine->getFunctionAddress("jitMain"));
     auto result = mainFunction(&myTree);
-    std::cout << result << std::endl;
+    std::cout << "Result of function: " << result << std::endl;
     std::cout << "OK" << std::endl;
 
     return 0;
@@ -322,11 +324,5 @@ int do_jit() {
 
 int main() {
     do_jit();
-    myStruct s;
-    s.b = 1;
-    s.f = 3.14;
-    s.i = 3;
-    // std::cout << sizeof(s.f) << std::endl;
-    std::cout << sizeof(s) << std::endl;
     return 0;
 }
