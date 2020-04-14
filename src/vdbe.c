@@ -23,7 +23,8 @@
 
 // THOMAS KOWALSKI
 // #include "../opcodes.h"
-// #define SQLITE_OMIT_TRACE
+#define SQLITE_OMIT_TRACE
+#define SQLITE_OMIT_DEPRECATED
 
 /*
 ** Invoke this macro on memory cells just prior to changing the

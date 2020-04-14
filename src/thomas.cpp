@@ -1,11 +1,14 @@
 #include "thomas.h"
 
+Type* intTy = nullptr;
+Type* fltTy = nullptr;
+Type* bitTy = nullptr;
+
 extern "C" {
 
 int sqlite3VdbeExec(Vdbe *p) {
     auto llvmContext = LLVMContext();
     auto ctx = createMain(llvmContext, p);
-    auto intTy = IntegerType::getInt32Ty(llvmContext);
     ctx.end = BasicBlock::Create(llvmContext, "end", ctx.mainFunction);
 
     auto firstRegVal = new LoadInst(intTy, ctx.registers[1], "regVal", ctx.end);

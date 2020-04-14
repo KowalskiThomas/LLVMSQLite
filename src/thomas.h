@@ -41,6 +41,10 @@ extern "C" {
 using namespace llvm;
 using namespace orc;
 
+extern Type* intTy;
+extern Type* fltTy;
+extern Type* bitTy;
+
 struct my_context {
     // The VDBE to execute
     Vdbe* vdbe;
@@ -63,10 +67,13 @@ struct my_context {
     // The registers
     RegsMap registers;
 
+    using ParametersMap = std::unordered_map<size_t, std::unordered_map<size_t, AllocaInst*>>;
+    ParametersMap parameters;
+
     my_context(Vdbe* vdbe, std::unique_ptr<llvm::Module> module, Function* mainFunction, LLVMContext& context,
-            BasicBlock* entry, BasicBlock* end, BlocksMap blocks, RegsMap registers)
+            BasicBlock* entry, BasicBlock* end, BlocksMap blocks, RegsMap registers, ParametersMap parameters)
             : vdbe(vdbe), module(std::move(module)), mainFunction(mainFunction), context(context),
-            entry(entry), end(end), blocks(std::move(blocks)), registers(std::move(registers))
+            entry(entry), end(end), blocks(std::move(blocks)), registers(std::move(registers)), parameters(std::move(parameters))
     {
     }
 };
