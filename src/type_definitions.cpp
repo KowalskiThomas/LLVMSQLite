@@ -1,8 +1,6 @@
-#include "type_definitions.h"
-#include "thomas.h"
+# include "type_definitions.h"
 
 void load_type_definitions(my_context& ctx) {
-    std::cout << "OK" << std::endl;
     T::i32Ty = IntegerType::get(ctx.context, 32);
     T::i8Ty = IntegerType::get(ctx.context, 8);
     T::i8PtrTy = PointerType::get(T::i8Ty, 0);
