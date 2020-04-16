@@ -1,4 +1,5 @@
 #include "thomas.h"
+#include "type_definitions.h"
 
 #include <cassert>
 
@@ -71,12 +72,12 @@ static inline void writeOpenRead(my_context& ctx, Op& op, const size_t pc, Basic
 
     auto ARR = ArrayType::get(i8Ty, 1);
 
-    auto KeyInfoTy = StructType::create(ctx.context, { i32Ty, i8Ty, i16Ty, i16Ty, ARR, i8PtrTy, ARR }, "KeyInfo");
-    auto KeyInfoPtrTy = PointerType::get(KeyInfoTy, 0);
+    // auto KeyInfoTy = StructType::create(ctx.context, { i32Ty, i8Ty, i16Ty, i16Ty, ARR, i8PtrTy, ARR }, "KeyInfo");
+    // auto KeyInfoPtrTy = PointerType::get(KeyInfoTy, 0);
 
     auto nField = new AllocaInst(intTy, 0, "nField", block);
     new StoreInst(SZero, nField, block);
-    auto pKeyInfo = new AllocaInst(KeyInfoPtrTy, 0, "pKeyInfo", block);
+    auto pKeyInfo = new AllocaInst(T::KeyInfoPtrTy, 0, "pKeyInfo", block);
 }
 
 void writeInstruction(my_context& ctx, size_t pc) {

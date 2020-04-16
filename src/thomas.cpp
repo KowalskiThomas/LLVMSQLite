@@ -1,4 +1,5 @@
 #include "thomas.h"
+#include "jit_utils.h"
 
 Type* intTy = nullptr;
 Type* fltTy = nullptr;
@@ -21,10 +22,7 @@ int sqlite3VdbeExec(Vdbe *p) {
     BranchInst::Create(ctx.blocks[0], ctx.entry);
     BranchInst::Create(ctx.end, ctx.blocks[p->nOp - 1]);
 
-    std::string module_str;
-    raw_string_ostream module_stream(module_str);
-    ctx.module->print(module_stream, nullptr);
-    std::cout << module_str << std::endl;
+    print_module(ctx.module);
     std::cout << "------------------------------------------------------------" << std::endl;
 
     std::string error;
