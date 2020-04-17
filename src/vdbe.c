@@ -3813,6 +3813,8 @@ case OP_Offset: {          /* out3 */
                 } else {
                     wrFlag = 0;
                 }
+                // If P5 is a flag saying that p2 is a register and not a raw value
+                // Mathilde I love you
                 if (pOp->p5 & OPFLAG_P2ISREG) {
                     assert(p2 > 0);
                     assert(p2 <= (p->nMem + 1 - p->nCursor));

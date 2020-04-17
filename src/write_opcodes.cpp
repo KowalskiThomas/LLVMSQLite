@@ -195,16 +195,18 @@ static inline void writeOpenRead(my_context& ctx, Op& op, const size_t pc, Basic
     auto wrFlag = 0;
     auto p5 = ctx.vdbe->aOp[pc].p5;
     if (p5 & OPFLAG_P2ISREG || true /* TODO: REMOVE TRUE */) {
+        // Get reference to (LLVM) R[P2]
         auto pIn2 = ctx.registers[p2Val];
-        auto llvmPIn2 = new LoadInst(T::sqlite3_valuePtrTy, pIn2, "pMem", block);
-        // Make sure R[P2] holds an integer
-        JitVdbeMemIntegerify(ctx, llvmPIn2, block);
+        // Load address of R[P2]'s sqlite3_value
+        auto regValue = new LoadInst(T::sqlite3_valuePtrTy, pIn2, "regValue", block);
+        // Make sure R[P2] holds an integer (convert if needed)
+        JitVdbeMemIntegerify(ctx, regValue, block);
         // Get the address of the data in R[P2]
-        auto unionAddress = GetElementPtrInst::Create(nullptr, llvmPIn2, {SZero, SZero }, "unionAddress", block);
+        auto unionAddress = GetElementPtrInst::Create(nullptr, regValue, {SZero, SZero }, "unionAddress", block);
         // Get the value stored in R[P2] and store it in p2
         auto valueStoredInP2Reg = CastInst::CreateIntegerCast(
-                new LoadInst(T::i64Ty, unionAddress, "NewP2", block),
-                T::i32Ty, true, "NewP2AsI32", block);
+                new LoadInst(T::i64Ty, unionAddress, "p2FromReg", block),
+                T::i32Ty, true, "p2FromRegAsI32", block);
         // Store in p2
         new StoreInst(valueStoredInP2Reg, p2, block);
     }
