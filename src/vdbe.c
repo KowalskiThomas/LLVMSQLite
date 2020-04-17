@@ -3781,14 +3781,13 @@ case OP_Offset: {          /* out3 */
                     goto open_cursor_set_hints;
                 }
                 /* If the cursor is not currently open or is open on a different
-  ** index, then fall through into OP_OpenRead to force a reopen */
+                ** index, then fall through into OP_OpenRead to force a reopen */
                 case OP_OpenRead:
                 case OP_OpenWrite:
 
-                    assert(pOp->opcode == OP_OpenWrite || pOp->p5 == 0 || pOp->p5 == OPFLAG_SEEKEQ);
+                assert(pOp->opcode == OP_OpenWrite || pOp->p5 == 0 || pOp->p5 == OPFLAG_SEEKEQ);
                 assert(p->bIsReader);
-                assert(pOp->opcode == OP_OpenRead || pOp->opcode == OP_ReopenIdx
-                       || p->readOnly == 0);
+                assert(pOp->opcode == OP_OpenRead || pOp->opcode == OP_ReopenIdx || p->readOnly == 0);
 
                 if (p->expired == 1) {
                     rc = SQLITE_ABORT_ROLLBACK;
