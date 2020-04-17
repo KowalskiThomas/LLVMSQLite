@@ -76,8 +76,12 @@ struct my_context {
             entry(entry), end(end), blocks(std::move(blocks)), registers(std::move(registers)), parameters(std::move(parameters))
     {
     }
+
+    ~my_context() {
+
+    }
 };
 
 my_context createMain(LLVMContext& context, Vdbe* vdbe);
 void writeInstruction(my_context& ctx, size_t pc);
-void load_type_definitions(my_context&);
+void load_type_definitions(LLVMContext&);

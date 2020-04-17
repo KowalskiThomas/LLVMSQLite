@@ -1,4 +1,5 @@
 #include "thomas.h"
+#include "type_definitions.h"
 
 // Function* printIntFunc;
 // FunctionType* printIntType;
@@ -55,7 +56,7 @@ my_context createMain(LLVMContext& context, Vdbe* vdbe) {
 
     my_context::RegsMap registers;
     for(size_t i = 0; i < 100; i++) {
-        registers[i] = new AllocaInst(intTy, 0, "Reg" + std::to_string(i), entryBlock);
+        registers[i] = new AllocaInst(T::sqlite3_valuePtrTy, 0, "Reg" + std::to_string(i), entryBlock);
     }
 
     // Return our Context

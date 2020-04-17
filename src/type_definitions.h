@@ -2,7 +2,7 @@
 
              #define SQLITE_JIT_IR_TYPE static inline llvm::Type*
 
-             void load_type_definitions(my_context&);
+             void load_type_definitions(LLVMContext&);
 
              struct T {
     static inline StructType* Sqlite3ConfigTy = nullptr;

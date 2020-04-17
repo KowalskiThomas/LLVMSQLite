@@ -18,7 +18,7 @@ std::vector<std::string> split(const std::string& s, char by) {
     return vec;
 }
 
-std::string stripped(const std::string& s) {
+std::string stripped(const std::string& s, bool pause) {
     std::string result;
     size_t i = 0;
     while (s[i] == '\n' || s[i] == ' ' || s[i] == '\t')
@@ -30,7 +30,7 @@ std::string stripped(const std::string& s) {
     return result;
 }
 
-void print_module(llvm::Module& m) {
+void print_module(llvm::Module& m, bool pause) {
     std::string str;
     raw_string_ostream s(str);
     m.print(s, nullptr);
@@ -46,13 +46,13 @@ void print_module(llvm::Module& m) {
             std::cout << "; Output unpaused" << std::endl;
         }
 
-        if (!paused)
+        if (!paused || !pause)
             std::cout << line << std::endl;
     }
 
     // std::cout << str;
 }
 
-void print_module(const std::unique_ptr<llvm::Module>& m) {
-    print_module(*m);
+void print_module(const std::unique_ptr<llvm::Module>& m, bool pause) {
+    print_module(*m, pause);
 }

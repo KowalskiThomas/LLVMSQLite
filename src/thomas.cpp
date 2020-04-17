@@ -9,9 +9,9 @@ extern "C" {
 
 int sqlite3VdbeExec(Vdbe *p) {
     auto llvmContext = LLVMContext();
+    load_type_definitions(llvmContext);
     auto ctx = createMain(llvmContext, p);
     ctx.end = BasicBlock::Create(llvmContext, "end", ctx.mainFunction);
-    load_type_definitions(ctx);
 
     auto firstRegVal = new LoadInst(intTy, ctx.registers[1], "regVal", ctx.end);
     ReturnInst::Create(llvmContext, firstRegVal, ctx.end);
@@ -22,14 +22,13 @@ int sqlite3VdbeExec(Vdbe *p) {
     BranchInst::Create(ctx.blocks[0], ctx.entry);
     BranchInst::Create(ctx.end, ctx.blocks[p->nOp - 1]);
 
-    print_module(ctx.module);
+    print_module(ctx.module, false);
     std::cout << "------------------------------------------------------------" << std::endl;
 
     std::string error;
     raw_string_ostream error_os(error);
     if (verifyModule(*ctx.module, &error_os)) {
         std::cerr << "Module Error: " << error << '\n';
-        std::cerr << error << std::endl;
         return 1;
     }
 
