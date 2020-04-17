@@ -55,8 +55,8 @@ static inline void writeInit(my_context& ctx, Op& op, const size_t pc, BasicBloc
  * @param f the new flags value
  */
 void JitMemSetTypeFlag(my_context& c, Value* llvmPMem, BasicBlock* block, u16 f) {
-    auto tmpAddr = GetElementPtrInst::Create(nullptr, llvmPMem, { SZero, SOne }, "flagsAddress", block);
-    auto flagsAddress = CastInst::Create(Instruction::CastOps::BitCast, tmpAddr, T::i16PtrTy, "flagsAddress", block);
+    auto flagsAddress = GetElementPtrInst::Create(nullptr, llvmPMem, { SZero, SOne }, "flagsAddress", block);
+    // auto  = CastInst::Create(Instruction::CastOps::BitCast, tmpAddr, T::i16PtrTy, "flagsAddress", block);
     new StoreInst(ConstantInt::get(T::i16Ty, f), flagsAddress, block);
 }
 
@@ -96,32 +96,32 @@ auto JitVdbeIntegerValue(my_context& c) {
     auto result = new AllocaInst(T::i64Ty, 0, "resultingInt", block);
 
     auto isIntOrIntReal = BinaryOperator::CreateAnd(flags, MemIntOrMemIntReal, "isMemIntOrMemIntReal", block);
-    auto isIntOrIntReal1 = ICmpInst::Create(Instruction::OtherOps::ICmp, CmpInst::ICMP_EQ, isIntOrIntReal, Zero16, "isIntOrIntReal1", block);
+    auto isIntOrIntReal1 = ICmpInst::Create(Instruction::OtherOps::ICmp, CmpInst::ICMP_NE, isIntOrIntReal, Zero16, "isIntOrIntReal1", block);
 
     auto isReal = BinaryOperator::CreateAnd(flags, MemReal, "isMemReal", block);
-    auto isReal1 = ICmpInst::Create(Instruction::OtherOps::ICmp, CmpInst::ICMP_EQ, isReal, Zero16, "isReal1", block);
+    auto isReal1 = ICmpInst::Create(Instruction::OtherOps::ICmp, CmpInst::ICMP_NE, isReal, Zero16, "isReal1", block);
 
     auto isStringOrBlob = BinaryOperator::CreateAnd(flags, MemStrOrMemBlob, "isMemStrOrMemBlob", block);
-    auto isStringOrBlob1 = ICmpInst::Create(Instruction::OtherOps::ICmp, CmpInst::ICMP_EQ, isStringOrBlob, Zero16, "isStringBlob1", block);
+    auto isStringOrBlob1 = ICmpInst::Create(Instruction::OtherOps::ICmp, CmpInst::ICMP_NE, isStringOrBlob, Zero16, "isStringBlob1", block);
 
     auto BlockIntOrIntReal = BasicBlock::Create(c.context, "BlockIntOrIntReal", integerValue);
-    auto BlockIsNotIntNotIntReal = BasicBlock::Create(c.context, "BlockIsNotIntNotIntReal", integerValue);
+    auto BlockIsNotIntNorIntReal = BasicBlock::Create(c.context, "BlockIsNotIntNorIntReal", integerValue);
     auto BlockReal = BasicBlock::Create(c.context, "BlockReal", integerValue);
     auto BlockNotReal = BasicBlock::Create(c.context, "BlockNotReal", integerValue);
     auto BlockStrOrBlob = BasicBlock::Create(c.context, "BlockStrOrBlob", integerValue);
     auto BlockNotStrNorBlob = BasicBlock::Create(c.context, "BlockNotStrNorBlob", integerValue);
     auto BlockEnd = BasicBlock::Create(c.context, "BlockEnd", integerValue);
 
-    // If Int or IntReal then jump to BlockIntOrIntReal else BlockIsNotIntNotIntReal
-    BranchInst::Create(BlockIntOrIntReal, BlockIsNotIntNotIntReal, isIntOrIntReal1, block);
+    // If Int or IntReal then jump to BlockIntOrIntReal else BlockIsNotIntNorIntReal
+    BranchInst::Create(BlockIntOrIntReal, BlockIsNotIntNorIntReal, isIntOrIntReal1, block);
     auto unionAddress = GetElementPtrInst::Create(nullptr, llvmPMem, { SZero, SZero }, "unionAddress", BlockIntOrIntReal);
-    auto unionAddress2 = CastInst::Create(Instruction::CastOps::BitCast, unionAddress, T::i64PtrTy, "unionAddress", BlockIntOrIntReal);
-    auto unionValue = new LoadInst(T::i64Ty, unionAddress2, "unionValue", BlockIntOrIntReal);
+    auto intAddress = CastInst::Create(Instruction::CastOps::BitCast, unionAddress, T::i64PtrTy, "intAddress", BlockIntOrIntReal);
+    auto unionValue = new LoadInst(T::i64Ty, intAddress, "unionValue", BlockIntOrIntReal);
     new StoreInst(unionValue, result, BlockIntOrIntReal);
     BranchInst::Create(BlockEnd, BlockIntOrIntReal);
 
     // Int Real jump to BlockReal else BlockNotReal
-    BranchInst::Create(BlockReal, BlockNotReal, isReal1, BlockIsNotIntNotIntReal);
+    BranchInst::Create(BlockReal, BlockNotReal, isReal1, BlockIsNotIntNorIntReal);
     // TODO: doubleToInt64
     BranchInst::Create(BlockEnd, BlockReal);
 
@@ -194,17 +194,18 @@ static inline void writeOpenRead(my_context& ctx, Op& op, const size_t pc, Basic
     // TODO: OpenWrite for wrFlag
     auto wrFlag = 0;
     auto p5 = ctx.vdbe->aOp[pc].p5;
-    if (p5 & OPFLAG_P2ISREG || true) {
-        // pIn2 = &aMem[p2];
+    if (p5 & OPFLAG_P2ISREG || true /* TODO: REMOVE TRUE */) {
         auto pIn2 = ctx.registers[p2Val];
-        pIn2 = new AllocaInst(T::sqlite3_valuePtrTy, 0, "testtest", block);
-        new StoreInst(CastInst::Create(Instruction::CastOps::IntToPtr, ConstantInt::get(T::i64Ty, 0), T::sqlite3_valuePtrTy, "", block), pIn2, block);
-        auto llvmPMem = new LoadInst(T::sqlite3_valuePtrTy, pIn2, "pMem", block);
-        JitVdbeMemIntegerify(ctx, llvmPMem, block);
-        auto unionAddress = GetElementPtrInst::Create(nullptr, llvmPMem, { SZero, SZero }, "unionAddressDbg", block);
+        auto llvmPIn2 = new LoadInst(T::sqlite3_valuePtrTy, pIn2, "pMem", block);
+        // Make sure R[P2] holds an integer
+        JitVdbeMemIntegerify(ctx, llvmPIn2, block);
+        // Get the address of the data in R[P2]
+        auto unionAddress = GetElementPtrInst::Create(nullptr, llvmPIn2, {SZero, SZero }, "unionAddress", block);
+        // Get the value stored in R[P2] and store it in p2
         auto valueStoredInP2Reg = CastInst::CreateIntegerCast(
-                new LoadInst(T::i64Ty, unionAddress, "p2", block),
-                T::i32Ty, true, "", block);
+                new LoadInst(T::i64Ty, unionAddress, "NewP2", block),
+                T::i32Ty, true, "NewP2AsI32", block);
+        // Store in p2
         new StoreInst(valueStoredInP2Reg, p2, block);
     }
 }
