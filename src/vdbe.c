@@ -242,7 +242,7 @@ static void test_trace_breakpoint(int pc, Op *pOp, Vdbe *v){
 ** Allocate VdbeCursor number iCur.  Return a pointer to it.  Return NULL
 ** if we run out of memory.
 */
-static VdbeCursor *allocateCursor(
+VdbeCursor *allocateCursor(
         Vdbe *p,              /* The virtual machine */
         int iCur,             /* Index of the new VdbeCursor */
         int nField,           /* Number of fields in the table or index */
@@ -665,7 +665,7 @@ int sqlite3VdbeExec2(
         Vdbe *p                    /* The VDBE */
 ) {
     Op *aOp = p->aOp;          /* Copy of p->aOp */
-    Op *pOp = aOp;             /* Current operation */
+    Op *pOp = ule ;             /* Current operation */
 #if defined(SQLITE_DEBUG) || defined(VDBE_PROFILE)
     Op *pOrigOp;               /* Value of pOp at the top of the loop */
 #endif

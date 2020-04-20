@@ -1,5 +1,6 @@
 #include "thomas.h"
 #include "type_definitions.h"
+#include "function_definitions.h"
 
 #include <cassert>
 
@@ -8,6 +9,9 @@ Value* SThirtyTwo;
 Value* SZero;
 Value* STwo;
 
+Value* CInt(Type* ty, uint64_t i) {
+    return ConstantInt::get(ty, i);
+}
 
 static inline void writeInit(my_context& ctx, Op& op, const size_t pc, BasicBlock* const block) {
     // auto i = new AllocaInst(intTy, 0, "i", block);
@@ -77,6 +81,7 @@ auto JitMemCurrentFlags(my_context& c, Value* llvmPMem, BasicBlock* block) -> Va
 
 FunctionType* integerValueType;
 Function* integerValue;
+
 
 auto JitVdbeIntegerValue(my_context& c) {
     integerValueType = FunctionType::get(T::i64Ty, { T::sqlite3_valuePtrTy }, false);
@@ -168,13 +173,11 @@ static inline void writeOpenRead(my_context& ctx, Op& op, const size_t pc, Basic
 
     JitVdbeIntegerValue(ctx);
 
-    auto i32Ty = IntegerType::get(ctx.context, 32);
-    auto i16Ty = IntegerType::get(ctx.context, 16);
-    auto i8Ty = IntegerType::get(ctx.context, 8);
-    auto i1Ty = IntegerType::get(ctx.context, 1);
-    auto i8PtrTy = PointerType::get(i8Ty, 0);
-
-    auto ARR = ArrayType::get(i8Ty, 1);
+    auto pLlvm = new AllocaInst(T::VdbePtrTy, 0, "vdbe", block);
+    auto p = IntToPtrInst::Create(Instruction::CastOps::IntToPtr,
+                    ConstantInt::get(T::VdbePtrTy, reinterpret_cast<uint64_t>(ctx.vdbe)),
+                    T::VdbePtrTy, "p", block);
+    new StoreInst(p, pLlvm, block);
 
     // nField = 0;
     auto nField = new AllocaInst(intTy, 0, "nField", block);
@@ -184,7 +187,8 @@ static inline void writeOpenRead(my_context& ctx, Op& op, const size_t pc, Basic
     auto temp = IntToPtrInst::Create(Instruction::CastOps::IntToPtr, SZero, T::KeyInfoPtrTy, "temp", block);
     new StoreInst(temp, pKeyInfo, block);
     // p2 = pOp->p2; stays constant
-    auto p2Val = ctx.vdbe->aOp[pc].p2;
+    auto pOp = &ctx.vdbe->aOp[pc];
+    auto p2Val = pOp->p2;
     auto p2 = new AllocaInst(T::i32Ty, 0, "p2", block);
     new StoreInst(ConstantInt::get(T::i32Ty, p2Val), p2, block);
     // pDb = &db->aDb[iDb];
@@ -194,7 +198,7 @@ static inline void writeOpenRead(my_context& ctx, Op& op, const size_t pc, Basic
     // TODO: OpenWrite for wrFlag
     auto wrFlag = 0;
     auto p5 = ctx.vdbe->aOp[pc].p5;
-    if (p5 & OPFLAG_P2ISREG || true /* TODO: REMOVE TRUE */) {
+    if (p5 & OPFLAG_P2ISREG) {
         // Get reference to (LLVM) R[P2]
         auto pIn2 = ctx.registers[p2Val];
         // Load address of R[P2]'s sqlite3_value
@@ -210,6 +214,55 @@ static inline void writeOpenRead(my_context& ctx, Op& op, const size_t pc, Basic
         // Store in p2
         new StoreInst(valueStoredInP2Reg, p2, block);
     }
+    if (pOp->p4type == P4_KEYINFO) {
+        auto pKeyInfo = pOp->p4.pKeyInfo;
+        auto val = ConstantInt::get(T::i32Ty, pKeyInfo->nAllField);
+        new StoreInst(val, nField, block);
+    } else if (pOp->p4type == P4_INT32) {
+        auto val = ConstantInt::get(T::i32Ty, pOp->p4.i);
+        new StoreInst(val, nField, block);
+    }
+
+    // Call allocateCursor
+    ArrayRef<Value*> args = {
+        p, // The VDBE Pointer
+        ConstantInt::get(T::i32Ty, pOp->p1), // Value of P1
+        new LoadInst(nField, "nFieldVal", block), // Number of output fields
+        ConstantInt::get(T::i32Ty, iDb), // DB Index
+        ConstantInt::get(T::i8Ty, CURTYPE_BTREE) // The type of cursor to allocate
+    };
+    auto newCursorAddress = CallInst::Create(allocateCursorTy, allocateCursorF, args, "pCurTmp", block);
+
+#ifdef SQLITE_DEBUG
+    std::cout << "Using debug values" << std::endl;
+    auto nullRowOffset = CInt(T::i32Ty, 2);
+    auto isOrderedOffset = CInt(T::i32Ty, 9);
+    auto pgnoRootOffset = CInt(T::i32Ty, 20);
+#else
+    std::cout << "Using non-debug values" << std::endl;
+    auto nullRowOffset = CInt(T::i32Ty, 2);
+    auto isOrderedOffset = CInt(T::i32Ty, 7);
+    auto pgnoRootOffset = CInt(T::i32Ty, 18);
+#endif
+    // pCur->nullRow = 1
+    auto nullRowAddr = GetElementPtrInst::Create(nullptr, newCursorAddress, { SZero, nullRowOffset }, "nullRowAddr", block);
+    new StoreInst(CInt(T::i8Ty, 1), nullRowAddr, block);
+
+    // pCur->isOrdered = 1
+    auto isOrderedAddr = GetElementPtrInst::Create(nullptr, newCursorAddress, { SZero, isOrderedOffset }, "isOrderedAddr", block);
+    // WARN: This is highly dependant on how clang decides to create the struct in IR
+    //       In the current version I have, it makes a single i8 and then uses part of it for each :1 field of the aggregate
+    //       Thing is that might change in the future, or even if we change the optimisation level
+    new StoreInst(CInt(T::i1Ty, 1), isOrderedAddr, block);
+
+    // pCur->pgnoRoot = p2
+    auto pgNoRootAddr = GetElementPtrInst::Create(nullptr, newCursorAddress, { SZero, pgnoRootOffset }, "pgNoRootAddr", block);
+    new StoreInst(new LoadInst(p2, "p2Val", block), nullRowAddr, block);
+
+    auto test = new AllocaInst(T::i8Ty, 0, "bookmark", block);
+
+    auto pCur = new AllocaInst(T::VdbeCursorPtrTy, 0, "pCur", block);
+    new StoreInst(newCursorAddress, pCur, block);
 }
 
 void writeInstruction(my_context& ctx, size_t pc) {

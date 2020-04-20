@@ -1,10 +1,8 @@
 #include "thomas.h"
+#define SQLITE_JIT_IR_TYPE static inline llvm::Type*
+void load_type_definitions(LLVMContext&);
 
-             #define SQLITE_JIT_IR_TYPE static inline llvm::Type*
-
-             void load_type_definitions(LLVMContext&);
-
-             struct T {
+struct T {
     static inline StructType* Sqlite3ConfigTy = nullptr;
     static inline StructType* sqlite3_mem_methodsTy = nullptr;
     static inline StructType* sqlite3_mutex_methodsTy = nullptr;
@@ -348,5 +346,6 @@
     SQLITE_JIT_IR_TYPE VdbeSorterPtrTy = nullptr;
     SQLITE_JIT_IR_TYPE RowSetTy = nullptr;
     SQLITE_JIT_IR_TYPE RowSetPtrTy = nullptr;
+    SQLITE_JIT_IR_TYPE i1Ty = nullptr;
 };
 

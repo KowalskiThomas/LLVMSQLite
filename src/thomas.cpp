@@ -11,6 +11,7 @@ int sqlite3VdbeExec(Vdbe *p) {
     auto llvmContext = LLVMContext();
     load_type_definitions(llvmContext);
     auto ctx = createMain(llvmContext, p);
+    load_function_definitions(ctx);
     ctx.end = BasicBlock::Create(llvmContext, "end", ctx.mainFunction);
 
     auto firstRegVal = new LoadInst(intTy, ctx.registers[1], "regVal", ctx.end);

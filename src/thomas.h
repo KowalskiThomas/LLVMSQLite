@@ -82,6 +82,7 @@ struct my_context {
     }
 };
 
-my_context createMain(LLVMContext& context, Vdbe* vdbe);
-void writeInstruction(my_context& ctx, size_t pc);
+my_context createMain(LLVMContext&, Vdbe*);
+void writeInstruction(my_context&, size_t pc);
 void load_type_definitions(LLVMContext&);
+void load_function_definitions(my_context&);
