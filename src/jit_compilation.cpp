@@ -121,8 +121,8 @@ my_context createMain(LLVMContext& context, const prog& p) {
     // The print_int function (defined in C++)
     printIntType = FunctionType::get(builder.getVoidTy(), { builder.getInt32Ty() }, false);
     printIntFunc = Function::Create(printIntType, Function::ExternalLinkage, "print_int", *module);
-    sys::DynamicLibrary::AddSymbol("print_int", reinterpret_cast<void *>(print_int));
 
+    sys::DynamicLibrary::AddSymbol("print_int", reinterpret_cast<void *>(print_int));
     // The getInt function (allows to return an int) (defined in C++)
     auto getIntType = FunctionType::get(builder.getInt32Ty(), false);
     auto getIntFunc = Function::Create(getIntType, Function::ExternalLinkage, "getInt", *module);
