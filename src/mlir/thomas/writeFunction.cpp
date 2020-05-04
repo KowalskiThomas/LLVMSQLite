@@ -30,16 +30,24 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
     // This map should be checked for at the end of every block / operation translation to update jumps.
     std::unordered_map<size_t, llvm::SmallVector<mlir::Operation*, 128>> operations_to_update;
 
+    // Create an OpBuilder and make it write in the (new) function's entryBlock
     auto builder = mlir::OpBuilder(ctx);
     auto entryBlock = func.addEntryBlock();
     builder.setInsertionPointToStart(entryBlock);
 
+    // Each time we translate an instruction, we need to branch from its block to the next block
+    // We store the last instruction's block to this end.
     mlir::Block* lastBlock = entryBlock;
+
+    // Iterate over the VDBE programme
     for(auto pc = 0llu; pc < vdbe->nOp; pc++) {
+        // Create a block for that operation
         auto block = func.addBlock();
         auto& op = vdbe->aOp[pc];
 
         out(pc << " " << sqlite3OpcodeName(op.opcode))
+
+        // Construct the adequate VDBE MLIR operation based on the instruction
         switch(op.opcode) {
             default:
                 llvm::errs() << "Unsupported opcode: " << sqlite3OpcodeName(op.opcode) << '\n';
@@ -60,18 +68,23 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
                 break;
             }
             case OP_Jump: {
-                auto toBlockPc = op.p1; // TODO: Get the right parameter number
+                auto toBlockPc = op.p1; // TODO: Use the right parameter
 
                 // Jumping to the entry block is invalid. This is on purpose.
                 // If we don't update that jump before the end of the conversion, then we haven't
                 // generated the right translation, which means it's not supposed to run.
                 auto toBlock = entryBlock;
+
+                // Of course, if the block to which we want to jump already exists, we want to use it
                 if (blocks.find(toBlockPc) != blocks.end()) {
-                    auto toBlock = blocks[toBlockPc];
+                    toBlock = blocks[toBlockPc];
                 }
 
+                // Create the jump
                 auto op = builder.create<mlir::standalone::Jump>(LOCB, toBlock);
 
+                // If the destination block hasn't been created yet, add this operation to the
+                // ones that need to be updated when the destination block is created
                 if (toBlock == entryBlock) {
                     operations_to_update[toBlockPc].push_back(op.getOperation());
                 }
@@ -79,18 +92,35 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
                 break;
             }
 
+
+
         }
 
+        // Add the block to the blocks map (for use in branches)
+        blocks[pc] = block;
+
+        // Update all instructions that branch to this instruction but couldn't refer to it before
+        for(auto op : operations_to_update[pc]) {
+            op->getBlockOperands()[0].set(block);
+        }
+        // Remove these instructions from the map
+        operations_to_update.erase(pc);
+
+        // Add a branch from the latest block to this one
         builder.setInsertionPointToEnd(lastBlock);
         builder.create<mlir::BranchOp>(LOCB, block);
         builder.setInsertionPointToStart(block);
+
+        // Mark this block as the lastBlock
         lastBlock = block;
     }
 
+    // Add the returning block and a branch from the last VDBE instruction block to it
     auto endBlock = func.addBlock();
     builder.setInsertionPointToEnd(lastBlock);
     builder.create<mlir::BranchOp>(LOCB, endBlock);
 
+    // Add a return operation in the returning block
     builder.setInsertionPointToStart(endBlock);
     auto return0 = builder.create<mlir::ConstantIntOp>(LOCB, 0, 32);
     builder.create<mlir::ReturnOp>(LOCB, (mlir::Value)return0);
