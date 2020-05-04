@@ -1,4 +1,4 @@
-#include "thomas.h"
+#include "vdbe_exec.h"
 
 extern FunctionType* allocateCursorTy;
 extern Function* allocateCursorF;

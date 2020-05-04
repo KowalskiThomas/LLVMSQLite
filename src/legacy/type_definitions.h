@@ -1,4 +1,4 @@
-#include "thomas.h"
+#include "vdbe_exec.h"
 #define SQLITE_JIT_IR_TYPE static inline llvm::Type*
 void load_type_definitions(LLVMContext&);
 

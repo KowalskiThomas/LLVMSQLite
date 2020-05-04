@@ -1,5 +1,4 @@
-#include "thomas.h"
-#include "jit_utils.h"
+#include "vdbe_exec.h"
 
 Type* intTy = nullptr;
 Type* fltTy = nullptr;

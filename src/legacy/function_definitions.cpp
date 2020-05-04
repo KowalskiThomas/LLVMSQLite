@@ -22,5 +22,4 @@ void load_function_definitions(my_context& ctx) {
 
     allocateCursorTy = fTy;
     allocateCursorF = f;
-
 }

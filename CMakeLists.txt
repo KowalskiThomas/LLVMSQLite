@@ -4,30 +4,13 @@ cmake_minimum_required(VERSION 3.15)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# find_package(LLVM 9 REQUIRED CONFIG)
-find_package(LLVM 10 REQUIRED CONFIG)
-add_definitions(${LLVM_DEFINITIONS})
-link_directories(${LLVM_LIBRARY_DIRS})
-
-# find_package(fmt)
-add_subdirectory(fmt)
-
-# message(${LLVM_LIBRARY_DIRS})
-
-include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/src)
-# include_directories(${PROJECT_SOURCE_DIR}/thirdparty/codegen/include/)
-include_directories(${PROJECT_SOURCE_DIR}/fmt/include/)
 
-#add_library(codegen
-#    ${PROJECT_SOURCE_DIR}/thirdparty/codegen/src/compiler.cpp
-#    ${PROJECT_SOURCE_DIR}/thirdparty/codegen/src/module_builder.cpp
-#    ${PROJECT_SOURCE_DIR}/thirdparty/codegen/src/statements.cpp
-#)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/mlir)
 
 add_library(sqlite
-        ${PROJECT_SOURCE_DIR}/src/alter.c 
+        ${PROJECT_SOURCE_DIR}/src/alter.c
         ${PROJECT_SOURCE_DIR}/src/analyze.c
         ${PROJECT_SOURCE_DIR}/src/attach.c
         ${PROJECT_SOURCE_DIR}/src/auth.c
@@ -126,27 +109,17 @@ add_library(sqlite
         ${PROJECT_SOURCE_DIR}/src/walker.c
         ${PROJECT_SOURCE_DIR}/src/where.c
         ${PROJECT_SOURCE_DIR}/src/wherecode.c
-        ${PROJECT_SOURCE_DIR}/src/thomas.h
-        ${PROJECT_SOURCE_DIR}/src/write_opcodes.cpp
-        ${PROJECT_SOURCE_DIR}/src/thomas.cpp
-        ${PROJECT_SOURCE_DIR}/src/type_definitions.cpp
-        ${PROJECT_SOURCE_DIR}/src/function_definitions.cpp
-        ${PROJECT_SOURCE_DIR}/src/jit_utils.cpp
-        ${PROJECT_SOURCE_DIR}/src/main_function.cpp
         ${PROJECT_SOURCE_DIR}/src/whereexpr.c
         ${PROJECT_SOURCE_DIR}/src/whereInt.h
         ${PROJECT_SOURCE_DIR}/src/window.c
         ${PROJECT_SOURCE_DIR}/opcodes.c
         ${PROJECT_SOURCE_DIR}/parse.c
-)
-target_link_libraries(sqlite llvm)
-#target_link_libraries(sqlite codegen)
-target_link_libraries(sqlite fmt::fmt)
 
-add_executable(tests_thomas src/jit_compilation.cpp)
-target_link_libraries(tests_thomas llvm)
-#target_link_libraries(tests_thomas codegen)
-target_link_libraries(tests_thomas fmt::fmt)
+        ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp
+)
+
+target_link_libraries(sqlite sqlite_jit)
 
 add_executable(shell shell.c)
 target_link_libraries(shell sqlite)
+include_directories(${PROJECT_SOURCE_DIR}/fmt/include/)

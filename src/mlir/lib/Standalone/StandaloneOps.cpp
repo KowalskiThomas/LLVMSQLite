@@ -1,0 +1,25 @@
+//===- StandaloneOps.cpp - Standalone dialect ops ---------------*- C++ -*-===//
+//
+// This file is licensed under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+#include "Standalone/StandaloneOps.h"
+#include "Standalone/StandaloneDialect.h"
+#include "mlir/IR/OpImplementation.h"
+#include "mlir/IR/Builders.h"
+#include "mlir/IR/Types.h"
+#include "mlir/IR/StandardTypes.h"
+#include "mlir/IR/TypeUtilities.h"
+
+
+namespace mlir {
+namespace standalone {
+
+#define GET_OP_CLASSES
+#include "Standalone/StandaloneOps.cpp.inc"
+
+} // namespace standalone
+} // namespace mlir

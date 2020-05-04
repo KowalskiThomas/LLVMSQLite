@@ -665,7 +665,7 @@ int sqlite3VdbeExec2(
         Vdbe *p                    /* The VDBE */
 ) {
     Op *aOp = p->aOp;          /* Copy of p->aOp */
-    Op *pOp = ule ;             /* Current operation */
+    Op *pOp = &aOp[p->pc];             /* Current operation */
 #if defined(SQLITE_DEBUG) || defined(VDBE_PROFILE)
     Op *pOrigOp;               /* Value of pOp at the top of the loop */
 #endif
@@ -3841,14 +3841,17 @@ case OP_Offset: {          /* out3 */
                 assert(pOp->p1 >= 0);
                 assert(nField >= 0);
                 testcase(nField == 0);  /* Table with INTEGER PRIMARY KEY and nothing else */
+                // Only allocate memory:
                 pCur = allocateCursor(p, pOp->p1, nField, iDb, CURTYPE_BTREE);
                 if (pCur == 0) goto no_mem;
+                // Define properties of the newly allocated cursor
                 pCur->nullRow = 1;
                 pCur->isOrdered = 1;
                 pCur->pgnoRoot = p2;
 #ifdef SQLITE_DEBUG
                 pCur->wrFlag = wrFlag;
 #endif
+                // Open the cursor to the table, last argument is the address where the cursor should be written
                 rc = sqlite3BtreeCursor(pX, p2, wrFlag, pKeyInfo, pCur->uc.pCursor);
                 pCur->pKeyInfo = pKeyInfo;
                 /* Set the VdbeCursor.isTable variable. Previous versions of
