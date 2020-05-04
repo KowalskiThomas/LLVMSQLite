@@ -6,8 +6,8 @@ namespace mlir {
     namespace standalone {
         namespace passes {
             LogicalResult
-            InitLowering::matchAndRewrite(Operation *op, ArrayRef<Value> operands,
-                                          ConversionPatternRewriter &rewriter) const {
+            InitLowering::matchAndRewrite(InitOp initOp, PatternRewriter &rewriter) const {
+                auto op = &initOp;
                 LOWERING_PASS_HEADER
 
                 // auto ip = rewriter.saveInsertionPoint();
@@ -41,7 +41,7 @@ namespace mlir {
                 // rewriter.create<mlir::BranchOp>(LOC, curBlock);
 
                 // rewriter.restoreInsertionPoint(ip);
-                rewriter.eraseOp(op);
+                rewriter.eraseOp(initOp);
                 return success();
             } // matchAndRewrite
         } // namespace passes

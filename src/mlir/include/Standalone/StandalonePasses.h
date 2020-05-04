@@ -21,9 +21,10 @@
 namespace mlir {
     namespace standalone {
         namespace passes {
-        class Plus32Lowering : public mlir::ConversionPattern {
+            /*
+        class Plus32Lowering : public mlir::OpRewritePattern<Plus32Op> {
         public:
-            explicit Plus32Lowering(MLIRContext *context) : ConversionPattern(standalone::Plus32Op::getOperationName(),1, context) {}
+            using mlir::OpRewritePattern<Plus32Op>::OpRewritePattern;
 
             LogicalResult matchAndRewrite(Operation *op, ArrayRef<Value> operands, ConversionPatternRewriter &rewriter) const override;
         };
@@ -34,6 +35,7 @@ namespace mlir {
 
             LogicalResult matchAndRewrite(Operation *op, ArrayRef<Value> operands, ConversionPatternRewriter &rewriter) const override;
         };
+             */
 
         class IntegerLowering : public mlir::ConversionPattern {
         public:
@@ -49,18 +51,25 @@ namespace mlir {
             LogicalResult matchAndRewrite(Operation* op, ArrayRef<Value> operands, ConversionPatternRewriter& rewriter) const override;
         };
 
-        class InitLowering : public mlir::ConversionPattern {
+        class InitLowering : public mlir::OpRewritePattern<InitOp> {
         public:
-            explicit InitLowering(MLIRContext* context) : ConversionPattern(standalone::InitOp::getOperationName(), 1, context) {}
+            using OpRewritePattern<InitOp>::OpRewritePattern;
 
-            LogicalResult matchAndRewrite(Operation* op, ArrayRef<Value> operands, ConversionPatternRewriter& rewriter) const override;
+            LogicalResult matchAndRewrite(InitOp op, PatternRewriter& rewriter) const override;
         };
 
-        class NoopLowering : public mlir::ConversionPattern {
+        class NoopLowering : public mlir::OpRewritePattern<Noop> {
         public:
-            explicit NoopLowering(MLIRContext* context) : ConversionPattern(standalone::Noop::getOperationName(), 1, context) {}
+            using OpRewritePattern<Noop>::OpRewritePattern;
 
-            LogicalResult matchAndRewrite(Operation* op, ArrayRef<Value> operands, ConversionPatternRewriter& rewriter) const override;
+            LogicalResult matchAndRewrite(Noop op, PatternRewriter& rewriter) const override;
+        };
+
+        class JumpLowering : public mlir::OpRewritePattern<Jump> {
+        public:
+            using mlir::OpRewritePattern<Jump>::OpRewritePattern;
+
+            LogicalResult matchAndRewrite(Jump op, PatternRewriter& rewriter) const override;
         };
 
         } // namespace passes

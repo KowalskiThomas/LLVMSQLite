@@ -62,6 +62,7 @@ void VdbeToLLVM::runOnOperation() {
         using namespace mlir::standalone::passes;
         patterns.insert<InitLowering>(&getContext());
         patterns.insert<NoopLowering>(&getContext());
+        patterns.insert<JumpLowering>(&getContext());
 
         // patterns.insert<Plus32Lowering>(&getContext());
         // patterns.insert<InitRegLowering>(&getContext());

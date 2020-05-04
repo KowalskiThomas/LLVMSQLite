@@ -6,18 +6,18 @@ namespace mlir {
     namespace standalone {
         namespace passes {
             LogicalResult
-            NoopLowering::matchAndRewrite(Operation *op, ArrayRef<Value> operands,
-                                          ConversionPatternRewriter &rewriter) const {
+            NoopLowering::matchAndRewrite(Noop noopOp, PatternRewriter& rewriter) const {
+                auto op = &noopOp;
                 LOWERING_PASS_HEADER
 
                 {
-                    auto operand = operands.front();
+                    auto operand = noopOp.pc();
                     // Macro needs a variable named "builder" so we give it one
                     auto& builder = rewriter;
                     PROGRESS_PRINT_INT_REWRITER(operand, "Noop at");
                 }
 
-                rewriter.eraseOp(op);
+                rewriter.eraseOp(noopOp);
                 return success();
             } // matchAndRewrite
         } // namespace passes

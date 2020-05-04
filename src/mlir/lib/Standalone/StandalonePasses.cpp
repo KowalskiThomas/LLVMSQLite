@@ -35,6 +35,7 @@ namespace {
     }
 } // namespace
 
+/*
 mlir::LogicalResult
 Plus32Lowering::matchAndRewrite(mlir::Operation *op, llvm::ArrayRef<mlir::Value> operands,
                                                   mlir::ConversionPatternRewriter &rewriter) const {
@@ -71,6 +72,7 @@ mlir::LogicalResult InitRegLowering::matchAndRewrite(mlir::Operation *op, llvm::
     rewriter.replaceOp(op, { iOne });
     return success();
 }
+*/
 
 mlir::LogicalResult IntegerLowering::matchAndRewrite(mlir::Operation *op, llvm::ArrayRef<mlir::Value> operands,
                                                    mlir::ConversionPatternRewriter &rewriter) const {

@@ -1,3 +1,4 @@
+#include <unordered_map>
 #include "sqlite_bridge.h"
 
 #include "Standalone/StandalonePrerequisites.h"
@@ -21,6 +22,13 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
     auto vdbeDialect = mlirContext.getRegisteredDialect<mlir::standalone::StandaloneDialect>();
     auto* vdbeCtx = &vdbeDialect->vdbeContext;
     auto* vdbe = vdbeCtx->vdbe;
+
+    // All the blocks / operations we have already translated
+    std::unordered_map<size_t, mlir::Block*> blocks;
+
+    // Operations that depend on a block that has not yet been built.
+    // This map should be checked for at the end of every block / operation translation to update jumps.
+    std::unordered_map<size_t, llvm::SmallVector<mlir::Operation*, 128>> operations_to_update;
 
     auto builder = mlir::OpBuilder(ctx);
     auto entryBlock = func.addEntryBlock();
@@ -49,6 +57,25 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
             case OP_Noop: {
                 auto pcParam = builder.create<mlir::ConstantIntOp>(LOCB, pc, 64);
                 builder.create<mlir::standalone::Noop>(LOCB, pcParam);
+                break;
+            }
+            case OP_Jump: {
+                auto toBlockPc = op.p1; // TODO: Get the right parameter number
+
+                // Jumping to the entry block is invalid. This is on purpose.
+                // If we don't update that jump before the end of the conversion, then we haven't
+                // generated the right translation, which means it's not supposed to run.
+                auto toBlock = entryBlock;
+                if (blocks.find(toBlockPc) != blocks.end()) {
+                    auto toBlock = blocks[toBlockPc];
+                }
+
+                auto op = builder.create<mlir::standalone::Jump>(LOCB, toBlock);
+
+                if (toBlock == entryBlock) {
+                    operations_to_update[toBlockPc].push_back(op.getOperation());
+                }
+
                 break;
             }
 

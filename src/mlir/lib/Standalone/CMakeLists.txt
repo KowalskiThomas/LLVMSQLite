@@ -1,5 +1,8 @@
-
-file(GLOB LOWERING_FILES "Lowering/*.cpp")
+set(LOWERING_FILES
+    Lowering/InitLowering.cpp
+    Lowering/JumpLowering.cpp
+    Lowering/NoopLowering.cpp
+)
 
 add_mlir_dialect_library(MLIRStandalone
         StandaloneDialect.cpp

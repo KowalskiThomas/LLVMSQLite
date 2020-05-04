@@ -93,4 +93,11 @@ def Standalone_Noop : Standalone_Op<"Noop"> {
     let arguments = (ins I64:$pc);
 }
 
+def Standalone_Jump : Standalone_Op<"Jump"> {
+    let summary = "Jumps to instruction $pc";
+
+    // let arguments = (ins AnyType:$block);
+    let successors = (successor AnySuccessor:$dest);
+}
+
 #endif // STANDALONE_OPS
