@@ -38,6 +38,18 @@ namespace mlir {
     } // namespace standalone
 } // namespace mlir
 
+void VdbeToLLVM::createBlocks() {
+    auto mod = getOperation();
+
+    auto vdbe = getVdbeContext()->vdbe;
+    for(auto i = 0; i < vdbe->nOp; i++) {
+        // auto block = mod
+    }
+}
+
+VdbeContext* VdbeToLLVM::getVdbeContext() {
+    return &getContext().getRegisteredDialect<mlir::standalone::StandaloneDialect>()->vdbeContext;
+}
 
 void VdbeToLLVM::runOnOperation() {
     mlir::ConversionTarget target(getContext());
@@ -46,17 +58,20 @@ void VdbeToLLVM::runOnOperation() {
 
     mlir::standalone::VdbeTypeConverter typeConverter(&getContext());
     mlir::OwningRewritePatternList patterns;
-
     {
         using namespace mlir::standalone::passes;
         patterns.insert<InitLowering>(&getContext());
-        patterns.insert<Plus32Lowering>(&getContext());
-        patterns.insert<InitRegLowering>(&getContext());
-        patterns.insert<IntegerLowering>(&getContext());
-        patterns.insert<OpenCursorLowering>(&getContext());
+        patterns.insert<NoopLowering>(&getContext());
+
+        // patterns.insert<Plus32Lowering>(&getContext());
+        // patterns.insert<InitRegLowering>(&getContext());
+        // patterns.insert<IntegerLowering>(&getContext());
+        // patterns.insert<OpenCursorLowering>(&getContext());
+
+        mlir::populateStdToLLVMConversionPatterns(typeConverter, patterns);
     }
 
-    mlir::populateStdToLLVMConversionPatterns(typeConverter, patterns);
+
 
     mlir::ModuleOp module = getOperation();
 

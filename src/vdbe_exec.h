@@ -5,6 +5,7 @@ extern "C" {
 #include "vdbe.h"
 #include "vdbeInt.h"
 #include "sqlite3.h"
+
+    int sqlite3VdbeExec(Vdbe *p);
 }
 
-int sqlite3VdbeExec(Vdbe *p);

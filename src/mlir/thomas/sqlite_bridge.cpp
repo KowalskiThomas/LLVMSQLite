@@ -9,7 +9,7 @@ const char* const JIT_MAIN_FN_NAME = "jittedFunction";
 
 static bool initialised = false;
 
-void init() {
+static void init() {
     if (initialised)
         return;
 
@@ -23,6 +23,7 @@ void init() {
 
 int jitVdbeStep(Vdbe* p) {
     init();
+
     auto context = mlir::MLIRContext();
     auto ctx = &context;
     auto llvmDialect = ctx->getRegisteredDialect<mlir::LLVM::LLVMDialect>();

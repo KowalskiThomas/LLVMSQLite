@@ -52,6 +52,11 @@
     }); \
 }
 
+#define PROGRESS_PRINT_INT_REWRITER(i, msg) { \
+    auto& builder = rewriter; \
+    PROGRESS_PRINT_INT(i, msg) \
+}
+
 /**
  * Prints whatever is fed to it to llvm::outs()
  */

@@ -10,13 +10,13 @@ namespace mlir {
                                           ConversionPatternRewriter &rewriter) const {
                 LOWERING_PASS_HEADER
 
-                auto ip = rewriter.saveInsertionPoint();
-                auto* curBlock = rewriter.getBlock();
+                // auto ip = rewriter.saveInsertionPoint();
+                // auto* curBlock = rewriter.getBlock();
 
-                auto parentFunc = op->getParentOfType<mlir::LLVM::LLVMFuncOp>();
-                assert(parentFunc && "Couldn't get parent function");
-                auto* block = parentFunc.addBlock();
-                rewriter.setInsertionPointToStart(block);
+                // auto parentFunc = op->getParentOfType<mlir::LLVM::LLVMFuncOp>();
+                // assert(parentFunc && "Couldn't get parent function");
+                // auto* block = parentFunc.addBlock();
+                // rewriter.setInsertionPointToStart(block);
 
                 // The number 0
                 auto cst0 = rewriter.create<mlir::LLVM::ConstantOp>(LOC, T::i32Ty,
@@ -38,9 +38,9 @@ namespace mlir {
 
 
                 // Branch back to the current block
-                rewriter.create<mlir::BranchOp>(LOC, curBlock);
+                // rewriter.create<mlir::BranchOp>(LOC, curBlock);
 
-                rewriter.restoreInsertionPoint(ip);
+                // rewriter.restoreInsertionPoint(ip);
                 rewriter.eraseOp(op);
                 return success();
             } // matchAndRewrite

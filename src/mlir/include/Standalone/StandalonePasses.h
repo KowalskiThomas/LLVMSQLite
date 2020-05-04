@@ -56,6 +56,13 @@ namespace mlir {
             LogicalResult matchAndRewrite(Operation* op, ArrayRef<Value> operands, ConversionPatternRewriter& rewriter) const override;
         };
 
+        class NoopLowering : public mlir::ConversionPattern {
+        public:
+            explicit NoopLowering(MLIRContext* context) : ConversionPattern(standalone::Noop::getOperationName(), 1, context) {}
+
+            LogicalResult matchAndRewrite(Operation* op, ArrayRef<Value> operands, ConversionPatternRewriter& rewriter) const override;
+        };
+
         } // namespace passes
     } // namespace standalone
 } // namespace mlir

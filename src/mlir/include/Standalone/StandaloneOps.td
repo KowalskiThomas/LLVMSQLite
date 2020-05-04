@@ -87,4 +87,10 @@ def Standalone_InitOp : Standalone_Op<"Init"> {
     let arguments = (ins I64:$jump_to);
 }
 
+def Standalone_Noop : Standalone_Op<"Noop"> {
+    let summary = "Does nothing";
+
+    let arguments = (ins I64:$pc);
+}
+
 #endif // STANDALONE_OPS

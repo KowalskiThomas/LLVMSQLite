@@ -1,3 +1,4 @@
+*.out
 debug
 release
 # opcodes.h
