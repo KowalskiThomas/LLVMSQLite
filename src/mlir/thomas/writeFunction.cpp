@@ -17,7 +17,7 @@ using LLVMDialect = mlir::LLVM::LLVMDialect;
 using ModuleOp = mlir::ModuleOp;
 using FuncOp = mlir::FuncOp;
 
-void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& func) {
+void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& func) {
     auto ctx = &mlirContext;
     auto vdbeDialect = mlirContext.getRegisteredDialect<mlir::standalone::StandaloneDialect>();
     auto* vdbeCtx = &vdbeDialect->vdbeContext;
@@ -94,13 +94,35 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
 
                 break;
             }
-            // TODO: Fix OP_Halt
-            // case OP_Halt: {
-            //     auto cstEnd = CONSTANT_INT(3, 32);
-            //     /* auto returnOp = */ builder.create<mlir::ReturnOp>(LOCB, (mlir::Value)cstEnd);
-            //     newWriteBranchOut = false;
-            //     break;
-            // }
+            case OP_Halt: {
+                /* auto returnOp = */ builder.create<mlir::standalone::Halt>(LOCB);
+                newWriteBranchOut = false;
+                break;
+            }
+            case OP_OpenRead: {
+                auto curIdx = op.p1;
+                auto rootPage = op.p2;
+                auto dbIdx = op.p3;
+                auto p4 = op.p4;
+                if (op.p4type == P4_KEYINFO) {
+                    llvm::errs() << "Not implemented\n";
+                    exit(5);
+                    /*
+                    builder.create<mlir::standalone::OpenRead>(LOCB,
+                                                               (mlir::Value)CONSTANT_INT(curIdx, 64),
+                                                               (mlir::Value)CONSTANT_INT(rootPage, 32),
+                                                               (mlir::Value)CONSTANT_INT(dbIdx, 32),
+                                                               (mlir::Value)CONSTANT_PTR(p4.pKeyInfo, 64));
+                    */
+                } else {
+                    builder.create<mlir::standalone::OpenRead>(LOCB,
+                                                               (mlir::Value)CONSTANT_INT(curIdx, 32),
+                                                               (mlir::Value)CONSTANT_INT(rootPage, 32),
+                                                               (mlir::Value)CONSTANT_INT(dbIdx, 32),
+                                                               (mlir::Value)CONSTANT_INT(p4.i, 32));
+                }
+                break;
+            }
         }
 
         // Add the block to the blocks map (for use in branches)
@@ -123,6 +145,12 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
         // Mark this block as the lastBlock
         lastBlock = block;
         writeBranchOut = newWriteBranchOut;
+
+        // TODO: Remove this to do the whole thing
+        if (op.opcode == OP_OpenRead) {
+            out("Exiting code generation early after OP_OpenRead")
+            break;
+        }
     }
 
     // Add the returning block and a branch from the last VDBE instruction block to it
@@ -139,7 +167,7 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
     assert(operations_to_update.empty());
 }
 
-void writeFunction(MLIRContext& context, LLVMDialect* llvmDialect, ModuleOp& theModule) {
+void prepareFunction(MLIRContext& context, LLVMDialect* llvmDialect, ModuleOp& theModule) {
     static_assert(sizeof(int*) == 8, "sizeof(int*) is assumed to be 8!");
     auto ctx = &context;
     auto vdbeDialect = context.getRegisteredDialect<mlir::standalone::StandaloneDialect>();
@@ -165,5 +193,5 @@ void writeFunction(MLIRContext& context, LLVMDialect* llvmDialect, ModuleOp& the
     auto func = mlir::FuncOp::create(LOCB, JIT_MAIN_FN_NAME, funcTy);
     theModule.push_back(func);
 
-    actuallyWriteFunction(context, llvmDialect, func);
+    writeFunction(context, llvmDialect, func);
 }

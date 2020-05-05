@@ -35,5 +35,5 @@ extern "C" {
     int jitVdbeStep(Vdbe*);
 }
 
-void writeFunction(mlir::MLIRContext&, mlir::LLVM::LLVMDialect*, mlir::ModuleOp&);
+void prepareFunction(mlir::MLIRContext &context, mlir::LLVM::LLVMDialect *llvmDialect, mlir::ModuleOp &theModule);
 int runJit(mlir::ModuleOp module);

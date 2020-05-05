@@ -57,6 +57,22 @@ namespace mlir {
             LogicalResult matchAndRewrite(Goto op, PatternRewriter& rewriter) const override;
         };
 
+        class HaltLowering : public mlir::OpRewritePattern<Halt> {
+        public:
+            using mlir::OpRewritePattern<Halt>::OpRewritePattern;
+
+            LogicalResult matchAndRewrite(Halt op, PatternRewriter& rewriter) const override;
+        };
+
+        class OpenReadLowering : public mlir::OpRewritePattern<OpenRead> {
+        public:
+            using mlir::OpRewritePattern<OpenRead>::OpRewritePattern;
+
+            LogicalResult matchAndRewrite(OpenRead orOp, PatternRewriter& rewriter) const override;
+        };
+
+
+
         } // namespace passes
     } // namespace standalone
 } // namespace mlir

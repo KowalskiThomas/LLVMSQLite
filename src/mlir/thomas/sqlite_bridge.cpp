@@ -37,7 +37,7 @@ int jitVdbeStep(Vdbe* p) {
     Prerequisites::generateReferenceToProgress(theModule, llvmDialect);
     Prerequisites::runPrerequisites(theModule, llvmDialect);
 
-    writeFunction(context, llvmDialect, theModule);
+    prepareFunction(context, llvmDialect, theModule);
 
     llvm::errs() << "Original module\n";
     theModule.dump();
@@ -46,6 +46,9 @@ int jitVdbeStep(Vdbe* p) {
     mlir::PassManager pm(ctx);
     pm.addPass(std::make_unique<VdbeToLLVM>());
     pm.run(theModule);
+
+    llvm::errs() << "Intermediate module\n";
+    theModule.dump();
 
     llvm::errs() << "Translated module\n";
     auto mod = mlir::translateModuleToLLVMIR(theModule);

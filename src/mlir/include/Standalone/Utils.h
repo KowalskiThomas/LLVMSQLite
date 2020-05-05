@@ -65,6 +65,12 @@
     llvm::outs().flush(); \
 }
 
+
+#define err(x) { \
+    llvm::errs() << x << "\n"; \
+    llvm::errs().flush(); \
+}
+
 /**
  * Creates a well-typed in-code pointer to a operation parameter (for operation at PC and parameter PARAMETER)
  */
@@ -104,6 +110,9 @@
 #define LLVM_CONSTANT_INT(ty, width, val) \
     builder.create<mlir::LLVM::ConstantOp>(LOC, ty, builder.getIntegerAttr(builder.getIntegerType(width), val))
 
+#define CONSTANT_PTR(ptr) \
+    builder.create<mlir::ConstantIntOp>(LOCB, (uint64_t)ptr, 64)
+
 /**
  * Macro used to define several variables widely used in rewriting passes, namely:
  * - vdbeDialect
@@ -125,3 +134,10 @@
     auto *ctx = llvmDialect->getContext(); \
     auto& context = *ctx;
 
+
+#define WIDTH_TO(target_width, val) \
+    builder.create<mlir::LLVM::ZExtOp>(LOC, \
+    mlir::LLVM::LLVMType::getIntNTy(llvmDialect, target_width), \
+    val)
+
+#define TO_I64(val) WIDTH_TO(64, val)

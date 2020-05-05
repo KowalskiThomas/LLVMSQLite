@@ -249,6 +249,7 @@ VdbeCursor *allocateCursor(
         int iDb,              /* Database the cursor belongs to, or -1 */
         u8 eCurType           /* Type of the new cursor */
 ) {
+    printf("Allocating cursor\n");
     /* Find the memory cell that will be used to store the blob of memory
   ** required for this VdbeCursor structure. It is convenient to use a
   ** vdbe memory cell to manage the memory allocation required for a
@@ -3825,9 +3826,9 @@ case OP_Offset: {          /* out3 */
                     sqlite3VdbeMemIntegerify(pIn2);
                     p2 = (int) pIn2->u.i;
                     /* The p2 value always comes from a prior OP_CreateBtree opcode and
-    ** that opcode will always set the p2 value to 2 or more or else fail.
-    ** If there were a failure, the prepared statement would have halted
-    ** before reaching this instruction. */
+                    ** that opcode will always set the p2 value to 2 or more or else fail.
+                    ** If there were a failure, the prepared statement would have halted
+                    ** before reaching this instruction. */
                     assert(p2 >= 2);
                 }
                 if (pOp->p4type == P4_KEYINFO) {

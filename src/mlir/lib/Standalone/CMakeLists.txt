@@ -1,7 +1,9 @@
 set(LOWERING_FILES
     Lowering/InitLowering.cpp
-        Lowering/GotoLowering.cpp
+    Lowering/GotoLowering.cpp
     Lowering/NoopLowering.cpp
+    Lowering/HaltLowering.cpp
+    Lowering/OpenReadLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

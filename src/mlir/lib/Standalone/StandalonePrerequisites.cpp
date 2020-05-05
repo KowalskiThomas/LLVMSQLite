@@ -14,13 +14,14 @@
 using LLVMDialect = mlir::LLVM::LLVMDialect;
 
 mlir::LLVM::LLVMFuncOp addFunction;
-mlir::LLVM::LLVMFuncOp mulFunction;
 mlir::LLVM::LLVMFuncOp progressFunction;
 mlir::LLVM::LLVMFuncOp printPtrFunction;
+mlir::LLVM::LLVMFuncOp f_allocateCursor;
+mlir::LLVM::LLVMFuncOp f_sqlite3BtreeCursor;
+mlir::LLVM::LLVMFuncOp f_sqlite3BtreeCursorHintFlags;
 
 extern "C" {
 uint32_t add(uint32_t a, uint32_t b) {
-    // llvm::outs() << "I have been called with " << a << " and " << b << "\n";
     return a + b;
 }
 
@@ -35,36 +36,6 @@ uint64_t printPtr(void* ptr, void* s, uint32_t line) {
     llvm::outs().flush();
     return 0;
 }
-}
-
-void Prerequisites::generateTimesFunction(mlir::ModuleOp m, LLVMDialect* dialect) {
-    using namespace mlir::LLVM;
-    auto* ctx = dialect->getContext();
-
-    auto i32Ty = T::i32Ty;
-    auto funcTy = LLVMType::getFunctionTy(i32Ty, { i32Ty, i32Ty }, false);
-
-    auto builder = mlir::OpBuilder(m);
-    auto func = builder.create<mlir::LLVM::LLVMFuncOp>(
-            builder.getUnknownLoc(),
-            "times",
-            funcTy,
-            mlir::LLVM::Linkage::External);
-    mulFunction = func;
-    m.push_back(func);
-
-    auto entry = func.addEntryBlock();
-
-    auto args = func.args_begin();
-    auto arg1 = args++;
-    auto arg2 = args++;
-
-    mlir::Value& val1 = *arg1;
-    mlir::Value& val2 = *arg2;
-
-    builder.setInsertionPointToStart(entry);
-    mlir::Value result = builder.create<mlir::LLVM::MulOp>(LOCB, val1, val2);
-    builder.create<mlir::LLVM::ReturnOp>(LOCB, result);
 }
 
 void Prerequisites::generateNewFunction(mlir::ModuleOp m, LLVMDialect*) {
@@ -114,9 +85,54 @@ void Prerequisites::generateReferenceToProgress(mlir::ModuleOp m, LLVMDialect* d
     llvm::sys::DynamicLibrary::AddSymbol("printPtr", reinterpret_cast<void*>(printPtr));
 }
 
+void Prerequisites::generateReferenceToAllocateCursor(mlir::ModuleOp m, LLVMDialect* dialect) {
+    auto funcTy = LLVMType::getFunctionTy(T::VdbeCursorPtrTy,
+            { T::VdbePtrTy, T::i32Ty, T::i32Ty, T::i32Ty, T::i8Ty },
+            false);
+    auto builder = mlir::OpBuilder(m);
+    builder.setInsertionPointToStart(m.getBody());
+    f_allocateCursor = builder.create<LLVMFuncOp>(m.getLoc(), "allocateCursor", funcTy, mlir::LLVM::Linkage::External);
+    llvm::sys::DynamicLibrary::AddSymbol("allocateCursor", reinterpret_cast<void*>(allocateCursor));
+}
+
+void Prerequisites::generateReferenceToSqlite3BtreeCursor(mlir::ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty,
+            {
+                T::BtreePtrTy,
+                T::i32Ty,
+                T::i32Ty,
+                T::KeyInfoPtrTy,
+                T::BtCursorPtrTy
+                },
+            false);
+    auto builder = mlir::OpBuilder(m);
+    builder.setInsertionPointToStart(m.getBody());
+    f_sqlite3BtreeCursor = builder.create<LLVMFuncOp>(m.getLoc(), "sqlite3BtreeCursor", funcTy, mlir::LLVM::Linkage::External);
+    err("Function type: ")
+    funcTy.dump();
+    llvm::sys::DynamicLibrary::AddSymbol("sqlite3BtreeCursor", reinterpret_cast<void*>(sqlite3BtreeCursor));
+}
+
+void Prerequisites::generateReferenceToSqlite3BtreeCursorHintFlags(mlir::ModuleOp m, LLVMDialect * d) {
+    auto funcTy = LLVMType::getFunctionTy(
+                mlir::LLVM::LLVMType::getVoidTy(d),
+                {
+                    T::BtCursorPtrTy,
+                    T::i32Ty
+                }, false
+            );
+    auto builder = mlir::OpBuilder(m);
+    builder.setInsertionPointToStart(m.getBody());
+    f_sqlite3BtreeCursorHintFlags = builder.create<LLVMFuncOp>(m.getLoc(), "sqlite3BtreeCursorHintFlags", funcTy, mlir::LLVM::Linkage::External);
+    llvm::sys::DynamicLibrary::AddSymbol("sqlite3BtreeCursorHintFlags", reinterpret_cast<void*>(sqlite3BtreeCursorHintFlags));
+}
+
 void Prerequisites::runPrerequisites(mlir::ModuleOp m, LLVMDialect* dialect) {
-    generateTimesFunction(m, dialect);
     generateNewFunction(m, dialect);
     generateReferenceToAdd(m, dialect);
     generateReferenceToProgress(m, dialect);
+    generateReferenceToAllocateCursor(m, dialect);
+    generateReferenceToSqlite3BtreeCursor(m, dialect);
+    generateReferenceToSqlite3BtreeCursorHintFlags(m, dialect);
 }
