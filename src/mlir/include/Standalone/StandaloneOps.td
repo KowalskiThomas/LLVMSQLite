@@ -93,11 +93,10 @@ def Standalone_Noop : Standalone_Op<"Noop"> {
     let arguments = (ins I64:$pc);
 }
 
-def Standalone_Jump : Standalone_Op<"Jump"> {
-    let summary = "Jumps to instruction $pc";
+def Standalone_Goto : Standalone_TerminatorOp<"Goto"> {
+    let summary = "Unconditionally jumps to instruction $pc";
 
-    // let arguments = (ins AnyType:$block);
     let successors = (successor AnySuccessor:$dest);
 }
 
-#endif // STANDALONE_OPS
+#endif // STANDALONE_OPS'

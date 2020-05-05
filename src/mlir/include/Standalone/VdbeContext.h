@@ -1,9 +1,7 @@
 #pragma once
 
-#include "mlir/IR/Dialect.h"
-#include "mlir/Target/LLVMIR.h"
-#include "mlir/IR/Types.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
+#include "Standalone/AllIncludes.h"
+#include <unordered_map>
 
 #include "utils.h"
 
@@ -20,4 +18,6 @@ struct VdbeContext {
     // The addresses of this VDBE's parameters
     // llvm::SmallVector<mlir::LLVM::ConstantOp, 128> registers;
     llvm::SmallVector<Mem*, 128> regInstances;
+    std::unordered_map<size_t, mlir::Block*> blocks;
+    std::unordered_map<size_t, mlir::BranchOp> outBranches;
 };

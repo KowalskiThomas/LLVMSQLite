@@ -44,5 +44,8 @@ def Standalone_Dialect : Dialect {
 class Standalone_Op<string mnemonic, list<OpTrait> traits = []> :
         Op<Standalone_Dialect, mnemonic, traits>;
 
+class Standalone_TerminatorOp<string mnemonic, list<OpTrait> traits = []> :
+Standalone_Op<mnemonic, !listconcat(traits, [Terminator])>;
+
 
 #endif // STANDALONE_DIALECT

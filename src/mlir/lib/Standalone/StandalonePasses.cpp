@@ -14,11 +14,11 @@ namespace {
         auto &val = *std::declval<mlir::Value*>();
         auto *vdbe = static_cast<Vdbe*>(nullptr);
         auto *vdbeCtx = std::declval<VdbeContext*>();
-        PROGRESSB("__unused__");
-        PROGRESS("__unused__");
-        PROGRESS_PRINT_PTR(val, "__unused__");
+        PROGRESSB("__unused__")
+        PROGRESS("__unused__")
+        PROGRESS_PRINT_PTR(val, "__unused__")
         {
-            out("__unused__");
+            out("__unused__")
         }
         {
             auto op = static_cast<mlir::ModuleOp*>(nullptr);
@@ -31,6 +31,12 @@ namespace {
             PTR_TO_P4(0);
             PTR_TO_P5(0);
             PTR_TO_REGISTER(0);
+        }
+        {
+            LLVM_CONSTANT_INT(T::i32Ty, 32, 0);
+        }
+        {
+            CONSTANT_INT(32, 0);
         }
     }
 } // namespace

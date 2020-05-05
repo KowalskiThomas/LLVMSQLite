@@ -14,7 +14,7 @@ namespace mlir {
                     auto operand = noopOp.pc();
                     // Macro needs a variable named "builder" so we give it one
                     auto& builder = rewriter;
-                    PROGRESS_PRINT_INT_REWRITER(operand, "Noop at");
+                    PROGRESS_PRINT_INT_REWRITER(operand, "<- Noop at line");
                 }
 
                 rewriter.eraseOp(noopOp);

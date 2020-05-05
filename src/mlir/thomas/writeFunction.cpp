@@ -24,7 +24,7 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
     auto* vdbe = vdbeCtx->vdbe;
 
     // All the blocks / operations we have already translated
-    std::unordered_map<size_t, mlir::Block*> blocks;
+    auto& blocks = vdbeCtx->blocks;
 
     // Operations that depend on a block that has not yet been built.
     // This map should be checked for at the end of every block / operation translation to update jumps.
@@ -32,7 +32,7 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
 
     // Create an OpBuilder and make it write in the (new) function's entryBlock
     auto builder = mlir::OpBuilder(ctx);
-    auto entryBlock = func.addEntryBlock();
+    auto* entryBlock = func.addEntryBlock();
     builder.setInsertionPointToStart(entryBlock);
 
     // Each time we translate an instruction, we need to branch from its block to the next block
@@ -40,13 +40,16 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
     mlir::Block* lastBlock = entryBlock;
 
     // Iterate over the VDBE programme
+    bool writeBranchOut = true;
     for(auto pc = 0llu; pc < vdbe->nOp; pc++) {
         // Create a block for that operation
         auto block = func.addBlock();
+        builder.setInsertionPointToStart(block);
         auto& op = vdbe->aOp[pc];
 
         out(pc << " " << sqlite3OpcodeName(op.opcode))
 
+        bool newWriteBranchOut = true;
         // Construct the adequate VDBE MLIR operation based on the instruction
         switch(op.opcode) {
             default:
@@ -67,8 +70,8 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
                 builder.create<mlir::standalone::Noop>(LOCB, pcParam);
                 break;
             }
-            case OP_Jump: {
-                auto toBlockPc = op.p1; // TODO: Use the right parameter
+            case OP_Goto: {
+                auto toBlockPc = op.p2;
 
                 // Jumping to the entry block is invalid. This is on purpose.
                 // If we don't update that jump before the end of the conversion, then we haven't
@@ -81,7 +84,7 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
                 }
 
                 // Create the jump
-                auto op = builder.create<mlir::standalone::Jump>(LOCB, toBlock);
+                auto op = builder.create<mlir::standalone::Goto>(LOCB, toBlock);
 
                 // If the destination block hasn't been created yet, add this operation to the
                 // ones that need to be updated when the destination block is created
@@ -91,9 +94,13 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
 
                 break;
             }
-
-
-
+            // TODO: Fix OP_Halt
+            // case OP_Halt: {
+            //     auto cstEnd = CONSTANT_INT(3, 32);
+            //     /* auto returnOp = */ builder.create<mlir::ReturnOp>(LOCB, (mlir::Value)cstEnd);
+            //     newWriteBranchOut = false;
+            //     break;
+            // }
         }
 
         // Add the block to the blocks map (for use in branches)
@@ -107,12 +114,15 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
         operations_to_update.erase(pc);
 
         // Add a branch from the latest block to this one
-        builder.setInsertionPointToEnd(lastBlock);
-        builder.create<mlir::BranchOp>(LOCB, block);
-        builder.setInsertionPointToStart(block);
+        if (writeBranchOut) {
+            builder.setInsertionPointToEnd(lastBlock);
+            vdbeCtx->outBranches[pc] = builder.create<mlir::BranchOp>(LOCB, block);
+            builder.setInsertionPointToStart(block);
+        }
 
         // Mark this block as the lastBlock
         lastBlock = block;
+        writeBranchOut = newWriteBranchOut;
     }
 
     // Add the returning block and a branch from the last VDBE instruction block to it
@@ -124,6 +134,9 @@ void actuallyWriteFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, F
     builder.setInsertionPointToStart(endBlock);
     auto return0 = builder.create<mlir::ConstantIntOp>(LOCB, 0, 32);
     builder.create<mlir::ReturnOp>(LOCB, (mlir::Value)return0);
+
+    // If the map is not empty, then we didn't generate the destination block of some branches.
+    assert(operations_to_update.empty());
 }
 
 void writeFunction(MLIRContext& context, LLVMDialect* llvmDialect, ModuleOp& theModule) {
@@ -147,6 +160,7 @@ void writeFunction(MLIRContext& context, LLVMDialect* llvmDialect, ModuleOp& the
             builder.getIntegerType(64),
             builder.getIntegerType(64)
     };
+
     auto funcTy = builder.getFunctionType(inTypes, builder.getIntegerType(32));
     auto func = mlir::FuncOp::create(LOCB, JIT_MAIN_FN_NAME, funcTy);
     theModule.push_back(func);

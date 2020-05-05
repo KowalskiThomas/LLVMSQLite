@@ -1,6 +1,6 @@
 set(LOWERING_FILES
     Lowering/InitLowering.cpp
-    Lowering/JumpLowering.cpp
+        Lowering/GotoLowering.cpp
     Lowering/NoopLowering.cpp
 )
 

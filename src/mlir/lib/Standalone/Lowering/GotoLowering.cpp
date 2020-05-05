@@ -1,3 +1,5 @@
+#include "Standalone/AllIncludes.h"
+
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
@@ -6,12 +8,13 @@ namespace mlir {
     namespace standalone {
         namespace passes {
             LogicalResult
-            JumpLowering::matchAndRewrite(Jump jumpOp, PatternRewriter &rewriter) const {
+            GotoLowering::matchAndRewrite(Goto jumpOp, PatternRewriter &rewriter) const {
                 auto op = &jumpOp;
                 LOWERING_PASS_HEADER
 
                 rewriter.create<mlir::BranchOp>(LOC, jumpOp.dest());
 
+                rewriter.getBlock()->splitBlock(jumpOp);
                 rewriter.eraseOp(jumpOp);
                 return success();
             } // matchAndRewrite

@@ -1,19 +1,4 @@
-#include <mlir/Pass/PassManager.h>
-#include "mlir/IR/Dialect.h"
-#include "mlir/IR/MLIRContext.h"
-#include "mlir/InitAllDialects.h"
-#include "mlir/InitAllPasses.h"
-#include "mlir/Pass/Pass.h"
-#include "mlir/Pass/Pass.h"
-#include "mlir/Support/FileUtilities.h"
-#include "mlir/Support/MlirOptMain.h"
-#include "llvm/Support/CommandLine.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
-#include "mlir/Target/LLVMIR.h"
-#include "llvm/Support/InitLLVM.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/Support/ToolOutputFile.h"
-#include "mlir/Pass/Pass.h"
+#include "Standalone/AllIncludes.h"
 
 #include "Standalone/StandaloneDialect.h"
 #include "Standalone/StandaloneOps.h"
@@ -65,11 +50,11 @@ namespace mlir {
             LogicalResult matchAndRewrite(Noop op, PatternRewriter& rewriter) const override;
         };
 
-        class JumpLowering : public mlir::OpRewritePattern<Jump> {
+        class GotoLowering : public mlir::OpRewritePattern<Goto> {
         public:
-            using mlir::OpRewritePattern<Jump>::OpRewritePattern;
+            using mlir::OpRewritePattern<Goto>::OpRewritePattern;
 
-            LogicalResult matchAndRewrite(Jump op, PatternRewriter& rewriter) const override;
+            LogicalResult matchAndRewrite(Goto op, PatternRewriter& rewriter) const override;
         };
 
         } // namespace passes

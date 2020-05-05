@@ -70,23 +70,23 @@
  */
 #define PTR_TO_P1(PC) \
     rewriter.create<mlir::LLVM::IntToPtrOp>(LOC, T::i32PtrTy, \
-        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p1, 64));
+        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p1, 64))
 
 #define PTR_TO_P2(PC) \
     rewriter.create<mlir::LLVM::IntToPtrOp>(LOC, T::i32PtrTy, \
-        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p2, 64));
+        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p2, 64))
 
 #define PTR_TO_P3(PC) \
     rewriter.create<mlir::LLVM::IntToPtrOp>(LOC, T::i32PtrTy, \
-        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p3, 64));
+        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p3, 64))
 
 #define PTR_TO_P4(PC) \
     rewriter.create<mlir::LLVM::IntToPtrOp>(LOC, T::i32PtrTy, \
-        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p4, 64));
+        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p4, 64))
 
 #define PTR_TO_P5(PC) \
     rewriter.create<mlir::LLVM::IntToPtrOp>(LOC, T::i32PtrTy, \
-        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p5, 64));
+        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p5, 64))
 
 
 /**
@@ -96,11 +96,18 @@
     builder.create<mlir::LLVM::IntToPtrOp>(LOCB, \
         T::sqlite3_valuePtrTy, \
         builder.create<mlir::ConstantIntOp>(LOCB, \
-            (uint64_t)&vdbeCtx->regInstances[REG_IDX], 64));
+            (uint64_t)&vdbeCtx->regInstances[REG_IDX], 64))
+
+#define CONSTANT_INT(value, width) \
+    builder.create<mlir::ConstantIntOp>(LOCB, value, width)
+
+#define LLVM_CONSTANT_INT(ty, width, val) \
+    builder.create<mlir::LLVM::ConstantOp>(LOC, ty, builder.getIntegerAttr(builder.getIntegerType(width), val))
 
 /**
  * Macro used to define several variables widely used in rewriting passes, namely:
  * - vdbeDialect
+ * - vdbeCtx
  * - vdbe
  * - llvmDialect
  * - parentModule
@@ -110,7 +117,8 @@
 #define LOWERING_PASS_HEADER \
     auto* vdbeDialect = op->getContext()->getRegisteredDialect<mlir::standalone::StandaloneDialect>(); \
     assert(vdbeDialect && "Expected StandaloneDialect to be registered"); \
-    auto* vdbe = vdbeDialect->vdbeContext.vdbe; \
+    auto* vdbeCtx = &vdbeDialect->vdbeContext; \
+    auto* vdbe = vdbeCtx->vdbe; \
     auto *llvmDialect = op->getContext()->getRegisteredDialect<LLVM::LLVMDialect>(); \
     assert(llvmDialect && "Expected LLVMDialect to be registered"); \
     ModuleOp parentModule = op->getParentOfType<ModuleOp>(); \
