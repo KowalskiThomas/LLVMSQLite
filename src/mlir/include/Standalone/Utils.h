@@ -109,13 +109,17 @@
             (uint64_t)&vdbeCtx->regInstances[REG_IDX], 64))
 
 #define CONSTANT_INT(value, width) \
-    builder.create<mlir::ConstantIntOp>(LOCB, value, width)
+    builder.create<mlir::ConstantIntOp>(LOCB, (uint64_t)(value), width)
 
 #define LLVM_CONSTANT_INT(ty, width, val) \
     builder.create<mlir::LLVM::ConstantOp>(LOC, ty, builder.getIntegerAttr(builder.getIntegerType(width), val))
 
 #define CONSTANT_PTR(ptr) \
     builder.create<mlir::ConstantIntOp>(LOCB, (uint64_t)ptr, 64)
+
+#define CONSTANT_PTR(ptrType, ptr) \
+    rewriter.create<IntToPtrOp>(LOC, ptrType, CONSTANT_INT(ptr, 64));
+
 
 /**
  * Macro used to define several variables widely used in rewriting passes, namely:

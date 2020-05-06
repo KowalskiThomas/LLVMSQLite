@@ -18,12 +18,12 @@ namespace mlir {
                 LOWERING_PASS_HEADER
 
 
-                auto pVdbe = rewriter.create<IntToPtrOp>(LOC,
-                                                         T::VdbePtrTy, CONSTANT_INT((uint64_t) vdbe, 64));
+                auto pVdbe = CONSTANT_PTR(T::VdbePtrTy, vdbe);
+                // rewriter.create<IntToPtrOp>(LOC, T::VdbePtrTy, CONSTANT_INT(vdbe, 64));
 
                 auto aDb = vdbe->db->aDb;
-                auto _aDb = rewriter.create<IntToPtrOp>(LOC,
-                                                        T::DbPtrTy, CONSTANT_PTR(aDb));
+                auto _aDb = CONSTANT_PTR(T::DbPtrTy, aDb);
+                // rewriter.create<IntToPtrOp>(LOC, T::DbPtrTy, CONSTANT_INT(aDb, 64));
 
                 auto pDb = rewriter.create<GEPOp>(LOC,
                                                   T::DbPtrTy, _aDb, mlir::ValueRange{orOp.database()});
@@ -44,7 +44,7 @@ namespace mlir {
                     out("Writing special case for OPFLAG_P2ISREG");
                     // Get the address at which the array of sqlite3_value starts
                     auto addressOfRegisters = rewriter.create<IntToPtrOp>(LOC, T::sqlite3_valuePtrTy,
-                                                                          (Value) CONSTANT_PTR(vdbe->aMem));
+                                                                          (Value) CONSTANT_INT(vdbe->aMem, 64));
                     // Get the address of the value we're looking for
                     auto adressOfValue = rewriter.create<GEPOp>
                             (LOC,
@@ -106,7 +106,8 @@ namespace mlir {
 
                 rewriter.create<StoreOp>(LOC, rootPage, ppgnoRoot);
 
-                auto pKeyInfo = rewriter.create<IntToPtrOp>(LOC, T::KeyInfoPtrTy, CONSTANT_PTR(nullptr));
+                auto pKeyInfo = CONSTANT_PTR(T::KeyInfoPtrTy, nullptr);
+                // rewriter.create<IntToPtrOp>(LOC, T::KeyInfoPtrTy, CONSTANT_INT(nullptr, 64));
 
                 auto pCur_uc_pCursor_addr = rewriter.create<GEPOp>
                         (LOC, T::BtCursorPtrTy.getPointerTo(),
