@@ -14,6 +14,8 @@ extern LLVMFuncOp f_printPtr;
 extern LLVMFuncOp f_allocateCursor;
 extern LLVMFuncOp f_sqlite3BtreeCursor;
 extern LLVMFuncOp f_sqlite3BtreeCursorHintFlags;
+extern LLVMFuncOp f_sqlite3VdbeSorterRewind;
+extern LLVMFuncOp f_sqlite3BtreeFirst;
 
 void initialiseTypeCache(LLVMDialect*);
 
@@ -31,6 +33,8 @@ public:
     DECLARE_FUNCTION(AllocateCursor);
     DECLARE_FUNCTION(Sqlite3BtreeCursor);
     DECLARE_FUNCTION(Sqlite3BtreeCursorHintFlags);
+    DECLARE_FUNCTION(sqlite3VdbeSorterRewind);
+    DECLARE_FUNCTION(sqlite3BtreeFirst);
 
     static void runPrerequisites(ModuleOp, LLVMDialect*);
 };

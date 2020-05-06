@@ -109,4 +109,10 @@ def Standalone_OpenRead : Standalone_Op<"OpenRead"> {
     let arguments = (ins I32:$curIdx, I64:$rootPage, I32:$database, I32:$P4, I16Attr:$P5);
 }
 
+def Standalone_Rewind : Standalone_Op<"Rewind"> {
+    let summary = "Rewinds a cursor";
+
+    let arguments = (ins I32:$curIdx, I32:$jumpTo);
+}
+
 #endif // STANDALONE_OPS'

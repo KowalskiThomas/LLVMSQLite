@@ -65,6 +65,7 @@ void VdbeToLLVM::runOnOperation() {
         patterns.insert<GotoLowering>(&getContext());
         patterns.insert<HaltLowering>(&getContext());
         patterns.insert<OpenReadLowering>(&getContext());
+        patterns.insert<RewindLowering>(&getContext());
 
         // patterns.insert<Plus32Lowering>(&getContext());
         // patterns.insert<InitRegLowering>(&getContext());

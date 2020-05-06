@@ -71,6 +71,13 @@ namespace mlir {
             LogicalResult matchAndRewrite(OpenRead orOp, PatternRewriter& rewriter) const override;
         };
 
+        class RewindLowering : public mlir::OpRewritePattern<Rewind> {
+        public:
+            using mlir::OpRewritePattern<Rewind>::OpRewritePattern;
+
+            LogicalResult matchAndRewrite(Rewind rewindOp, PatternRewriter& rewriter) const override;
+        };
+
 
 
         } // namespace passes

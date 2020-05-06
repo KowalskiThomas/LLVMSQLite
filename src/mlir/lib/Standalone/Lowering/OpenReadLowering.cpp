@@ -142,7 +142,6 @@ namespace mlir {
                 // TODO: if (rc) goto abort_due_to_error
 
                 rewriter.eraseOp(orOp);
-                // parentModule.dump();
                 return success();
             } // matchAndRewrite
         } // namespace passes
