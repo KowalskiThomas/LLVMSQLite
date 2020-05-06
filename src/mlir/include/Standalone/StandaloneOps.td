@@ -106,8 +106,7 @@ def Standalone_Halt : Standalone_TerminatorOp<"Halt"> {
 def Standalone_OpenRead : Standalone_Op<"OpenRead"> {
     let summary = "Opens a cursor and whatnot";
 
-    // TODO: Implement P5
-    let arguments = (ins I32:$curIdx, I64:$rootPage, I32:$database, I32:$P4);
+    let arguments = (ins I32:$curIdx, I64:$rootPage, I32:$database, I32:$P4, I16Attr:$P5);
 }
 
 #endif // STANDALONE_OPS'

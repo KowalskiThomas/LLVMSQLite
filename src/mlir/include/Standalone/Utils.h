@@ -14,7 +14,7 @@
  * Adds code to print a message at JIT run-time (to be used in contexts where we have a rewriter)
  */
 #define PROGRESS(msg) { \
-    rewriter.create<mlir::LLVM::CallOp>(LOC, progressFunction, mlir::ArrayRef<mlir::Value>{ \
+    rewriter.create<mlir::LLVM::CallOp>(LOC, f_progress, mlir::ArrayRef<mlir::Value>{ \
     rewriter.create<mlir::ConstantIntOp>(LOC, reinterpret_cast<const uint64_t>(msg), 64), \
     rewriter.create<mlir::ConstantIntOp>(LOC, __LINE__, 32) \
     }); \
@@ -24,7 +24,7 @@
  * Adds code to print a message at JIT run-time (to be used in contexts where we have a builder)
  */
 #define PROGRESSB(msg) { \
-    builder.create<mlir::LLVM::CallOp>(LOCB, progressFunction, mlir::ArrayRef<mlir::Value>{ \
+    builder.create<mlir::LLVM::CallOp>(LOCB, f_progress, mlir::ArrayRef<mlir::Value>{ \
     builder.create<mlir::ConstantIntOp>(LOCB, reinterpret_cast<const uint64_t>(msg), 64), \
     builder.create<mlir::ConstantIntOp>(LOCB, __LINE__, 32) \
     }); \
@@ -34,7 +34,7 @@
  * Adds code to print a pointer at JIT run-time with a given message
  */
 #define PROGRESS_PRINT_PTR(ptr, msg) { \
-    builder.create<mlir::LLVM::CallOp>(LOCB, printPtrFunction, mlir::ArrayRef<mlir::Value>{ \
+    builder.create<mlir::LLVM::CallOp>(LOCB, f_printPtr, mlir::ArrayRef<mlir::Value>{ \
     builder.create<mlir::LLVM::PtrToIntOp>(LOCB, T::i64Ty, ptr), \
     builder.create<mlir::ConstantIntOp>(LOCB, reinterpret_cast<const uint64_t>(msg), 64), \
     builder.create<mlir::ConstantIntOp>(LOCB, __LINE__, 32) \
@@ -45,8 +45,12 @@
  * Adds code to print an integer at JIT run-time with a given message.
  */
 #define PROGRESS_PRINT_INT(i, msg) { \
-    builder.create<mlir::LLVM::CallOp>(LOCB, printPtrFunction, mlir::ArrayRef<mlir::Value>{ \
-    i, \
+    Value val = i; \
+    if (!val.getType().isInteger(64)) { \
+        val = builder.create<mlir::LLVM::ZExtOp>(LOCB, T::i64Ty, val); \
+    } \
+    builder.create<mlir::LLVM::CallOp>(LOCB, f_printPtr, mlir::ArrayRef<mlir::Value>{ \
+    val, \
     builder.create<mlir::ConstantIntOp>(LOCB, reinterpret_cast<const uint64_t>(msg), 64), \
     builder.create<mlir::ConstantIntOp>(LOCB, __LINE__, 32) \
     }); \

@@ -100,10 +100,14 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
             }
             case OP_OpenRead: {
+                op.p2 = 5;
+                vdbe->aMem[5].u.i = 123;
+
                 auto curIdx = op.p1;
                 auto rootPage = op.p2;
                 auto dbIdx = op.p3;
                 auto p4 = op.p4;
+                auto p5 = op.p5;
                 if (op.p4type == P4_KEYINFO) {
                     llvm::errs() << "Not implemented\n";
                     exit(5);
@@ -116,10 +120,11 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                     */
                 } else {
                     builder.create<mlir::standalone::OpenRead>(LOCB,
-                                                               (mlir::Value)CONSTANT_INT(curIdx, 32),
-                                                               (mlir::Value)CONSTANT_INT(rootPage, 32),
-                                                               (mlir::Value)CONSTANT_INT(dbIdx, 32),
-                                                               (mlir::Value)CONSTANT_INT(p4.i, 32));
+                                                               CONSTANT_INT(curIdx, 32),
+                                                               CONSTANT_INT(rootPage, 32),
+                                                               CONSTANT_INT(dbIdx, 32),
+                                                               CONSTANT_INT(p4.i, 32),
+                                                               builder.getIntegerAttr(builder.getIntegerType(16, false), p5));
                 }
                 break;
             }

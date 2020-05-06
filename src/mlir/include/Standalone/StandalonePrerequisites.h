@@ -5,10 +5,12 @@
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 
 using namespace mlir::LLVM;
+using ModuleOp = mlir::ModuleOp;
 
+// TODO: Remove addFunction
 extern LLVMFuncOp addFunction;
-extern LLVMFuncOp progressFunction;
-extern LLVMFuncOp printPtrFunction;
+extern LLVMFuncOp f_progress;
+extern LLVMFuncOp f_printPtr;
 extern LLVMFuncOp f_allocateCursor;
 extern LLVMFuncOp f_sqlite3BtreeCursor;
 extern LLVMFuncOp f_sqlite3BtreeCursorHintFlags;
@@ -21,13 +23,14 @@ struct Prerequisites {
     using LLVMDialect = mlir::LLVM::LLVMDialect;
 
 public:
-    static void generateNewFunction(mlir::ModuleOp, LLVMDialect*);
-    static void generateReferenceToAdd(mlir::ModuleOp, LLVMDialect*);
-    static void generateReferenceToProgress(mlir::ModuleOp, LLVMDialect*);
+    // These are temporary
+    static void generateNewFunction(ModuleOp, LLVMDialect*);
+    static void generateReferenceToAdd(ModuleOp, LLVMDialect*);
 
+    DECLARE_FUNCTION(Progress);
     DECLARE_FUNCTION(AllocateCursor);
     DECLARE_FUNCTION(Sqlite3BtreeCursor);
     DECLARE_FUNCTION(Sqlite3BtreeCursorHintFlags);
 
-    static void runPrerequisites(mlir::ModuleOp, LLVMDialect*);
+    static void runPrerequisites(ModuleOp, LLVMDialect*);
 };
