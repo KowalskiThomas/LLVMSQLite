@@ -135,8 +135,7 @@ namespace mlir {
 
                 // TODO: pCur->isTable = pOp->p4type != P4_KEYINFO;
 
-                // TODO: Add p5 & to hint
-                unsigned hint = OPFLAG_BULKCSR | OPFLAG_SEEKEQ;
+                unsigned hint = p5Value & (OPFLAG_BULKCSR | OPFLAG_SEEKEQ);
                 rewriter.create<CallOp>(LOC, f_sqlite3BtreeCursorHintFlags,
                                         ValueRange{pCur_uc_pCursor, CONSTANT_INT(hint, 32)});
 
