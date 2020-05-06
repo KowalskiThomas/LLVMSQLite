@@ -78,7 +78,12 @@ namespace mlir {
             LogicalResult matchAndRewrite(Rewind rewindOp, PatternRewriter& rewriter) const override;
         };
 
+        class ColumnLowering : public mlir::OpRewritePattern<Column> {
+        public:
+            using mlir::OpRewritePattern<Column>::OpRewritePattern;
 
+            LogicalResult matchAndRewrite(Column rewindOp, PatternRewriter& rewriter) const override;
+        };
 
         } // namespace passes
     } // namespace standalone

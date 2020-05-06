@@ -12,6 +12,8 @@
 
 #include "tsrc/vdbe.h"
 
+#define INTEGER_ATTR(width, signed, value) builder.getIntegerAttr(builder.getIntegerType(width, signed), value)
+
 using MLIRContext = mlir::MLIRContext;
 using LLVMDialect = mlir::LLVM::LLVMDialect;
 using ModuleOp = mlir::ModuleOp;
@@ -41,6 +43,9 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
     // Iterate over the VDBE programme
     bool writeBranchOut = true;
+
+    // Used to stop generating code after a certain instruction is seen (and finished)
+    bool opColumnSeen = false;
     for(auto pc = 0llu; pc < vdbe->nOp; pc++) {
         // Create a block for that operation
         auto block = func.addBlock();
@@ -139,6 +144,25 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 break;
             }
+            case OP_Column: {
+                auto record = op.p1;
+                auto column = op.p2;
+                auto extractTo = op.p3;
+                auto defaultNull = op.p4;
+                auto flags = op.p5;
+
+                builder.create<mlir::standalone::Column>
+                        (LOCB,
+                         INTEGER_ATTR(32, true, record),
+                         INTEGER_ATTR(32, true, column),
+                         INTEGER_ATTR(32, true, extractTo),
+                         INTEGER_ATTR(64, false, (uint64_t) defaultNull.p),
+                         INTEGER_ATTR(16, false, flags)
+                        );
+
+                opColumnSeen = true;
+                break;
+            }
         }
 
         // Add the block to the blocks map (for use in branches)
@@ -163,8 +187,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         writeBranchOut = newWriteBranchOut;
 
         // TODO: Remove this to do the whole thing
-        if (op.opcode == OP_Rewind) {
-            out("Exiting code generation early after OP_Rewind")
+        if (op.opcode != OP_Column and opColumnSeen) {
+            out("Exiting code generation early after OP_Column")
             break;
         }
     }

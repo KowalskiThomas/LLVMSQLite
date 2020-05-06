@@ -116,6 +116,7 @@ add_library(sqlite
         ${PROJECT_SOURCE_DIR}/parse.c
 
         ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp
+        ${PROJECT_SOURCE_DIR}/src/temp_vdbe.c
 )
 
 target_link_libraries(sqlite sqlite_jit)
