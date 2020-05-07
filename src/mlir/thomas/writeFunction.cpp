@@ -145,7 +145,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
             }
             case OP_Column: {
-                auto record = op.p1;
+                auto cursor = op.p1;
                 auto column = op.p2;
                 auto extractTo = op.p3;
                 auto defaultNull = op.p4;
@@ -153,7 +153,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 builder.create<mlir::standalone::Column>
                         (LOCB,
-                         INTEGER_ATTR(32, true, record),
+                         INTEGER_ATTR(32, true, cursor),
                          INTEGER_ATTR(32, true, column),
                          INTEGER_ATTR(32, true, extractTo),
                          INTEGER_ATTR(64, false, (uint64_t) defaultNull.p),

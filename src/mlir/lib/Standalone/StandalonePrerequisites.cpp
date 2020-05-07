@@ -21,6 +21,8 @@ mlir::LLVM::LLVMFuncOp f_sqlite3BtreeCursor;
 mlir::LLVM::LLVMFuncOp f_sqlite3BtreeCursorHintFlags;
 mlir::LLVM::LLVMFuncOp f_sqlite3VdbeSorterRewind;
 mlir::LLVM::LLVMFuncOp f_sqlite3BtreeFirst;
+mlir::LLVM::LLVMFuncOp f_sqlite3VdbeCursorMoveto;
+mlir::LLVM::LLVMFuncOp f_debug;
 // mlir::LLVM::LLVMFuncOp f_assert;
 
 #define GENERATE_SYMBOL(ref_name, f, symbol_name) \
@@ -45,6 +47,12 @@ uint64_t printPtr(void* ptr, void* s, uint32_t line) {
     llvm::outs().flush();
     return 0;
 }
+
+void debug() {
+    // This function should not be called but allows me to easily find where
+    // a piece of code was translated in IR.
+}
+
 }
 
 void Prerequisites::generateNewFunction(ModuleOp m, LLVMDialect*) {
@@ -150,6 +158,22 @@ void Prerequisites::generateReferenceTosqlite3BtreeFirst(ModuleOp m, LLVMDialect
     GENERATE_SYMBOL(f_sqlite3BtreeFirst, sqlite3BtreeFirst, "sqlite3BtreeFirst");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeCursorMoveto(ModuleOp m, LLVMDialect*) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty,
+            {
+                T::VdbeCursorPtrPtrTy,
+                T::i32PtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeCursorMoveto, sqlite3VdbeCursorMoveto, "sqlite3VdbeCursorMoveto");
+}
+
+void Prerequisites::generateReferenceToDebug(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(d), {}, false);
+    GENERATE_SYMBOL(f_debug, debug, "debug");
+}
+
 #define CALL_SYMBOL_GENERATOR(f) f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect* dialect) {
@@ -161,5 +185,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect* dialect) {
     generateReferenceToSqlite3BtreeCursorHintFlags(m, dialect);
     generateReferenceTosqlite3VdbeSorterRewind(m, dialect);
     CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3BtreeFirst);
+    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3VdbeCursorMoveto);
+    CALL_SYMBOL_GENERATOR(generateReferenceToDebug);
     // generateReferenceTosqlite3BtreeFirst(m, dialect);
 }

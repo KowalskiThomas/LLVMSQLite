@@ -142,6 +142,16 @@
     auto *ctx = llvmDialect->getContext(); \
     auto& context = *ctx;
 
+#define LOWERING_NAMESPACE \
+    using namespace mlir::LLVM; \
+    using LoadOp = mlir::LLVM::LoadOp; \
+    using CallOp = mlir::LLVM::CallOp; \
+    using StoreOp = mlir::LLVM::StoreOp; \
+    using OrOp = mlir::LLVM::OrOp; \
+    using AndOp = mlir::LLVM::AndOp; \
+    using AllocaOp = mlir::LLVM::AllocaOp;
+
+
 
 #define WIDTH_TO(target_width, val) \
     builder.create<mlir::LLVM::ZExtOp>(LOC, \

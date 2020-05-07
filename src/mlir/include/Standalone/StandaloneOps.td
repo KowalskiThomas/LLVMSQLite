@@ -118,7 +118,7 @@ def Standalone_Rewind : Standalone_Op<"Rewind"> {
 def Standalone_Column : Standalone_Op<"Column"> {
     let summary = "Extracts a value from a record";
 
-    let arguments = (ins I32Attr:$record, I32Attr:$column, I32Attr:$extractTo, I64Attr:$defaultValue, I16Attr:$flags);
+    let arguments = (ins I32Attr:$curIdx, I32Attr:$column, I32Attr:$extractTo, I64Attr:$defaultValue, I16Attr:$flags);
 }
 
 #endif // STANDALONE_OPS'

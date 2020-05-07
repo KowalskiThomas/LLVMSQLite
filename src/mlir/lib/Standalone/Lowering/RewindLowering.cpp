@@ -9,13 +9,7 @@ namespace mlir {
                 auto op = &rewindOp;
                 auto& builder = rewriter;
                 LOWERING_PASS_HEADER
-                using namespace mlir::LLVM;
-                using LoadOp = mlir::LLVM::LoadOp;
-                using CallOp = mlir::LLVM::CallOp;
-                using StoreOp = mlir::LLVM::StoreOp;
-                using OrOp = mlir::LLVM::OrOp;
-                using AndOp = mlir::LLVM::AndOp;
-                using AllocaOp = mlir::LLVM::AllocaOp;
+                LOWERING_NAMESPACE
 
                 auto firstBlock = rewriter.getBlock();
 
