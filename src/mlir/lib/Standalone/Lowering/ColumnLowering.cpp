@@ -123,42 +123,72 @@ namespace mlir {
                     auto blockEndCacheNeStatusCacheCtr = rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
                     rewriter.setInsertionPointToEnd(block);
 
-                    // TODO: Update that condition
-                    auto nullRowAddr = nullptr;
-                    auto nullRow = nullptr;
-                    auto TEMP_CONDITION_NULLROW = constants(1, 1);
-                    rewriter.create<CondBrOp>(LOC, TEMP_CONDITION_NULLROW, blockNullRow, blockNotNullRow);
+                    // Load the address of pC->nullRow
+                    auto nullRowAddr = rewriter.create<GEPOp>
+                            (LOC, T::i8PtrTy, pCValue,
+                             ValueRange{
+                                     constants(0, 32), // *pC
+                                     constants(2, 32)  // nullRow is field 2
+                             });
+
+                    // Load the value of pC->nullRow
+                    auto nullRow = rewriter.create<LoadOp>(LOC, nullRowAddr);
+
+                    // Check whether pC->nullRow == 0
+                    auto nullRowCondition = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ne, nullRow, constants(0, 8));
+
+                    // Branch for pC->nullRow == 0
+                    rewriter.create<CondBrOp>(LOC, nullRowCondition,
+                            /* if pC->nullRow == 0 */ blockNullRow,
+                            /* else */                blockNotNullRow);
                     /* if nullRow */
                     {
                         // BLOCK if nullRow
                         rewriter.setInsertionPointToStart(blockNullRow);
+                        PROGRESS("nullRow = true branch")
                         auto blockCurTypePseudo = rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
                         rewriter.setInsertionPointToEnd(blockNullRow);
                         auto blockNotCurTypePseudo = rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
 
-                        // TODO: Make that condition if cur->curType == CURTYPE_PSEUDO
-                        auto curTypeAddr = nullptr;
-                        auto TEMP_CONDITION_CURTYPE = constants(0, 1);
-                        rewriter.create<CondBrOp>(LOC, TEMP_CONDITION_CURTYPE, blockCurTypePseudo, blockNotCurTypePseudo);
+                        // Get the address of pC->curType
+                        auto curTypeAddr = rewriter.create<GEPOp>
+                                (LOC, T::i8PtrTy, pCValue, ValueRange{
+                                        constants(0, 32), // *pC
+                                        constants(0, 32)  // curType is the first field
+                                });
+
+                        // Load the value of pC->curType
+                        auto curType = rewriter.create<LoadOp>(LOC, curTypeAddr);
+
+                        // Check whether pC->curType == CURTYPE_PSEUDO
+                        auto curTypeCondition = rewriter.create<ICmpOp>
+                                (LOC, ICmpPredicate::eq, curType, constants(CURTYPE_PSEUDO, 8));
+
+                        // Create the branching
+                        rewriter.create<CondBrOp>(LOC, curTypeCondition,
+                                /* if pC->curType == CURTYPE_PSEUDO */ blockCurTypePseudo,
+                                /*                             else */ blockNotCurTypePseudo
+                        );
+
                         /* if CURTYPE_PSEUDO */
                         {
-                            // BLOCK if CURTYPE_PSEUDO
                             rewriter.setInsertionPointToStart(blockCurTypePseudo);
+                            PROGRESS("CURTYPE_PSEUDO branch")
 
                             rewriter.create<mlir::BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
                         }
-                        /* else */
+                        /* else (NOT CURTYPE_PSEUDO) */
                         {
-                            // BLOCK if NOT CURTYPE PSEUDO
                             rewriter.setInsertionPointToStart(blockNotCurTypePseudo);
+                            PROGRESS("NOT CURTYPE_PSEUDO branch")
 
                             rewriter.create<mlir::BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
                         }
                     }
                     /* else (not nullRow) */
                     {
-                        // BLOCK if NOT nullRow
                         rewriter.setInsertionPointToStart(blockNotNullRow);
+                        PROGRESS("NOT nullRow branch")
 
                         rewriter.create<mlir::BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
                     }
