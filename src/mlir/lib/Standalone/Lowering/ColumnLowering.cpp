@@ -2,6 +2,8 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
+#include "Standalone/ConstantManager.h"
+
 #define EXIT_PASS_EARLY(with_call_to_debug) { \
     if (with_call_to_debug) { \
         rewriter.create<CallOp>(LOC, f_debug, ValueRange{}); \
@@ -25,7 +27,8 @@ namespace mlir {
                 LOWERING_PASS_HEADER
                 LOWERING_NAMESPACE
 
-                auto pVdbe = CONSTANT_PTR(T::VdbePtrTy, vdbe);
+                ConstantManager constants(rewriter, ctx);
+                auto pVdbe = constants(T::VdbePtrTy, vdbe);
 
                 auto curIdxAttr = colOp.getAttrOfType<mlir::IntegerAttr>("curIdx");
                 auto columnAttr = colOp.getAttrOfType<mlir::IntegerAttr>("column");
@@ -33,21 +36,21 @@ namespace mlir {
                 auto defaultValueAttr = colOp.getAttrOfType<mlir::IntegerAttr>("defaultValue");
                 auto flagsAttr = colOp.getAttrOfType<mlir::IntegerAttr>("flags");
 
-                auto curIdxValue = CONSTANT_INT(curIdxAttr.getValue().getLimitedValue(32), 32);
-                auto extractToValue = CONSTANT_INT(extractToAttr.getValue().getLimitedValue(32), 32);
+                auto curIdxValue = constants(curIdxAttr.getValue().getLimitedValue(32), 32);
+                auto extractToValue = constants(extractToAttr.getValue().getLimitedValue(32), 32);
 
-                auto curIdx = rewriter.create<AllocaOp>(LOC, T::i32PtrTy, CONSTANT_INT(1, 32), 0);
+                auto curIdx = rewriter.create<AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
                 rewriter.create<StoreOp>(LOC, curIdxValue, curIdx);
 
                 PROGRESS_PRINT_INT(curIdxValue, "OP_Column: Cursor index");
 
                 // The address of the array of (pointers to) cursors in the VDBE
-                auto apCsr = CONSTANT_PTR(T::VdbeCursorPtrPtrTy, vdbe->apCsr);
+                auto apCsr = constants(T::VdbeCursorPtrPtrTy, vdbe->apCsr);
                 // The address of this particular pointer-to-cursor
                 auto pCAddr = rewriter.create<GEPOp>(LOC, T::VdbeCursorPtrPtrTy, apCsr, ValueRange{curIdxValue});
                 // The address of the cursor
                 auto pCValue = rewriter.create<LoadOp>(LOC, pCAddr);
-                auto pC = rewriter.create<AllocaOp>(LOC, T::VdbeCursorPtrPtrTy, CONSTANT_INT(1, 32), 0);
+                auto pC = rewriter.create<AllocaOp>(LOC, T::VdbeCursorPtrPtrTy, constants(1, 32), 0);
                 rewriter.create<StoreOp>(LOC, pCValue, pC);
 
                 auto rc = rewriter.create<CallOp>(LOC, f_sqlite3VdbeCursorMoveto,
@@ -66,8 +69,8 @@ namespace mlir {
                 auto aOffsetAddr = rewriter.create<GEPOp>
                         (LOC, T::i32PtrTy.getPointerTo(), pCValue,
                          ValueRange{
-                                 CONSTANT_INT(0, 32), // Address of *pC
-                                 CONSTANT_INT(19, 32)  // Address of aOffset in pC
+                                 constants(0, 32), // Address of *pC
+                                 constants(19, 32)  // Address of aOffset in pC
                          });
                 auto aOffset = rewriter.create<LoadOp>(LOC, aOffsetAddr);
 
@@ -93,16 +96,16 @@ namespace mlir {
                 auto cacheStatusAddr = rewriter.create<GEPOp>
                         (LOC, T::i32PtrTy, pC,
                          ValueRange{
-                                 CONSTANT_INT(0, 32), // *pC
-                                 CONSTANT_INT(9, 32)  // Address of field cacheStatus
+                                 constants(0, 32), // *pC
+                                 constants(9, 32)  // Address of field cacheStatus
                          });
                 auto cacheStatus = rewriter.create<LoadOp>(LOC, cacheStatusAddr);
 
                 auto cacheCtrAddr = rewriter.create<GEPOp>
                         (LOC, T::i32PtrTy, pVdbe,
                                 ValueRange{
-                                    CONSTANT_INT(0, 32), // *pVdbe
-                                    CONSTANT_INT(9, 32)  // Address of cacheCtr in Vdbe
+                                    constants(0, 32), // *pVdbe
+                                    constants(9, 32)  // Address of cacheCtr in Vdbe
                         });
                 auto cacheCtr = rewriter.create<LoadOp>(LOC, cacheCtrAddr);
 
