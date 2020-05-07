@@ -4,18 +4,18 @@
 
 #include "Standalone/ConstantManager.h"
 
+#define CALL_DEBUG { \
+    rewriter.create<CallOp>(LOC, f_debug, ValueRange{}); \
+};
+
 #define EXIT_PASS_EARLY(with_call_to_debug) { \
     if (with_call_to_debug) { \
-        rewriter.create<CallOp>(LOC, f_debug, ValueRange{}); \
+        CALL_DEBUG \
     } \
     rewriter.eraseOp(colOp); \
     err("QSDQSD EXIT EARLY"); \
     parentModule.dump(); \
     return success(); \
-};
-
-#define CALL_DEBUG { \
-    rewriter.create<CallOp>(LOC, f_debug, ValueRange{}); \
 };
 
 namespace mlir {
@@ -76,25 +76,16 @@ namespace mlir {
 
                 auto curBlock = rewriter.getBlock();
 
-                /*
                 auto blockCacheStatusNeqCacheCtr = rewriter.getBlock()->splitBlock(colOp);
                 rewriter.setInsertionPoint(colOp);
                 auto blockAfterCacheStatusNeqCachePtr = rewriter.getBlock()->splitBlock(colOp);
                 rewriter.setInsertionPoint(colOp);
-                auto blockNullRow = rewriter.getBlock()->splitBlock(colOp);
-                rewriter.setInsertionPoint(colOp);
-                auto blockNotNullRow = rewriter.getBlock()->splitBlock(colOp);
-                rewriter.setInsertionPoint(colOp);
-                auto blockCURTYPE_PSEUDO = rewriter.getBlock()->splitBlock(colOp);
-                rewriter.setInsertionPoint(colOp);
-                auto blockNotCURTYPE_PSEUDO = rewriter.getBlock()->splitBlock(colOp);
-                */
 
                 // Go back to the end of the current block to insert branching
                 rewriter.setInsertionPointToEnd(curBlock);
 
                 auto cacheStatusAddr = rewriter.create<GEPOp>
-                        (LOC, T::i32PtrTy, pC,
+                        (LOC, T::i32PtrTy, pCValue,
                          ValueRange{
                                  constants(0, 32), // *pC
                                  constants(9, 32)  // Address of field cacheStatus
@@ -103,19 +94,85 @@ namespace mlir {
 
                 auto cacheCtrAddr = rewriter.create<GEPOp>
                         (LOC, T::i32PtrTy, pVdbe,
-                                ValueRange{
-                                    constants(0, 32), // *pVdbe
-                                    constants(9, 32)  // Address of cacheCtr in Vdbe
-                        });
+                         ValueRange{
+                                 constants(0, 32), // *pVdbe
+                                 constants(9, 32)  // Address of cacheCtr in Vdbe
+                         });
                 auto cacheCtr = rewriter.create<LoadOp>(LOC, cacheCtrAddr);
 
-                CALL_DEBUG;
-                EXIT_PASS_EARLY(false)
+                auto cacheStatusNeqCacheCtr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ne, cacheStatus, cacheCtr);
+                rewriter.create<CondBrOp>
+                        (LOC, cacheStatusNeqCacheCtr,
+                                /* if != */ blockCacheStatusNeqCacheCtr,
+                                /* else  */ blockAfterCacheStatusNeqCachePtr
+                        );
 
-                auto nullRowAddr = nullptr;
-                auto nullRow = nullptr;
+                /* if cacheStatus != cacheCtr */
+                {
+                    // BLOCK if cacheStatus != cacheCtr
+                    auto ip = rewriter.saveInsertionPoint();
+                    rewriter.setInsertionPointToStart(blockCacheStatusNeqCacheCtr);
+                    auto block = rewriter.getBlock();
 
-                auto curTypeAddr = nullptr;
+                    PROGRESS("cacheStatus != cacheCtr")
+
+                    auto blockNullRow = rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
+                    rewriter.setInsertionPointToEnd(block);
+                    auto blockNotNullRow = rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
+                    rewriter.setInsertionPointToEnd(block);
+                    auto blockEndCacheNeStatusCacheCtr = rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
+                    rewriter.setInsertionPointToEnd(block);
+
+                    // TODO: Update that condition
+                    auto nullRowAddr = nullptr;
+                    auto nullRow = nullptr;
+                    auto TEMP_CONDITION_NULLROW = constants(1, 1);
+                    rewriter.create<CondBrOp>(LOC, TEMP_CONDITION_NULLROW, blockNullRow, blockNotNullRow);
+                    /* if nullRow */
+                    {
+                        // BLOCK if nullRow
+                        rewriter.setInsertionPointToStart(blockNullRow);
+                        auto blockCurTypePseudo = rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
+                        rewriter.setInsertionPointToEnd(blockNullRow);
+                        auto blockNotCurTypePseudo = rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
+
+                        // TODO: Make that condition if cur->curType == CURTYPE_PSEUDO
+                        auto curTypeAddr = nullptr;
+                        auto TEMP_CONDITION_CURTYPE = constants(0, 1);
+                        rewriter.create<CondBrOp>(LOC, TEMP_CONDITION_CURTYPE, blockCurTypePseudo, blockNotCurTypePseudo);
+                        /* if CURTYPE_PSEUDO */
+                        {
+                            // BLOCK if CURTYPE_PSEUDO
+                            rewriter.setInsertionPointToStart(blockCurTypePseudo);
+
+                            rewriter.create<mlir::BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
+                        }
+                        /* else */
+                        {
+                            // BLOCK if NOT CURTYPE PSEUDO
+                            rewriter.setInsertionPointToStart(blockNotCurTypePseudo);
+
+                            rewriter.create<mlir::BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
+                        }
+                    }
+                    /* else (not nullRow) */
+                    {
+                        // BLOCK if NOT nullRow
+                        rewriter.setInsertionPointToStart(blockNotNullRow);
+
+                        rewriter.create<mlir::BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
+                    }
+
+                    /* After condition (but still in cacheStatus != cacheCtr) */
+                    {
+                        // BLOCK EndCacheStatusNeqCacheCtr
+                        rewriter.setInsertionPointToStart(blockEndCacheNeStatusCacheCtr);
+
+                        rewriter.create<BranchOp>(LOC, blockAfterCacheStatusNeqCachePtr);
+
+                    }
+                    rewriter.restoreInsertionPoint(ip);
+                }
 
 
                 rewriter.eraseOp(colOp);

@@ -126,14 +126,6 @@ namespace mlir {
 
                 // TODO: if (res) goto jump_to_p2;
 
-                /*
-                rewriter.eraseOp(rewindOp);
-                err("QSDQSD");
-                parentModule.dump();
-                err("\n");
-                return success();
-                */
-
                 rewriter.eraseOp(rewindOp);
                 return success();
             } // matchAndRewrite
