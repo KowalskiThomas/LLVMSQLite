@@ -175,6 +175,75 @@ namespace mlir {
                             rewriter.setInsertionPointToStart(blockCurTypePseudo);
                             PROGRESS("CURTYPE_PSEUDO branch")
 
+                            // pReg = &aMem[pC->seekResult];
+                            auto seekResultAddress = rewriter.create<GEPOp>
+                                    (LOC, T::i32PtrTy, pCValue,
+                                     ValueRange{
+                                             constants(0, 32), // *pC
+                                             constants(10, 32) // pc->seekResult
+                                     });
+
+                            auto seekResultValue = rewriter.create<LoadOp>(LOC, seekResultAddress);
+
+                            auto pRegValue = rewriter.create<GEPOp>
+                                    (LOC, T::sqlite3_valuePtrTy, aMem,
+                                     ValueRange{
+                                             seekResultValue, // We want &aMem[pC->seekResult]
+                                     });
+
+                            // pC->payloadSize = pC->szRow = pReg->n;
+                            auto pRegNAddress = rewriter.create<GEPOp>
+                                    (LOC, T::i32PtrTy, pRegValue,
+                                     ValueRange{
+                                             constants(0, 32), // *pReg
+                                             constants(4, 32) // &pReg->n
+                                     });
+                            auto pRegNValue = rewriter.create<LoadOp>(LOC, pRegNAddress);
+
+                            auto payloadSizeAddress = rewriter.create<GEPOp>
+                                    (LOC, T::i32PtrTy, pCValue,
+                                     ValueRange{
+                                             constants(0, 32), // *pC
+                                             constants(21, 32)  // &pC->payloadSize
+                                     });
+                            rewriter.create<StoreOp>(LOC, pRegNValue, payloadSizeAddress);
+
+                            auto szRowAddress = rewriter.create<GEPOp>
+                                    (LOC, T::i32PtrTy, pCValue,
+                                     ValueRange{
+                                             constants(0, 32), // *pC
+                                             constants(22, 32)  // &pC->szRo
+                                     });
+                            rewriter.create<StoreOp>(LOC, pRegNValue, szRowAddress);
+
+                            //// pC->aRow = (u8 *) pReg->z;
+                            // Get the address of pReg->z (gives an u8**)
+                            auto pRegZAddress = rewriter.create<GEPOp>
+                                    (LOC, T::i32PtrTy, pRegValue,
+                                     ValueRange{
+                                             constants(0, 32), // *pReg
+                                             constants(5, 32)  // &pReg->z
+                                     });
+                            // Cast it to an i64* (u8** -> i64*)
+                            auto castPRegZAddress = rewriter.create<BitcastOp>(LOC, T::i64PtrTy, pRegZAddress);
+                            // Load the value of pReg->z (i64)
+                            auto pRegZValue = rewriter.create<LoadOp>(LOC, castPRegZAddress);
+
+                            // Get the address of pC->aRow (u8*)
+                            auto pCaRowAddress = rewriter.create<GEPOp>
+                                    (LOC, T::i8PtrPtrTy, pCValue,
+                                            ValueRange {
+                                        constants(0, 32),
+                                        constants(20, 32)
+                                    });
+
+                            // Cast it to an i64* (u8* -> i64*)
+                            auto castpCaRowAddress = rewriter.create<BitcastOp>(LOC, T::i64PtrTy, pCaRowAddress);
+
+                            // Store the value of pReg->z in pC->aRow
+                            rewriter.create<StoreOp>(LOC, pRegZValue, castpCaRowAddress);
+
+                            // Branch out
                             rewriter.create<mlir::BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
                         }
                         /* else (NOT CURTYPE_PSEUDO) */
