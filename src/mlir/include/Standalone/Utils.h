@@ -149,7 +149,8 @@
     using StoreOp = mlir::LLVM::StoreOp; \
     using OrOp = mlir::LLVM::OrOp; \
     using AndOp = mlir::LLVM::AndOp; \
-    using AllocaOp = mlir::LLVM::AllocaOp;
+    using AllocaOp = mlir::LLVM::AllocaOp; \
+    using BranchOp = mlir::BranchOp;
 
 
 

@@ -22,6 +22,7 @@ mlir::LLVM::LLVMFuncOp f_sqlite3BtreeCursorHintFlags;
 mlir::LLVM::LLVMFuncOp f_sqlite3VdbeSorterRewind;
 mlir::LLVM::LLVMFuncOp f_sqlite3BtreeFirst;
 mlir::LLVM::LLVMFuncOp f_sqlite3VdbeCursorMoveto;
+mlir::LLVM::LLVMFuncOp f_sqlite3VdbeMemSetNull;
 mlir::LLVM::LLVMFuncOp f_debug;
 // mlir::LLVM::LLVMFuncOp f_assert;
 
@@ -174,6 +175,16 @@ void Prerequisites::generateReferenceToDebug(ModuleOp m, LLVMDialect* d) {
     GENERATE_SYMBOL(f_debug, debug, "debug");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeMemSetNull(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(d),
+            {
+                T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemSetNull, sqlite3VdbeMemSetNull, "sqlite3VdbeMemSetNull")
+};
+
 #define CALL_SYMBOL_GENERATOR(f) f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect* dialect) {
@@ -187,5 +198,6 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect* dialect) {
     CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3BtreeFirst);
     CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3VdbeCursorMoveto);
     CALL_SYMBOL_GENERATOR(generateReferenceToDebug);
+    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3VdbeMemSetNull);
     // generateReferenceTosqlite3BtreeFirst(m, dialect);
 }

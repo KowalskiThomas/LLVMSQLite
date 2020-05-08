@@ -244,14 +244,19 @@ namespace mlir {
                             rewriter.create<StoreOp>(LOC, pRegZValue, castpCaRowAddress);
 
                             // Branch out
-                            rewriter.create<mlir::BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
+                            rewriter.create<BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
                         }
                         /* else (NOT CURTYPE_PSEUDO) */
                         {
                             rewriter.setInsertionPointToStart(blockNotCurTypePseudo);
                             PROGRESS("NOT CURTYPE_PSEUDO branch")
 
-                            rewriter.create<mlir::BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
+                            rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange{ pDest });
+
+                            PROGRESS("TODO: goto_op_column_out")
+                            // TODO: goto op_column_out;
+
+                            rewriter.create<BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
                         }
                     }
                     /* else (not nullRow) */
