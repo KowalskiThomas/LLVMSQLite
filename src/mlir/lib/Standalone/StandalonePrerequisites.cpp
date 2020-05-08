@@ -13,19 +13,21 @@
 
 using LLVMDialect = mlir::LLVM::LLVMDialect;
 
-mlir::LLVM::LLVMFuncOp addFunction;
-mlir::LLVM::LLVMFuncOp f_progress;
-mlir::LLVM::LLVMFuncOp f_printPtr;
-mlir::LLVM::LLVMFuncOp f_allocateCursor;
-mlir::LLVM::LLVMFuncOp f_sqlite3BtreeCursor;
-mlir::LLVM::LLVMFuncOp f_sqlite3BtreeCursorHintFlags;
-mlir::LLVM::LLVMFuncOp f_sqlite3VdbeSorterRewind;
-mlir::LLVM::LLVMFuncOp f_sqlite3BtreeFirst;
-mlir::LLVM::LLVMFuncOp f_sqlite3VdbeCursorMoveto;
-mlir::LLVM::LLVMFuncOp f_sqlite3VdbeMemSetNull;
-mlir::LLVM::LLVMFuncOp f_sqlite3BtreePayloadSize;
-mlir::LLVM::LLVMFuncOp f_sqlite3BtreePayloadFetch;
-mlir::LLVM::LLVMFuncOp f_debug;
+using LLVMFuncOp = mlir::LLVM::LLVMFuncOp;
+LLVMFuncOp addFunction;
+LLVMFuncOp f_progress;
+LLVMFuncOp f_printPtr;
+LLVMFuncOp f_allocateCursor;
+LLVMFuncOp f_sqlite3BtreeCursor;
+LLVMFuncOp f_sqlite3BtreeCursorHintFlags;
+LLVMFuncOp f_sqlite3VdbeSorterRewind;
+LLVMFuncOp f_sqlite3BtreeFirst;
+LLVMFuncOp f_sqlite3VdbeCursorMoveto;
+LLVMFuncOp f_sqlite3VdbeMemSetNull;
+LLVMFuncOp f_sqlite3BtreePayloadSize;
+LLVMFuncOp f_sqlite3BtreePayloadFetch;
+LLVMFuncOp f_debug;
+LLVMFuncOp f_sqlite3GetVarint32;
 // mlir::LLVM::LLVMFuncOp f_assert;
 
 #define GENERATE_SYMBOL(ref_name, f, symbol_name) \
@@ -207,6 +209,17 @@ void Prerequisites::generateReferenceTosqlite3BtreePayloadFetch(mlir::ModuleOp m
     GENERATE_SYMBOL(f_sqlite3BtreePayloadFetch, sqlite3BtreePayloadFetch, "sqlite3BtreePayloadFetch")
 }
 
+void Prerequisites::generateReferenceTosqlite3GetVarint32(ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i8Ty,
+            {
+                T::i8PtrTy,
+                T::i32PtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3GetVarint32, sqlite3GetVarint32, "sqlite3GetVarint32")
+}
+
 #define CALL_SYMBOL_GENERATOR(f) f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
@@ -223,5 +236,6 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3VdbeMemSetNull);
     CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3BtreePayloadSize);
     CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3BtreePayloadFetch);
+    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3GetVarint32);
     // generateReferenceTosqlite3BtreeFirst(m, dialect);
 }

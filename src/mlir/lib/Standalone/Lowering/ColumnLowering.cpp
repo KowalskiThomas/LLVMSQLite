@@ -4,9 +4,14 @@
 
 #include "Standalone/ConstantManager.h"
 
+/*#ifdef DEBUG_CALLED
+#error "CALL_DEBUG used more than once!" // First use at " ##__LINE__
+#else
+#define DEBUG_CALLED
+#endif*/
 #define CALL_DEBUG { \
     rewriter.create<CallOp>(LOC, f_debug, ValueRange{}); \
-};
+}
 
 #define EXIT_PASS_EARLY(with_call_to_debug) { \
     if (with_call_to_debug) { \
@@ -17,6 +22,9 @@
     parentModule.dump(); \
     return success(); \
 };
+
+#define SPLIT_BLOCK rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
+#define GO_BACK_TO(b) rewriter.setInsertionPointToEnd(b)
 
 namespace mlir {
     namespace standalone {
@@ -80,6 +88,9 @@ namespace mlir {
                 rewriter.setInsertionPoint(colOp);
                 auto blockAfterCacheStatusNeqCachePtr = rewriter.getBlock()->splitBlock(colOp);
                 rewriter.setInsertionPoint(colOp);
+                auto blockColumnEnd = rewriter.getBlock()->splitBlock(colOp);
+                rewriter.setInsertionPoint(colOp);
+                // GO_BACK_TO(curBlock);
 
                 // Go back to the end of the current block to insert branching
                 rewriter.setInsertionPointToEnd(curBlock);
@@ -251,10 +262,11 @@ namespace mlir {
 
                             rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange{pDest});
 
-                            PROGRESS("TODO: goto_op_column_out")
+                            // PROGRESS("TODO: goto_op_column_out")
                             // TODO: goto op_column_out;
+                            rewriter.create<BranchOp>(LOC, blockColumnEnd);
 
-                            rewriter.create<BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
+                            // rewriter.create<BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
                         }
                     }
                     /* else (not nullRow) */
@@ -317,22 +329,106 @@ namespace mlir {
                         //// pC->iHdrOffset = getVarint32(pC->aRow, aOffset[0]);
                         auto iHdrOffsetAddr = rewriter.create<GEPOp>
                                 (LOC, T::i32PtrTy, pCValue, ValueRange{
-                                   constants(0, 32),  // &*pC
-                                    constants(14, 32) // &pC->iHdrOffset
+                                        constants(0, 32),  // &*pC
+                                        constants(14, 32)  // &pC->iHdrOffset
                                 });
 
-                        // TODO: getVarint32(pC->aRow, aOffset[0]);
-                        auto newiHdrOffsetAddr = constants(0, 32);
+                        // TODO: Work on that!
+                        auto generate_getVarint32 = [&rewriter, &ctx, &constants](auto A, auto B, auto writeResultTo) {
+                            // #define getVarint32(A,B)  \
+                            //   (u8)((*(A)<(u8)0x80)?((B)=(u32)*(A)),1:sqlite3GetVarint32((A),(u32 *)&(B)))
+                            //
+                            // Func getVarint32(A, B) as u8:
+                            //   If *A < 0x80 Then
+                            //     B = (u32)*A
+                            //     Return 1
+                            //   Else
+                            //     Return sqlite3GetVarint32(A, (u32*)&B)
+                            //   EndIf
+
+                            // Read the content of pointer A
+                            auto valA = rewriter.create<LoadOp>(LOC, A);
+
+                            PROGRESS("THOMAS");
+
+                            // Create new blocks:
+                            // - One for if *A < 0x80
+                            // - One for the else (A >= 0x80)
+                            // - One for reuniting control flow
+                            auto curBlock = rewriter.getBlock();
+                            auto blockAfter = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
+                            auto blockMoreThan80 = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
+                            auto blockLessThan80 = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
+
+
+                            // Check whether the *A < 0x80
+                            auto condLessThan80 = rewriter.create<ICmpOp>
+                                    (LOC, ICmpPredicate::ult, valA, constants(0x80, 8));
+
+                            // Insert branching 
+                            rewriter.create<CondBrOp>(LOC, condLessThan80, blockLessThan80, blockMoreThan80);
+
+                            /* if *A < 0x80 */
+                            {
+                                rewriter.setInsertionPointToStart(blockLessThan80);
+
+                                PROGRESS("*A < 0x80")
+                                // Convert *A to u32
+                                auto aAsU32 = rewriter.create<ZExtOp>(LOC, T::i32Ty, valA);
+
+                                // B = *A
+                                rewriter.create<StoreOp>(LOC, aAsU32, B);
+
+                                // "Return" 1
+                                rewriter.create<StoreOp>(LOC, constants(1, 32), writeResultTo);
+
+                                rewriter.create<BranchOp>(LOC, blockAfter);
+                            }
+                            /* else */
+                            {
+                                rewriter.setInsertionPointToStart(blockMoreThan80);
+
+                                PROGRESS("ELSE(*A < 0x80)")
+                                // Convert B to u32*
+                                auto bAsU32Ptr = rewriter.create<BitcastOp>(LOC, T::i32PtrTy, B);
+                                // Call sqlite3GetVarint32(A, (u32*)B)
+                                auto result = rewriter.create<CallOp>
+                                        (LOC, f_sqlite3GetVarint32,
+                                         ValueRange{
+                                            A,
+                                            bAsU32Ptr
+                                         }).getResult(0);
+
+                                // "Return" the result of the function
+                                // sqlite3GetVarint32 returns an u8 so we need to extend it
+                                auto resultAsI32 = rewriter.create<ZExtOp>(LOC, T::i32Ty, result);
+                                rewriter.create<StoreOp>(LOC, resultAsI32, writeResultTo);
+                                rewriter.create<BranchOp>(LOC, blockAfter);
+                            }
+
+                            rewriter.setInsertionPointToStart(blockAfter);
+                        };
+
+                        auto aRow = rewriter.create<LoadOp>(LOC, pCaRowAddress);
+                        err("Type of aRow")
+                        aRow.getType().dump();
+
+                        PROGRESS("HELLO 1")
+                        generate_getVarint32(/* A = */ aRow, /* B = */ aOffset, /* Result to */ iHdrOffsetAddr);
+                        PROGRESS("HELLO 2")
 
                         //// pC->nHdrParsed = 0;
                         auto nHdrParsedAddr = rewriter.create<GEPOp>
                                 (LOC, T::i16PtrTy, pCValue, ValueRange{
-                                    constants(0, 32), // &*pC
-                                    constants(17, 32) // &pC->nHdrParsedAddr
+                                        constants(0, 32), // &*pC
+                                        constants(17, 32) // &pC->nHdrParsedAddr
                                 });
                         rewriter.create<StoreOp>(LOC, constants(0, 16), nHdrParsedAddr);
 
-                        CALL_DEBUG
+                        // CALL_DEBUG
                         /* TODO: Uncomment
                         */
 
@@ -343,6 +439,13 @@ namespace mlir {
                     rewriter.restoreInsertionPoint(ip);
                 }
 
+                rewriter.setInsertionPointToStart(blockAfterCacheStatusNeqCachePtr);
+                rewriter.create<BranchOp>(LOC, blockColumnEnd);
+
+                rewriter.setInsertionPointToStart(blockColumnEnd);
+                err("COLEND" << blockColumnEnd)
+                CALL_DEBUG
+                PROGRESS("op_column_out: ending")
 
                 rewriter.eraseOp(colOp);
                 return success();

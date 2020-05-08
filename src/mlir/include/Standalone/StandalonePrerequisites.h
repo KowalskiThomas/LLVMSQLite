@@ -8,19 +8,21 @@ using namespace mlir::LLVM;
 using ModuleOp = mlir::ModuleOp;
 
 // TODO: Remove addFunction
-extern LLVMFuncOp addFunction;
-extern LLVMFuncOp f_progress;
-extern LLVMFuncOp f_printPtr;
-extern LLVMFuncOp f_allocateCursor;
-extern LLVMFuncOp f_sqlite3BtreeCursor;
-extern LLVMFuncOp f_sqlite3BtreeCursorHintFlags;
-extern LLVMFuncOp f_sqlite3VdbeSorterRewind;
-extern LLVMFuncOp f_sqlite3BtreeFirst;
-extern LLVMFuncOp f_sqlite3VdbeCursorMoveto;
-extern LLVMFuncOp f_sqlite3VdbeMemSetNull;
-extern LLVMFuncOp f_sqlite3BtreePayloadSize;
-extern LLVMFuncOp f_sqlite3BtreePayloadFetch;
-extern LLVMFuncOp f_debug;
+#define ExternFuncOp extern LLVMFuncOp
+ExternFuncOp addFunction;
+ExternFuncOp f_progress;
+ExternFuncOp f_printPtr;
+ExternFuncOp f_allocateCursor;
+ExternFuncOp f_sqlite3BtreeCursor;
+ExternFuncOp f_sqlite3BtreeCursorHintFlags;
+ExternFuncOp f_sqlite3VdbeSorterRewind;
+ExternFuncOp f_sqlite3BtreeFirst;
+ExternFuncOp f_sqlite3VdbeCursorMoveto;
+ExternFuncOp f_sqlite3VdbeMemSetNull;
+ExternFuncOp f_sqlite3BtreePayloadSize;
+ExternFuncOp f_sqlite3BtreePayloadFetch;
+ExternFuncOp f_debug;
+ExternFuncOp f_sqlite3GetVarint32;
 
 void initialiseTypeCache(LLVMDialect*);
 
@@ -44,6 +46,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeMemSetNull);
     DECLARE_FUNCTION(sqlite3BtreePayloadSize);
     DECLARE_FUNCTION(sqlite3BtreePayloadFetch);
+    DECLARE_FUNCTION(sqlite3GetVarint32);
     DECLARE_FUNCTION(Debug);
 
     static void runPrerequisites(ModuleOp, LLVMDialect*);
