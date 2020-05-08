@@ -23,6 +23,8 @@ mlir::LLVM::LLVMFuncOp f_sqlite3VdbeSorterRewind;
 mlir::LLVM::LLVMFuncOp f_sqlite3BtreeFirst;
 mlir::LLVM::LLVMFuncOp f_sqlite3VdbeCursorMoveto;
 mlir::LLVM::LLVMFuncOp f_sqlite3VdbeMemSetNull;
+mlir::LLVM::LLVMFuncOp f_sqlite3BtreePayloadSize;
+mlir::LLVM::LLVMFuncOp f_sqlite3BtreePayloadFetch;
 mlir::LLVM::LLVMFuncOp f_debug;
 // mlir::LLVM::LLVMFuncOp f_assert;
 
@@ -37,14 +39,14 @@ uint32_t add(uint32_t a, uint32_t b) {
     return a + b;
 }
 
-uint64_t printProgress(void* s, uint32_t line) {
-    llvm::outs() << "[" << line << "] Msg: " << (char*)s << " (" << (uint64_t)(s) << ")\n";
+uint64_t printProgress(void *s, uint32_t line) {
+    llvm::outs() << "[" << line << "] Msg: " << (char *) s << " (" << (uint64_t) (s) << ")\n";
     llvm::outs().flush();
     return 0;
 }
 
-uint64_t printPtr(void* ptr, void* s, uint32_t line) {
-    llvm::outs() << "[" << line << "] Ptr: " << (int64_t)(ptr) << " " << (char*)s << "\n";
+uint64_t printPtr(void *ptr, void *s, uint32_t line) {
+    llvm::outs() << "[" << line << "] Ptr: " << (int64_t) (ptr) << " " << (char *) s << "\n";
     llvm::outs().flush();
     return 0;
 }
@@ -56,11 +58,11 @@ void debug() {
 
 }
 
-void Prerequisites::generateNewFunction(ModuleOp m, LLVMDialect*) {
+void Prerequisites::generateNewFunction(ModuleOp m, LLVMDialect *) {
     auto i32Ty = T::i32Ty;
     auto regTy = T::sqlite3_valuePtrTy;
 
-    auto funcTy = LLVMType::getFunctionTy(i32Ty, { regTy }, false);
+    auto funcTy = LLVMType::getFunctionTy(i32Ty, {regTy}, false);
 
     auto builder = mlir::OpBuilder(m);
     auto func = builder.create<LLVMFuncOp>(
@@ -72,15 +74,15 @@ void Prerequisites::generateNewFunction(ModuleOp m, LLVMDialect*) {
     m.push_back(func);
 }
 
-void Prerequisites::generateReferenceToAdd(ModuleOp m, LLVMDialect*) {
-    auto funcTy = LLVMType::getFunctionTy(T::i32Ty, { T::i32Ty, T::i32Ty }, false);
+void Prerequisites::generateReferenceToAdd(ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(T::i32Ty, {T::i32Ty, T::i32Ty}, false);
     auto builder = mlir::OpBuilder(m);
     builder.setInsertionPointToStart(m.getBody());
     addFunction = builder.create<LLVMFuncOp>(m.getLoc(), "add", funcTy, Linkage::External);
     llvm::sys::DynamicLibrary::AddSymbol("add", reinterpret_cast<void *>(add));
 }
 
-void Prerequisites::generateReferenceToProgress(ModuleOp m, LLVMDialect* dialect) {
+void Prerequisites::generateReferenceToProgress(ModuleOp m, LLVMDialect *dialect) {
     static bool done = false;
     if (done) {
         return;
@@ -89,23 +91,22 @@ void Prerequisites::generateReferenceToProgress(ModuleOp m, LLVMDialect* dialect
 
     auto i32Ty = T::i32Ty;
     auto i64Ty = T::i64Ty;
-    auto funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(dialect), { i64Ty, i32Ty }, false);
+    auto funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(dialect), {i64Ty, i32Ty}, false);
     auto builder = mlir::OpBuilder(m);
     builder.setInsertionPointToStart(m.getBody());
     f_progress = builder.create<LLVMFuncOp>(m.getLoc(), "printProgress", funcTy, Linkage::External);
     llvm::sys::DynamicLibrary::AddSymbol("printProgress", reinterpret_cast<void *>(printProgress));
 
-    funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(dialect), { i64Ty, i64Ty, i32Ty }, false);
+    funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(dialect), {i64Ty, i64Ty, i32Ty}, false);
     f_printPtr = builder.create<LLVMFuncOp>(m.getLoc(), "printPtr", funcTy, Linkage::External);
-    llvm::sys::DynamicLibrary::AddSymbol("printPtr", reinterpret_cast<void*>(printPtr));
+    llvm::sys::DynamicLibrary::AddSymbol("printPtr", reinterpret_cast<void *>(printPtr));
 }
 
 
-
-void Prerequisites::generateReferenceToAllocateCursor(ModuleOp m, LLVMDialect* dialect) {
+void Prerequisites::generateReferenceToAllocateCursor(ModuleOp m, LLVMDialect *dialect) {
     auto funcTy = LLVMType::getFunctionTy(T::VdbeCursorPtrTy,
-            { T::VdbePtrTy, T::i32Ty, T::i32Ty, T::i32Ty, T::i8Ty },
-            false);
+                                          {T::VdbePtrTy, T::i32Ty, T::i32Ty, T::i32Ty, T::i8Ty},
+                                          false);
 
     GENERATE_SYMBOL(f_allocateCursor, allocateCursor, "allocateCursor");
 }
@@ -114,25 +115,25 @@ void Prerequisites::generateReferenceToSqlite3BtreeCursor(ModuleOp m, LLVMDialec
     auto funcTy = LLVMType::getFunctionTy(
             T::i32Ty,
             {
-                T::BtreePtrTy,
-                T::i32Ty,
-                T::i32Ty,
-                T::KeyInfoPtrTy,
-                T::BtCursorPtrTy
-                },
+                    T::BtreePtrTy,
+                    T::i32Ty,
+                    T::i32Ty,
+                    T::KeyInfoPtrTy,
+                    T::BtCursorPtrTy
+            },
             false);
 
     GENERATE_SYMBOL(f_sqlite3BtreeCursor, sqlite3BtreeCursor, "sqlite3BtreeCursor")
 }
 
-void Prerequisites::generateReferenceToSqlite3BtreeCursorHintFlags(ModuleOp m, LLVMDialect * d) {
+void Prerequisites::generateReferenceToSqlite3BtreeCursorHintFlags(ModuleOp m, LLVMDialect *d) {
     auto funcTy = LLVMType::getFunctionTy(
-                LLVMType::getVoidTy(d),
-                {
+            LLVMType::getVoidTy(d),
+            {
                     T::BtCursorPtrTy,
                     T::i32Ty
-                }, false
-            );
+            }, false
+    );
 
     GENERATE_SYMBOL(f_sqlite3BtreeCursorHintFlags, sqlite3BtreeCursorHintFlags, "sqlite3BtreeCursorHintFlags")
 }
@@ -141,53 +142,74 @@ void Prerequisites::generateReferenceTosqlite3VdbeSorterRewind(mlir::ModuleOp m,
     auto funcTy = LLVMType::getFunctionTy(
             T::i32Ty,
             {
-                T::VdbeCursorPtrTy,
-                T::i32PtrTy
+                    T::VdbeCursorPtrTy,
+                    T::i32PtrTy
             }, false);
 
     GENERATE_SYMBOL(f_sqlite3VdbeSorterRewind, sqlite3VdbeSorterRewind, "sqlite3VdbeSorterRewind");
 }
 
-void Prerequisites::generateReferenceTosqlite3BtreeFirst(ModuleOp m, LLVMDialect*) {
+void Prerequisites::generateReferenceTosqlite3BtreeFirst(ModuleOp m, LLVMDialect *) {
     auto funcTy = LLVMType::getFunctionTy(
             T::i32Ty,
             {
-                T::BtCursorPtrTy,
-                T::i32PtrTy
+                    T::BtCursorPtrTy,
+                    T::i32PtrTy
             }, false);
 
     GENERATE_SYMBOL(f_sqlite3BtreeFirst, sqlite3BtreeFirst, "sqlite3BtreeFirst");
 }
 
-void Prerequisites::generateReferenceTosqlite3VdbeCursorMoveto(ModuleOp m, LLVMDialect*) {
+void Prerequisites::generateReferenceTosqlite3VdbeCursorMoveto(ModuleOp m, LLVMDialect *) {
     auto funcTy = LLVMType::getFunctionTy(
             T::i32Ty,
             {
-                T::VdbeCursorPtrPtrTy,
-                T::i32PtrTy
+                    T::VdbeCursorPtrPtrTy,
+                    T::i32PtrTy
             }, false);
 
     GENERATE_SYMBOL(f_sqlite3VdbeCursorMoveto, sqlite3VdbeCursorMoveto, "sqlite3VdbeCursorMoveto");
 }
 
-void Prerequisites::generateReferenceToDebug(ModuleOp m, LLVMDialect* d) {
+void Prerequisites::generateReferenceToDebug(ModuleOp m, LLVMDialect *d) {
     auto funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(d), {}, false);
     GENERATE_SYMBOL(f_debug, debug, "debug");
 }
 
-void Prerequisites::generateReferenceTosqlite3VdbeMemSetNull(ModuleOp m, LLVMDialect* d) {
+void Prerequisites::generateReferenceTosqlite3VdbeMemSetNull(ModuleOp m, LLVMDialect *d) {
     auto funcTy = LLVMType::getFunctionTy(
             LLVMType::getVoidTy(d),
             {
-                T::sqlite3_valuePtrTy
+                    T::sqlite3_valuePtrTy
             }, false);
 
     GENERATE_SYMBOL(f_sqlite3VdbeMemSetNull, sqlite3VdbeMemSetNull, "sqlite3VdbeMemSetNull")
-};
+}
+
+void Prerequisites::generateReferenceTosqlite3BtreePayloadSize(mlir::ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty,
+            {
+                    T::BtCursorPtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreePayloadSize, sqlite3BtreePayloadSize, "sqlite3BtreePayloadSize")
+}
+
+void Prerequisites::generateReferenceTosqlite3BtreePayloadFetch(mlir::ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i8PtrTy,
+            {
+                    T::BtCursorPtrTy,
+                    T::i32PtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreePayloadFetch, sqlite3BtreePayloadFetch, "sqlite3BtreePayloadFetch")
+}
 
 #define CALL_SYMBOL_GENERATOR(f) f(m, dialect)
 
-void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect* dialect) {
+void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     generateNewFunction(m, dialect);
     generateReferenceToAdd(m, dialect);
     generateReferenceToProgress(m, dialect);
@@ -199,5 +221,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect* dialect) {
     CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3VdbeCursorMoveto);
     CALL_SYMBOL_GENERATOR(generateReferenceToDebug);
     CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3VdbeMemSetNull);
+    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3BtreePayloadSize);
+    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3BtreePayloadFetch);
     // generateReferenceTosqlite3BtreeFirst(m, dialect);
 }
