@@ -774,7 +774,8 @@ namespace mlir {
                             auto zHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zHdrValue);
                             auto zEndHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zEndHdr);
                             auto offset64Value = rewriter.create<LoadOp>(LOC, offset64Addr);
-                            auto payloadSize = rewriter.create<LoadOp>(LOC, payloadSizeAddress);
+                            auto payloadSize_u32 = rewriter.create<LoadOp>(LOC, payloadSizeAddress);
+                            auto payloadSize = rewriter.create<ZExtOp>(LOC, T::i64Ty, payloadSize_u32);
 
                             /* A */ auto zHdrGeZEndHdr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::uge, zHdrAsInt, zEndHdrAsInt);
                             /* B */ auto zHdrGtZEndHdr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ugt, zHdrAsInt, zEndHdrAsInt);
