@@ -110,6 +110,36 @@ namespace mlir {
                 auto aOffset = rewriter.create<LoadOp>(LOC, aOffsetAddr);
                 auto aOffset0 = rewriter.create<LoadOp>(LOC, aOffset);
 
+                auto iHdrOffsetAddr = rewriter.create<GEPOp>
+                        (LOC, T::i32PtrTy, pCValue, ValueRange{
+                                constants(0, 32),  // &*pC
+                                constants(14, 32)  // &pC->iHdrOffset
+                        });
+
+                // Get the address of pC->payloadSize
+                auto payloadSizeAddress = rewriter.create<GEPOp>
+                        (LOC, T::i32PtrTy, pCValue,
+                         ValueRange{
+                                 constants(0, 32), // *pC
+                                 constants(21, 32)  // &pC->payloadSize
+                         });
+
+                // Get the address of pC->szRow
+                auto szRowAddress = rewriter.create<GEPOp>
+                        (LOC, T::i32PtrTy, pCValue,
+                         ValueRange{
+                                 constants(0, 32), // *pC
+                                 constants(22, 32)  // &pC->szRo
+                         });
+
+                // Get the address of pC->aRow (u8*)
+                auto pCaRowAddress = rewriter.create<GEPOp>
+                        (LOC, T::i8PtrPtrTy, pCValue,
+                         ValueRange{
+                                 constants(0, 32),
+                                 constants(20, 32)
+                         });
+
                 auto curBlock = rewriter.getBlock();
 
                 auto blockCacheStatusNeqCacheCtr = rewriter.getBlock()->splitBlock(colOp);
@@ -139,11 +169,9 @@ namespace mlir {
                 auto cacheCtr = rewriter.create<LoadOp>(LOC, cacheCtrAddr);
 
                 auto cacheStatusNeqCacheCtr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ne, cacheStatus, cacheCtr);
-                rewriter.create<CondBrOp>
-                        (LOC, cacheStatusNeqCacheCtr,
-                                /* if != */ blockCacheStatusNeqCacheCtr,
-                                /* else  */ blockAfterCacheStatusNeqCachePtr
-                        );
+                rewriter.create<CondBrOp>(LOC, cacheStatusNeqCacheCtr,
+                        /* if != */ blockCacheStatusNeqCacheCtr,
+                        /* else  */ blockAfterCacheStatusNeqCachePtr);
 
                 /* if cacheStatus != cacheCtr */
                 {
@@ -153,26 +181,6 @@ namespace mlir {
                     auto block = rewriter.getBlock();
 
                     PROGRESS("cacheStatus != cacheCtr")
-
-                    auto payloadSizeAddress = rewriter.create<GEPOp>
-                            (LOC, T::i32PtrTy, pCValue,
-                             ValueRange{
-                                     constants(0, 32), // *pC
-                                     constants(21, 32)  // &pC->payloadSize
-                             });
-                    auto szRowAddress = rewriter.create<GEPOp>
-                            (LOC, T::i32PtrTy, pCValue,
-                             ValueRange{
-                                     constants(0, 32), // *pC
-                                     constants(22, 32)  // &pC->szRo
-                             });
-                    // Get the address of pC->aRow (u8*)
-                    auto pCaRowAddress = rewriter.create<GEPOp>
-                            (LOC, T::i8PtrPtrTy, pCValue,
-                             ValueRange{
-                                     constants(0, 32),
-                                     constants(20, 32)
-                             });
 
                     auto blockNullRow = rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
                     rewriter.setInsertionPointToEnd(block);
@@ -199,8 +207,9 @@ namespace mlir {
                     rewriter.create<CondBrOp>(LOC, nullRowCondition,
                             /* if pC->nullRow == 0 */ blockNullRow,
                             /* else */                blockNotNullRow);
-                    // if nullRow
-                    {
+
+
+                    { // if pC->nullRow == 0
                         // BLOCK if nullRow
                         rewriter.setInsertionPointToStart(blockNullRow);
                         PROGRESS("nullRow = true branch")
@@ -294,8 +303,8 @@ namespace mlir {
 
                             // rewriter.create<BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
                         } // end else (NOT CURTYPE_PSEUDO)
-                    } // end if nullRow
-                    // else (not nullRow)
+                    } // end if pC->nullRow == 0
+                    // else of if pC->nullRow == 0
                     {
                         rewriter.setInsertionPointToStart(blockNotNullRow);
                         PROGRESS("NOT nullRow branch")
@@ -341,11 +350,9 @@ namespace mlir {
                          */
 
                         rewriter.create<mlir::BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
-                    } // end else (not nullRow)
+                    } // end of else of if pC->nullRow == 0
 
-                    /* After condition (but still in cacheStatus != cacheCtr) */
-                    {
-                        // BLOCK EndCacheStatusNeqCacheCtr
+                    { // After condition (but still in cacheStatus != cacheCtr)
                         rewriter.setInsertionPointToStart(blockEndCacheNeStatusCacheCtr);
 
                         //// pC->cacheStatus = p->cacheCtr;
@@ -353,12 +360,6 @@ namespace mlir {
                         rewriter.create<StoreOp>(LOC, newCacheCtr, cacheStatusAddr);
 
                         //// pC->iHdrOffset = getVarint32(pC->aRow, aOffset[0]);
-                        auto iHdrOffsetAddr = rewriter.create<GEPOp>
-                                (LOC, T::i32PtrTy, pCValue, ValueRange{
-                                        constants(0, 32),  // &*pC
-                                        constants(14, 32)  // &pC->iHdrOffset
-                                });
-
                         auto generate_getVarint32 = [&rewriter, &ctx, &constants](auto A, auto B, auto writeResultTo) {
                             // #define getVarint32(A,B)  \
                             //   (u8)((*(A)<(u8)0x80)?((B)=(u32)*(A)),1:sqlite3GetVarint32((A),(u32 *)&(B)))
@@ -383,7 +384,7 @@ namespace mlir {
                             auto curBlock = rewriter.getBlock();
                             auto blockAfter = SPLIT_BLOCK;
                             GO_BACK_TO(curBlock);
-                            auto blockMoreThan80 = SPLIT_BLOCK;
+                            auto blockNotLessThan80 = SPLIT_BLOCK;
                             GO_BACK_TO(curBlock);
                             auto blockLessThan80 = SPLIT_BLOCK;
                             GO_BACK_TO(curBlock);
@@ -394,10 +395,11 @@ namespace mlir {
                                     (LOC, ICmpPredicate::ult, valA, constants(0x80, 8));
 
                             // Insert branching 
-                            rewriter.create<CondBrOp>(LOC, condLessThan80, blockLessThan80, blockMoreThan80);
+                            rewriter.create<CondBrOp>(LOC, condLessThan80,
+                                                      blockLessThan80,
+                                                      blockNotLessThan80);
 
-                            /* if *A < 0x80 */
-                            {
+                            { // if *A < 0x80
                                 rewriter.setInsertionPointToStart(blockLessThan80);
 
                                 PROGRESS("*A < 0x80")
@@ -411,10 +413,9 @@ namespace mlir {
                                 rewriter.create<StoreOp>(LOC, constants(1, 32), writeResultTo);
 
                                 rewriter.create<BranchOp>(LOC, blockAfter);
-                            }
-                            /* else */
-                            {
-                                rewriter.setInsertionPointToStart(blockMoreThan80);
+                            } // end of if *A < 0x80
+                            { // else of if *A < 0x80
+                                rewriter.setInsertionPointToStart(blockNotLessThan80);
 
                                 PROGRESS("ELSE(*A < 0x80)")
                                 // Convert B to u32*
@@ -432,7 +433,7 @@ namespace mlir {
                                 auto resultAsI32 = rewriter.create<ZExtOp>(LOC, T::i32Ty, result);
                                 rewriter.create<StoreOp>(LOC, resultAsI32, writeResultTo);
                                 rewriter.create<BranchOp>(LOC, blockAfter);
-                            }
+                            } // end else of if *A < 0x80
 
                             rewriter.setInsertionPointToStart(blockAfter);
                         };
@@ -450,7 +451,7 @@ namespace mlir {
                                 });
                         rewriter.create<StoreOp>(LOC, constants(0, 16), nHdrParsedAddr);
 
-                        curBlock = rewriter.getBlock();
+                        auto curBlock = rewriter.getBlock();
 
                         // if (pC->szRow < aOffset[0])
                         auto blockSzRowLessThanAOffset = SPLIT_BLOCK;
@@ -464,15 +465,16 @@ namespace mlir {
                         aOffset0 = rewriter.create<LoadOp>(LOC, aOffset);
 
                         auto szRowLessThanAOffset = rewriter.create<ICmpOp>(LOC, ICmpPredicate::slt, szRow, aOffset0);
-                        rewriter.create<CondBrOp>(LOC, szRowLessThanAOffset, blockSzRowLessThanAOffset, blockSzRowNotLessThanAOffset);
+                        rewriter.create<CondBrOp>(LOC, szRowLessThanAOffset,
+                                                  blockSzRowLessThanAOffset,
+                                                  blockSzRowNotLessThanAOffset);
 
-                        // if (pC->szRow < aOffset[0])
-                        {
+                        { // if (pC->szRow < aOffset[0])
                             rewriter.setInsertionPointToStart(blockSzRowLessThanAOffset);
                             PROGRESS("pC->szRow < aOffset[0] Branch")
 
                             // pC->aRow = (u8*)nullptr;
-                            rewriter.create<StoreOp>(LOC, constants(T::i8PtrTy, (u8*)nullptr), pCaRowAddress);
+                            rewriter.create<StoreOp>(LOC, constants(T::i8PtrTy, (u8 *) nullptr), pCaRowAddress);
                             // pC->szRow = 0;
                             rewriter.create<StoreOp>(LOC, constants(0, 32), szRowAddress);
 
@@ -480,8 +482,7 @@ namespace mlir {
 
                             rewriter.create<BranchOp>(LOC, blockAfterSZRowLessThanAOffset);
                         } // end if (pC->szRow < aOffset[0])
-                        // else (pC->szRow >= aOffset[0])
-                        {
+                        { // else of if (pC->szRow < aOffset[0])
                             rewriter.setInsertionPointToStart(blockSzRowNotLessThanAOffset);
                             PROGRESS("NOT pC->szRow < aOffset[0] Branch")
 
@@ -495,14 +496,113 @@ namespace mlir {
 
                         rewriter.setInsertionPointToStart(blockAfterSZRowLessThanAOffset);
                         rewriter.create<BranchOp>(LOC, blockAfterCacheStatusNeqCachePtr);
-                    } // end if cacheStatus != cacheCtr
-
-                    // rewriter.restoreInsertionPoint(ip);
+                    } // end else of if (pC->szRow < aOffset[0])
                 }
 
-                rewriter.setInsertionPointToStart(blockAfterCacheStatusNeqCachePtr);
-                rewriter.create<BranchOp>(LOC, blockColumnEnd);
+                { // After cacheStatus != cachePtr
+                    rewriter.setInsertionPointToStart(blockAfterCacheStatusNeqCachePtr);
 
+                    auto nHdrParsedAddr = rewriter.create<GEPOp>
+                            (LOC, T::i16PtrTy, pCValue, ValueRange{
+                                    constants(0, 32), // &*pC
+                                    constants(17, 32) // &pC->nHdrParsedAddr
+                            });
+
+                    auto nHdrParsed = rewriter.create<LoadOp>(LOC, nHdrParsedAddr);
+                    auto nHdrParsedLtP2 = rewriter.create<ICmpOp>
+                            (LOC, ICmpPredicate::ule,
+                             nHdrParsed,
+                             constants(colOp.columnAttr().getValue().getLimitedValue(), 16)
+                            );
+
+                    auto curBlock = rewriter.getBlock();
+                    auto blockNHdrParsedLtP2 = SPLIT_BLOCK;
+                    GO_BACK_TO(curBlock);
+                    auto blockNHdrParsedNotLtP2 = SPLIT_BLOCK;
+                    GO_BACK_TO(curBlock);
+                    auto blockAfterNHdrParsedLtP2 = SPLIT_BLOCK;
+                    GO_BACK_TO(curBlock);
+
+                    rewriter.create<CondBrOp>(LOC, nHdrParsedLtP2,
+                                              blockNHdrParsedLtP2,
+                                              blockNHdrParsedNotLtP2
+                    );
+
+                    { // if (pC->nHdrParsed <= p2) (2738)
+                        rewriter.setInsertionPointToStart(blockNHdrParsedLtP2);
+
+                        auto iHdrOffset = rewriter.create<LoadOp>(LOC, iHdrOffsetAddr);
+                        auto aOffset0 = rewriter.create<LoadOp>(LOC, aOffset);
+                        auto iHdrOffsetLtAOffset0 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ult,
+                                                                            iHdrOffset,
+                                                                            aOffset0);
+
+                        auto curBlock = rewriter.getBlock();
+                        auto blockAfterHdrOffsetLtAOffset0 = SPLIT_BLOCK;
+                        GO_BACK_TO(curBlock);
+                        auto blockHdrOffsetNotLtAOffset0 = SPLIT_BLOCK;
+                        GO_BACK_TO(curBlock);
+                        auto blockHdrOffsetLtAOffset0 = SPLIT_BLOCK;
+                        GO_BACK_TO(curBlock);
+
+                        rewriter.create<CondBrOp>(LOC, iHdrOffsetLtAOffset0,
+                                                  blockHdrOffsetLtAOffset0,
+                                                  blockHdrOffsetNotLtAOffset0);
+
+                        { // if (pC->iHdrOffset < aOffset[0])
+                            rewriter.setInsertionPointToStart(blockHdrOffsetLtAOffset0);
+
+                            // if (pC->aRow == 0)
+                            auto aRow = rewriter.create<LoadOp>(LOC, pCaRowAddress);
+                            auto null = constants(T::i8PtrTy, (u8 *) nullptr);
+                            auto aRowIsNull = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, aRow, null);
+
+                            auto curBlock = rewriter.getBlock();
+                            auto blockAfterRowIsNull = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
+                            auto blockRowIsNotNull = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
+                            auto blockRowIsNull = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
+
+                            rewriter.create<CondBrOp>(LOC, aRowIsNull,
+                                                      blockRowIsNull,
+                                                      blockRowIsNotNull);
+
+                            { // if (pC->aRow == 0)
+                                rewriter.setInsertionPointToStart(blockRowIsNull);
+                                // TODO: Line 144 - 147
+                                rewriter.create<BranchOp>(LOC, blockAfterRowIsNull);
+                            } // end of if (pC->aRow == 0)
+                            { // else of if (pC->aRow == 0)
+                                rewriter.setInsertionPointToStart(blockRowIsNotNull);
+                                // TODO: Line 149
+                                rewriter.create<BranchOp>(LOC, blockAfterRowIsNull);
+                            } // end of else of if (pC->aRow == 0)
+
+                            rewriter.setInsertionPointToStart(blockAfterRowIsNull);
+                            // TODO: Line 153 - ...
+                            rewriter.create<BranchOp>(LOC, blockAfterHdrOffsetLtAOffset0);
+                        } // end if (pC->iHdrOffset < aOffset[0])
+                        { // else of if (pC->iHdrOffset < aOffset[0])
+                            rewriter.setInsertionPointToStart(blockHdrOffsetNotLtAOffset0);
+
+                            rewriter.create<BranchOp>(LOC, blockAfterHdrOffsetLtAOffset0);
+                        } // end of else of if (pC->iHdrOffset < aOffset[0])
+                        rewriter.setInsertionPointToStart(blockAfterHdrOffsetLtAOffset0);
+
+                        rewriter.create<BranchOp>(LOC, blockAfterNHdrParsedLtP2);
+                    } // end if (pC->nHdrParsed <= p2)
+                    { // else of if (pC->nHdrParsed <= p2)
+                        rewriter.setInsertionPointToStart(blockNHdrParsedNotLtP2);
+
+                        rewriter.create<BranchOp>(LOC, blockAfterNHdrParsedLtP2);
+                    } // end else (pC->nHdrParsed <= p2)
+
+                    rewriter.setInsertionPointToStart(blockAfterNHdrParsedLtP2);
+                    // TODO: if (VdbeMemDynamic(pDest))
+                    rewriter.create<BranchOp>(LOC, blockColumnEnd);
+                }
 
                 rewriter.setInsertionPointToStart(blockColumnEnd);
                 PROGRESS("op_column_out: ending")
