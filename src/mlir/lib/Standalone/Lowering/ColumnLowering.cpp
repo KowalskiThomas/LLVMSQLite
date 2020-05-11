@@ -23,6 +23,28 @@
     return success(); \
 };
 
+#define FIX_AND_EXIT \
+    { \
+        auto curBlock = rewriter.getBlock(); \
+        auto& b = firstBlock; \
+        while(b = b->getNextNode()) { \
+            if (b == blockColumnEnd) \
+                continue; \
+            \
+            if (b == curBlock) \
+                continue; \
+            \
+            if (b->empty()) { \
+                rewriter.setInsertionPointToStart(b); \
+                rewriter.create<BranchOp>(LOC, blockColumnEnd); \
+            } \
+        } \
+        rewriter.setInsertionPointToEnd(curBlock); \
+        CALL_DEBUG \
+        rewriter.create<BranchOp>(LOC, blockColumnEnd); \
+        EXIT_PASS_EARLY(false) \
+    }
+
 #define SPLIT_BLOCK rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
 #define GO_BACK_TO(b) rewriter.setInsertionPointToEnd(b)
 
@@ -34,6 +56,8 @@ namespace mlir {
                 auto &builder = rewriter;
                 LOWERING_PASS_HEADER
                 LOWERING_NAMESPACE
+
+                auto firstBlock = rewriter.getBlock();
 
                 ConstantManager constants(rewriter, ctx);
                 auto pVdbe = constants(T::VdbePtrTy, vdbe);
@@ -50,6 +74,7 @@ namespace mlir {
                 auto curIdx = rewriter.create<AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
                 rewriter.create<StoreOp>(LOC, curIdxValue, curIdx);
 
+
                 PROGRESS_PRINT_INT(curIdxValue, "OP_Column: Cursor index");
 
                 // The address of the array of (pointers to) cursors in the VDBE
@@ -59,10 +84,12 @@ namespace mlir {
                 // The address of the cursor
                 auto pCValue = rewriter.create<LoadOp>(LOC, pCAddr);
                 auto pC = rewriter.create<AllocaOp>(LOC, T::VdbeCursorPtrPtrTy, constants(1, 32), 0);
+                auto zDataAddress = rewriter.create<AllocaOp>(LOC, T::i8PtrPtrTy, constants(1, 32), 0);
                 rewriter.create<StoreOp>(LOC, pCValue, pC);
 
                 auto rc = rewriter.create<CallOp>(LOC, f_sqlite3VdbeCursorMoveto,
                                                   ValueRange{pC, curIdx}).getResult(0);
+                pCValue = rewriter.create<LoadOp>(LOC, pC);
 
                 // TODO: if (rc) goto abort_due_to_error;
 
@@ -73,14 +100,15 @@ namespace mlir {
                 auto pDest = rewriter.create<GEPOp>(LOC, T::sqlite3_valuePtrTy, aMem,
                                                     ValueRange{extractToValue});
 
-                // aOffset = pC->aOffset;
+                // aOffset = pC->aOffset; (aOffset is an i32*)
                 auto aOffsetAddr = rewriter.create<GEPOp>
                         (LOC, T::i32PtrTy.getPointerTo(), pCValue,
                          ValueRange{
-                                 constants(0, 32), // Address of *pC
+                                 constants(0, 32),  // *pC
                                  constants(19, 32)  // Address of aOffset in pC
                          });
                 auto aOffset = rewriter.create<LoadOp>(LOC, aOffsetAddr);
+                auto aOffset0 = rewriter.create<LoadOp>(LOC, aOffset);
 
                 auto curBlock = rewriter.getBlock();
 
@@ -90,7 +118,6 @@ namespace mlir {
                 rewriter.setInsertionPoint(colOp);
                 auto blockColumnEnd = rewriter.getBlock()->splitBlock(colOp);
                 rewriter.setInsertionPoint(colOp);
-                // GO_BACK_TO(curBlock);
 
                 // Go back to the end of the current block to insert branching
                 rewriter.setInsertionPointToEnd(curBlock);
@@ -172,7 +199,7 @@ namespace mlir {
                     rewriter.create<CondBrOp>(LOC, nullRowCondition,
                             /* if pC->nullRow == 0 */ blockNullRow,
                             /* else */                blockNotNullRow);
-                    /* if nullRow */
+                    // if nullRow
                     {
                         // BLOCK if nullRow
                         rewriter.setInsertionPointToStart(blockNullRow);
@@ -201,7 +228,7 @@ namespace mlir {
                                 /*                             else */ blockNotCurTypePseudo
                         );
 
-                        /* if CURTYPE_PSEUDO */
+                        // if CURTYPE_PSEUDO
                         {
                             rewriter.setInsertionPointToStart(blockCurTypePseudo);
                             PROGRESS("CURTYPE_PSEUDO branch")
@@ -254,22 +281,21 @@ namespace mlir {
 
                             // Branch out
                             rewriter.create<BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
-                        }
-                        /* else (NOT CURTYPE_PSEUDO) */
+                        } // end if CURTYPE_PSEUDO
+                        // else (NOT CURTYPE_PSEUDO)
                         {
                             rewriter.setInsertionPointToStart(blockNotCurTypePseudo);
                             PROGRESS("NOT CURTYPE_PSEUDO branch")
 
                             rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange{pDest});
 
-                            // PROGRESS("TODO: goto_op_column_out")
                             // TODO: goto op_column_out;
                             rewriter.create<BranchOp>(LOC, blockColumnEnd);
 
                             // rewriter.create<BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
-                        }
-                    }
-                    /* else (not nullRow) */
+                        } // end else (NOT CURTYPE_PSEUDO)
+                    } // end if nullRow
+                    // else (not nullRow)
                     {
                         rewriter.setInsertionPointToStart(blockNotNullRow);
                         PROGRESS("NOT nullRow branch")
@@ -315,7 +341,7 @@ namespace mlir {
                          */
 
                         rewriter.create<mlir::BranchOp>(LOC, blockEndCacheNeStatusCacheCtr);
-                    }
+                    } // end else (not nullRow)
 
                     /* After condition (but still in cacheStatus != cacheCtr) */
                     {
@@ -333,7 +359,6 @@ namespace mlir {
                                         constants(14, 32)  // &pC->iHdrOffset
                                 });
 
-                        // TODO: Work on that!
                         auto generate_getVarint32 = [&rewriter, &ctx, &constants](auto A, auto B, auto writeResultTo) {
                             // #define getVarint32(A,B)  \
                             //   (u8)((*(A)<(u8)0x80)?((B)=(u32)*(A)),1:sqlite3GetVarint32((A),(u32 *)&(B)))
@@ -349,7 +374,7 @@ namespace mlir {
                             // Read the content of pointer A
                             auto valA = rewriter.create<LoadOp>(LOC, A);
 
-                            PROGRESS("THOMAS");
+                            PROGRESS("getVarint32: Check that everything is good!");
 
                             // Create new blocks:
                             // - One for if *A < 0x80
@@ -398,8 +423,8 @@ namespace mlir {
                                 auto result = rewriter.create<CallOp>
                                         (LOC, f_sqlite3GetVarint32,
                                          ValueRange{
-                                            A,
-                                            bAsU32Ptr
+                                                 A,
+                                                 bAsU32Ptr
                                          }).getResult(0);
 
                                 // "Return" the result of the function
@@ -413,12 +438,9 @@ namespace mlir {
                         };
 
                         auto aRow = rewriter.create<LoadOp>(LOC, pCaRowAddress);
-                        err("Type of aRow")
-                        aRow.getType().dump();
 
-                        PROGRESS("HELLO 1")
+                        // pC->iHdrOffset = getVarint32(pC->aRow, aOffset[0]);
                         generate_getVarint32(/* A = */ aRow, /* B = */ aOffset, /* Result to */ iHdrOffsetAddr);
-                        PROGRESS("HELLO 2")
 
                         //// pC->nHdrParsed = 0;
                         auto nHdrParsedAddr = rewriter.create<GEPOp>
@@ -428,23 +450,61 @@ namespace mlir {
                                 });
                         rewriter.create<StoreOp>(LOC, constants(0, 16), nHdrParsedAddr);
 
-                        // CALL_DEBUG
-                        /* TODO: Uncomment
-                        */
+                        curBlock = rewriter.getBlock();
 
-                        // TODO: Next instruction: if (pC->szRow < aOffset[0]) {
+                        // if (pC->szRow < aOffset[0])
+                        auto blockSzRowLessThanAOffset = SPLIT_BLOCK;
+                        GO_BACK_TO(curBlock);
+                        auto blockSzRowNotLessThanAOffset = SPLIT_BLOCK;
+                        GO_BACK_TO(curBlock);
+                        auto blockAfterSZRowLessThanAOffset = SPLIT_BLOCK;
+                        GO_BACK_TO(curBlock);
 
+                        auto szRow = rewriter.create<LoadOp>(LOC, szRowAddress);
+                        aOffset0 = rewriter.create<LoadOp>(LOC, aOffset);
+
+                        auto szRowLessThanAOffset = rewriter.create<ICmpOp>(LOC, ICmpPredicate::slt, szRow, aOffset0);
+                        rewriter.create<CondBrOp>(LOC, szRowLessThanAOffset, blockSzRowLessThanAOffset, blockSzRowNotLessThanAOffset);
+
+                        // if (pC->szRow < aOffset[0])
+                        {
+                            rewriter.setInsertionPointToStart(blockSzRowLessThanAOffset);
+                            PROGRESS("pC->szRow < aOffset[0] Branch")
+
+                            // pC->aRow = (u8*)nullptr;
+                            rewriter.create<StoreOp>(LOC, constants(T::i8PtrTy, (u8*)nullptr), pCaRowAddress);
+                            // pC->szRow = 0;
+                            rewriter.create<StoreOp>(LOC, constants(0, 32), szRowAddress);
+
+                            // TODO: Add corrupt database check
+
+                            rewriter.create<BranchOp>(LOC, blockAfterSZRowLessThanAOffset);
+                        } // end if (pC->szRow < aOffset[0])
+                        // else (pC->szRow >= aOffset[0])
+                        {
+                            rewriter.setInsertionPointToStart(blockSzRowNotLessThanAOffset);
+                            PROGRESS("NOT pC->szRow < aOffset[0] Branch")
+
+                            // zData = pC->aRow;
+                            rewriter.create<StoreOp>(LOC, aRow, zDataAddress);
+
+                            PROGRESS("TODO: GOTO op_column_read_header");
+
+                            rewriter.create<BranchOp>(LOC, blockAfterSZRowLessThanAOffset);
+                        } // end else (pC->szRow >= aOffset[0])
+
+                        rewriter.setInsertionPointToStart(blockAfterSZRowLessThanAOffset);
                         rewriter.create<BranchOp>(LOC, blockAfterCacheStatusNeqCachePtr);
-                    }
-                    rewriter.restoreInsertionPoint(ip);
+                    } // end if cacheStatus != cacheCtr
+
+                    // rewriter.restoreInsertionPoint(ip);
                 }
 
                 rewriter.setInsertionPointToStart(blockAfterCacheStatusNeqCachePtr);
                 rewriter.create<BranchOp>(LOC, blockColumnEnd);
 
+
                 rewriter.setInsertionPointToStart(blockColumnEnd);
-                err("COLEND" << blockColumnEnd)
-                CALL_DEBUG
                 PROGRESS("op_column_out: ending")
 
                 rewriter.eraseOp(colOp);
