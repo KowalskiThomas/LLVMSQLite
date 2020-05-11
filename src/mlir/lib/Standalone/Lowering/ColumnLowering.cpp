@@ -771,7 +771,38 @@ namespace mlir {
 
                             rewriter.setInsertionPointToStart(blockAfterDoWhile);
 
-                            // TODO: Line 176-190
+                            auto zHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zHdrValue);
+                            auto zEndHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zEndHdr);
+                            auto offset64Value = rewriter.create<LoadOp>(LOC, offset64Addr);
+                            auto payloadSize = rewriter.create<LoadOp>(LOC, payloadSizeAddress);
+
+                            /* A */ auto zHdrGeZEndHdr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::uge, zHdrAsInt, zEndHdrAsInt);
+                            /* B */ auto zHdrGtZEndHdr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ugt, zHdrAsInt, zEndHdrAsInt);
+                            /* C */ auto offset64NePayloadSize = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ne, offset64Value, payloadSize);
+                            /* D */ auto offset64GtPayloadSize = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ugt, offset64Value, payloadSize);
+
+                            auto bOrC = rewriter.create<OrOp>(LOC, zHdrGtZEndHdr, offset64NePayloadSize);
+                            auto aAndBOrC = rewriter.create<AndOp>(LOC, zHdrGeZEndHdr, bOrC);
+                            auto aAndBOrCOrD = rewriter.create<OrOp>(LOC, aAndBOrC, offset64GtPayloadSize);
+
+                            curBlock = rewriter.getBlock();
+                            auto blockAfterCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockConditionTrue = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+                            rewriter.create<CondBrOp>(LOC, aAndBOrCOrD, blockConditionTrue, blockAfterCondition);
+
+                            { // if ((zHdr >= zEndHdr && (zHdr > zEndHdr || offset64 != pC->payloadSize)) || (offset64 > pC->payloadSize)
+                                rewriter.setInsertionPointToStart(blockConditionTrue);
+
+                                // TODO: Lines 179 - 185
+
+                                rewriter.create<BranchOp>(LOC, blockAfterCondition);
+
+                            }
+
+                            rewriter.setInsertionPointToStart(blockAfterCondition);
+
+                            // TODO: Line 188-190
 
                             rewriter.create<BranchOp>(LOC, blockAfterHdrOffsetLtAOffset0);
                         } // end if (pC->iHdrOffset < aOffset[0])
