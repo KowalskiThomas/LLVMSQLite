@@ -571,17 +571,90 @@ namespace mlir {
 
                             { // if (pC->aRow == 0)
                                 rewriter.setInsertionPointToStart(blockRowIsNull);
-                                // TODO: Line 144 - 147
+                                PROGRESS("TODO: memset(&sMem, 0, sizeof(sMem));")
+                                // TODO: memset(&sMem, 0, sizeof(sMem));
+                                // TODO: Lines 144-147
                                 rewriter.create<BranchOp>(LOC, blockAfterRowIsNull);
                             } // end of if (pC->aRow == 0)
                             { // else of if (pC->aRow == 0)
                                 rewriter.setInsertionPointToStart(blockRowIsNotNull);
-                                // TODO: Line 149
+                                rewriter.create<StoreOp>(LOC, aRow, zDataAddress);
                                 rewriter.create<BranchOp>(LOC, blockAfterRowIsNull);
                             } // end of else of if (pC->aRow == 0)
 
                             rewriter.setInsertionPointToStart(blockAfterRowIsNull);
-                            // TODO: Line 153 - ...
+
+                            // create label op_column_read_header:
+                            curBlock = rewriter.getBlock();
+                            auto blockOpColumnReadHeader = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
+                            rewriter.create<BranchOp>(LOC, blockOpColumnReadHeader);
+
+                            rewriter.setInsertionPointToStart(blockOpColumnReadHeader);
+                            // i = pC->nHdrParsed;
+                            auto i = rewriter.create<LoadOp>(LOC, nHdrParsedAddr);
+                            // offset64 = aOffset[i];
+                            auto offset64Addr = rewriter.create<GEPOp>(LOC, T::i64PtrTy, aOffset, ValueRange{i});
+                            auto offset64 = rewriter.create<LoadOp>(LOC, offset64Addr);
+                            // zHdr = zData + pC->iHdrOffset;
+                            // TODO: Conversion between types
+                            auto zHdr = rewriter.create<LoadOp>(LOC, zDataAddress);
+                            // auto zData = rewriter.create<LoadOp>(LOC, zDataAddress);
+                            // auto iHdrOffset = rewriter.create<LoadOp>(LOC, iHdrOffsetAddr);
+                            // auto zHdr = rewriter.create<AddOp>(LOC, zData, iHdrOffset);
+                            // zEndHdr = zData + aOffset[0];
+                            auto aOffset0 = rewriter.create<LoadOp>(LOC, aOffset);
+                            // auto zEndHdr = rewriter.create<AddOp>(LOC, zHdr, aOffset0);
+
+                            /* DO WHILE */
+                            curBlock = rewriter.getBlock();
+                            auto blockAfterDoWhile = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockDoWhileCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockDoWhileBlock = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+                            // Start doing the do-while action
+                            rewriter.create<BranchOp>(LOC, blockDoWhileBlock);
+
+                            { // Do-while action block
+                                rewriter.setInsertionPointToStart(blockDoWhileBlock);
+
+                                auto curBlock = rewriter.getBlock();
+                                auto blockIfLt80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                                auto blockIfNotLt80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                                auto blockAfterIfLt80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+                                // TODO: Put (pC->aType[i] = t = zHdr[0]) down here
+                                // auto lhs = constants(0, 32);
+                                auto lhs0 = rewriter.create<LoadOp>(LOC, zHdr);
+                                auto lhs = rewriter.create<ZExtOp>(LOC, T::i32Ty, lhs0);
+                                auto aTypeLt80 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ult, lhs, constants(0x80, 32));
+                                rewriter.create<CondBrOp>(LOC, aTypeLt80, blockIfLt80, blockIfNotLt80);
+                                { // if ((pC->aType[i] = t = zHdr[0]) < 0x80)
+                                    rewriter.setInsertionPointToStart(blockIfLt80);
+
+                                    rewriter.create<BranchOp>(LOC, blockAfterIfLt80);
+                                } // end if ((pC->aType[i] = t = zHdr[0]) < 0x80)
+                                { // else of if ((pC->aType[i] = t = zHdr[0]) < 0x80)
+                                    rewriter.setInsertionPointToStart(blockIfNotLt80);
+
+                                    rewriter.create<BranchOp>(LOC, blockAfterIfLt80);
+                                } // end else of if ((pC->aType[i] = t = zHdr[0]) < 0x80)
+                                rewriter.setInsertionPointToStart(blockAfterIfLt80);
+
+                                rewriter.create<BranchOp>(LOC, blockDoWhileCondition);
+                            } // End do-while action block
+                            { // Do-while condition block
+                                rewriter.setInsertionPointToStart(blockDoWhileCondition);
+
+                                // TODO: Put condition (i <= p2 && zHdr < zEndHdr)
+                                auto doWhileCondition = constants(0, 1);
+                                rewriter.create<CondBrOp>(LOC, doWhileCondition,
+                                                          blockDoWhileBlock,
+                                                          blockAfterDoWhile);
+                            } // End Do-while condition block
+
+                            rewriter.setInsertionPointToStart(blockAfterDoWhile);
+
                             rewriter.create<BranchOp>(LOC, blockAfterHdrOffsetLtAOffset0);
                         } // end if (pC->iHdrOffset < aOffset[0])
                         { // else of if (pC->iHdrOffset < aOffset[0])
