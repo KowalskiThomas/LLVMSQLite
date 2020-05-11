@@ -23,6 +23,8 @@ ExternFuncOp f_sqlite3BtreePayloadSize;
 ExternFuncOp f_sqlite3BtreePayloadFetch;
 ExternFuncOp f_debug;
 ExternFuncOp f_sqlite3GetVarint32;
+ExternFuncOp f_sqlite3VdbeOneByteSerialTypeLen;
+ExternFuncOp f_sqlite3VdbeSerialTypeLen;
 
 void initialiseTypeCache(LLVMDialect*);
 
@@ -47,6 +49,8 @@ public:
     DECLARE_FUNCTION(sqlite3BtreePayloadSize);
     DECLARE_FUNCTION(sqlite3BtreePayloadFetch);
     DECLARE_FUNCTION(sqlite3GetVarint32);
+    DECLARE_FUNCTION(sqlite3VdbeOneByteSerialTypeLen);
+    DECLARE_FUNCTION(sqlite3VdbeSerialTypeLen);
     DECLARE_FUNCTION(Debug);
 
     static void runPrerequisites(ModuleOp, LLVMDialect*);

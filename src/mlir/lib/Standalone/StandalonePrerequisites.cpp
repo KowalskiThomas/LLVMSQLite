@@ -28,6 +28,8 @@ LLVMFuncOp f_sqlite3BtreePayloadSize;
 LLVMFuncOp f_sqlite3BtreePayloadFetch;
 LLVMFuncOp f_debug;
 LLVMFuncOp f_sqlite3GetVarint32;
+LLVMFuncOp f_sqlite3VdbeOneByteSerialTypeLen;
+LLVMFuncOp f_sqlite3VdbeSerialTypeLen;
 // mlir::LLVM::LLVMFuncOp f_assert;
 
 #define GENERATE_SYMBOL(ref_name, f, symbol_name) \
@@ -220,6 +222,27 @@ void Prerequisites::generateReferenceTosqlite3GetVarint32(ModuleOp m, LLVMDialec
     GENERATE_SYMBOL(f_sqlite3GetVarint32, sqlite3GetVarint32, "sqlite3GetVarint32")
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeOneByteSerialTypeLen(ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i8Ty,
+            {
+                T::i8Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeOneByteSerialTypeLen, sqlite3VdbeOneByteSerialTypeLen, "sqlite3VdbeOneByteSerialTypeLen")
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeSerialTypeLen(ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty,
+            {
+                T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeSerialTypeLen, sqlite3VdbeSerialTypeLen, "sqlite3VdbeSerialTypeLen")
+}
+
+
 #define CALL_SYMBOL_GENERATOR(f) f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
@@ -237,5 +260,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3BtreePayloadSize);
     CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3BtreePayloadFetch);
     CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3GetVarint32);
+    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3VdbeOneByteSerialTypeLen);
+    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3VdbeSerialTypeLen);
     // generateReferenceTosqlite3BtreeFirst(m, dialect);
 }
