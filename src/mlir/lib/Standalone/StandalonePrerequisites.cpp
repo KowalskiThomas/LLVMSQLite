@@ -30,6 +30,7 @@ LLVMFuncOp f_debug;
 LLVMFuncOp f_sqlite3GetVarint32;
 LLVMFuncOp f_sqlite3VdbeOneByteSerialTypeLen;
 LLVMFuncOp f_sqlite3VdbeSerialTypeLen;
+LLVMFuncOp f_sqlite3VdbeMemRelease;
 // mlir::LLVM::LLVMFuncOp f_assert;
 
 #define GENERATE_SYMBOL(ref_name, f, symbol_name) \

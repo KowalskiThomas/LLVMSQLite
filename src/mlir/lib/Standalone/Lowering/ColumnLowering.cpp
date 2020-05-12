@@ -556,12 +556,9 @@ namespace mlir {
                             auto aRowIsNull = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, aRow, null);
 
                             auto curBlock = rewriter.getBlock();
-                            auto blockAfterRowIsNull = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
-                            auto blockRowIsNotNull = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
-                            auto blockRowIsNull = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
+                            auto blockAfterRowIsNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockRowIsNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockRowIsNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                             rewriter.create<CondBrOp>(LOC, aRowIsNull,
                                                       blockRowIsNull,
@@ -613,17 +610,17 @@ namespace mlir {
                             rewriter.create<StoreOp>(LOC, zHdrValue, zHdrAddr);
                             // zEndHdr = zData + aOffset[0];
                             auto aOffset0 = rewriter.create<LoadOp>(LOC, aOffset);
-                            // (i*)zEndHdr + (u32)(aOffset[0]) <=> zEndHdr[aOffset[0]]
-                            auto zEndHdr = rewriter.create<GEPOp>(LOC, T::i8PtrTy, zHdrValue, ValueRange{aOffset0});
+                            // (i8*)zData + (u32)(aOffset[0]) <=> &zData[aOffset[0]]
+                            CALL_DEBUG
+                            // auto zEndHdrAddr = rewriter.create<AllocaOp>(LOC, T::i8PtrPtrTy, constants(1, 32), 0);
+                            // auto zEndHdrValue = rewriter.create<LoadOp>(LOC, zEndHdrAddr);
+                            auto zEndHdrValue = rewriter.create<GEPOp>(LOC, T::i8PtrTy, zData, ValueRange{aOffset0});
 
                             /* DO WHILE */
                             curBlock = rewriter.getBlock();
-                            auto blockAfterDoWhile = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
-                            auto blockDoWhileCondition = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
-                            auto blockDoWhileBlock = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
+                            auto blockAfterDoWhile = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockDoWhileCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockDoWhileBlock = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                             // Start doing the do-while action
                             rewriter.create<BranchOp>(LOC, blockDoWhileBlock);
@@ -757,7 +754,7 @@ namespace mlir {
                                 // Cond. 2: zHdr < zEndHdr
                                 auto zHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zHdrValue);
                                 // auto zEndHdrValue = rewriter.create<LoadOp>(LOC, zEndHdr);
-                                auto zEndHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zEndHdr);
+                                auto zEndHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zEndHdrValue);
                                 auto zHdrLessThanEndHdr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ult, zHdrAsInt, zEndHdrAsInt);
                                 // Both conditions and-combined
                                 /// CONDITION: while (i <= p2 && zHdr < zEndHdr);
@@ -772,7 +769,7 @@ namespace mlir {
                             rewriter.setInsertionPointToStart(blockAfterDoWhile);
 
                             auto zHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zHdrValue);
-                            auto zEndHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zEndHdr);
+                            auto zEndHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zEndHdrValue);
                             auto offset64Value = rewriter.create<LoadOp>(LOC, offset64Addr);
                             auto payloadSize_u32 = rewriter.create<LoadOp>(LOC, payloadSizeAddress);
                             auto payloadSize = rewriter.create<ZExtOp>(LOC, T::i64Ty, payloadSize_u32);
@@ -795,17 +792,74 @@ namespace mlir {
                             { // if ((zHdr >= zEndHdr && (zHdr > zEndHdr || offset64 != pC->payloadSize)) || (offset64 > pC->payloadSize)
                                 rewriter.setInsertionPointToStart(blockConditionTrue);
 
-                                // TODO: Lines 179 - 185
+                                auto curBlock = rewriter.getBlock();
+                                auto blockAfterAOffset0Eq0 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                                auto blockNotAOffset0Eq0 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                                auto blockAOffset0Eq0 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
+                                // IDEA: Check if we can use the old aOffset
+                                auto aOffset0Value = rewriter.create<LoadOp>(LOC, aOffset);
+                                auto aOffset0Eq0 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, aOffset0Value, constants(0, 32));
+                                rewriter.create<CondBrOp>(LOC, aOffset0Eq0, blockAOffset0Eq0, blockNotAOffset0Eq0);
+
+                                { // if (aOffset[0] == 0)
+                                    rewriter.setInsertionPointToStart(blockAOffset0Eq0);
+
+                                    rewriter.create<StoreOp>(LOC, constants(0, 32), iAddr);
+                                    rewriter.create<StoreOp>(LOC, zEndHdrValue, zHdrAddr);
+
+                                    rewriter.create<BranchOp>(LOC, blockAfterAOffset0Eq0);
+                                } // end if (aOffset[0] == 0)
+                                { // else of if (aOffset[0] == 0)
+                                    rewriter.setInsertionPointToStart(blockNotAOffset0Eq0);
+
+                                    PROGRESS("TODO: goto op_column_corrupt")
+                                    // TODO: if (pC->aRow == 0) sqlite3VdbeMemRelease(&sMem);
+
+                                    rewriter.create<BranchOp>(LOC, blockAfterAOffset0Eq0);
+                                } // end else of if (aOffset[0] == 0)
+
+                                rewriter.setInsertionPointToStart(blockAfterAOffset0Eq0);
                                 rewriter.create<BranchOp>(LOC, blockAfterCondition);
 
                             }
 
                             rewriter.setInsertionPointToStart(blockAfterCondition);
 
-                            // TODO: Line 188-190
+                            /// pC->nHdrParsed = (u16)i
+                            auto iVal_i32 = rewriter.create<LoadOp>(LOC, iAddr);
+                            auto iVal = rewriter.create<TruncOp>(LOC, T::i16Ty, iVal_i32);
+                            rewriter.create<StoreOp>(LOC, iVal, nHdrParsedAddr);
 
-                            rewriter.create<BranchOp>(LOC, blockAfterHdrOffsetLtAOffset0);
+                            /// pC->iHdrOffset = (u32)(zHdr - zData)
+                            auto zHdrVal = rewriter.create<LoadOp>(LOC, zHdrAddr);
+                            zHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zHdrVal);
+                            auto zDataVal = rewriter.create<LoadOp>(LOC, zDataAddress);
+                            auto zDataAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zDataVal);
+                            auto diff_u64 = rewriter.create<SubOp>(LOC, zHdrAsInt, zDataAsInt);
+                            auto diff = rewriter.create<TruncOp>(LOC, T::i32Ty, diff_u64);
+                            rewriter.create<StoreOp>(LOC, diff, iHdrOffsetAddr);
+
+                            curBlock = rewriter.getBlock();
+                            auto blockARowIsNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+                            // Load pC->aRow
+                            auto aRowVal = rewriter.create<LoadOp>(LOC, pCaRowAddress);
+
+                            // Check whether pC->aRow == 0
+                            // null is already defined as (i8*)(0)
+                            aRowIsNull = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, aRowVal, null);
+
+                            // If pC->aRow == 0 go to newly created block, otherwise skip to blockAfterHdrOffsetLtAOffset0
+                            rewriter.create<CondBrOp>(LOC, aRowIsNull, blockARowIsNull, blockAfterHdrOffsetLtAOffset0);
+                            { // if (pC->aRow == 0)
+                                rewriter.setInsertionPointToStart(blockARowIsNull);
+
+                                // TODO: sqlite3VdbeMemRelease(&sMem);
+                                // rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemRelease, { sMemAddr });
+
+                                rewriter.create<BranchOp>(LOC, blockAfterHdrOffsetLtAOffset0);
+                            } // end if (pC->aRow == 0)
                         } // end if (pC->iHdrOffset < aOffset[0])
                         { // else of if (pC->iHdrOffset < aOffset[0])
                             rewriter.setInsertionPointToStart(blockHdrOffsetNotLtAOffset0);
