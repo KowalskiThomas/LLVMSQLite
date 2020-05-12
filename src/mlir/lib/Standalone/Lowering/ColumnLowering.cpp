@@ -973,16 +973,95 @@ namespace mlir {
                             });
                             rewriter.create<StoreOp>(LOC, dbEnc, pDestEncAddr);
 
-                            // TODO: pDest->szMalloc < len + 2
+                            /// if (pDest->szMalloc < len + 2)
+                            curBlock = rewriter.getBlock();
+                            auto blockAfterSzMallocLtLenPlus2 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockNotSzMallocLtLenPlus2 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockSzMallocLtLenPlus2 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+                            // Get &pDest->z (used later)
+                            auto zAddr = rewriter.create<GEPOp>(LOC, T::i8PtrPtrTy, pDest,ValueRange {
+                                    constants(0, 32), // &*pDest
+                                    constants(5, 32)  // 6-th field of sqlite3_value
+                            });
+                            // Get &pDest->flags (used later)
+                            auto flagsAddr = rewriter.create<GEPOp>(LOC, T::i16PtrTy, pDest, ValueRange{
+                                    constants(0, 32), // &*pDest
+                                    constants(1, 32)  // 1st field
+                            });
+                            // Get &pDest->szMalloc
+                            auto szMallocAddr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, pDest, ValueRange {
+                                constants(0, 32), // &*pDest
+                                constants(7, 32)  // 7-th field
+                            });
+
+                            // Load pDest->szMalloc
+                            auto szMalloc = rewriter.create<LoadOp>(LOC, szMallocAddr);
+                            // Compute len + 2
+                            auto lenPlus2 = rewriter.create<AddOp>(LOC, len, constants(2, 32));
+                            // Check whether pDest->szMalloc < len + 2
+                            auto szMallocLtLenPlus2 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::slt, szMalloc, lenPlus2);
+                            // Insert branching
+                            rewriter.create<CondBrOp>(LOC, szMallocLtLenPlus2, blockSzMallocLtLenPlus2, blockNotSzMallocLtLenPlus2);
 
                             { // if (pDest->szMalloc < len + 2)
+                                rewriter.setInsertionPointToStart(blockSzMallocLtLenPlus2);
 
+                                rewriter.create<StoreOp>(LOC, constants(MEM_Null, 16), flagsAddr);
+
+                                auto result = rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemGrow, ValueRange {
+                                    pDest, lenPlus2, constants(0, 32)
+                                }).getResult(0);
+
+                                PROGRESS("TODO: goto no_mem if rc != 0")
+
+                                rewriter.create<BranchOp>(LOC, blockAfterSzMallocLtLenPlus2);
                             } // end if (pDest->szMalloc < len + 2)
                             { // else of if (pDest->szMalloc < len + 2)
+                                rewriter.setInsertionPointToStart(blockNotSzMallocLtLenPlus2);
+
+                                /// pDest->z = pDest->zMalloc;
+                                // Get &pDest->zMalloc
+                                auto zMallocAddr = rewriter.create<GEPOp>(LOC, T::i8PtrPtrTy, pDest, ValueRange {
+                                    constants(0, 32), // &*pDest
+                                    constants(6, 32)  // 7-th field of sqlite3_value
+                                });
+                                // Load pDest->zMalloc
+                                auto zMallocValue = rewriter.create<LoadOp>(LOC, zMallocAddr);
+
+                                // Store pDest->zMalloc into pDest->z
+                                rewriter.create<StoreOp>(LOC, zMallocValue, zAddr);
+
+                                rewriter.create<BranchOp>(LOC, blockAfterSzMallocLtLenPlus2);
 
                             } // end else of (pDest->szMalloc < len + 2)
 
-                            // TODO: memcpy(...)
+                            rewriter.setInsertionPointToStart(blockAfterSzMallocLtLenPlus2);
+
+                            /// memcpy(pDest->z, zData, len);
+                            auto len_u64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, len);
+                            auto zValue = rewriter.create<LoadOp>(LOC, zAddr);
+                            auto zDataValue = rewriter.create<LoadOp>(LOC, zDataAddress);
+                            rewriter.create<CallOp>(LOC, f_memCpy, ValueRange {
+                                zValue, zDataValue, len_u64
+                            });
+
+                            /// pDest->z[len] = 0;
+                            auto zLen = rewriter.create<GEPOp>(LOC, T::i8PtrTy, zValue, ValueRange{ len });
+                            rewriter.create<StoreOp>(LOC, constants(0, 8), zLen);
+                            /// pDest->z[len + 1] = 0;
+                            auto lenPlus1 = rewriter.create<AddOp>(LOC, len, constants(1, 32));
+                            auto zLenPlus1 = rewriter.create<GEPOp>(LOC, T::i8PtrTy, zValue, ValueRange { lenPlus1 });
+                            rewriter.create<StoreOp>(LOC, constants(0, 8), zLenPlus1);
+                            /// pDest->flags = aFlag[t & 1];
+                            // Compute t & (u32)1
+                            auto tAnd1 = rewriter.create<AndOp>(LOC, tValue, constants(1, 32));
+                            // Get &aFlag[t & 1]
+                            auto newFlagAddr = rewriter.create<GEPOp>(LOC, T::i16PtrTy, aFlag, (Value) tAnd1 );
+                            // Load aFlag[t & 1]
+                            auto newFlag = rewriter.create<LoadOp>(LOC, newFlagAddr);
+                            // Store aFlag[t & 1] to pDest->flags
+                            rewriter.create<StoreOp>(LOC, newFlag, flagsAddr);
 
                             rewriter.create<BranchOp>(LOC, blockAfterTLt12);
                         } // end else of if (t < 12)
