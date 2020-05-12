@@ -188,6 +188,8 @@ namespace mlir {
                 MyAssertOperator myAssert(rewriter, constants, ctx);
                 GetVarint32Operator generate_getVarint32(rewriter, constants, ctx);
                 auto pVdbe = constants(T::VdbePtrTy, vdbe);
+                auto db = constants(T::sqlite3PtrTy, vdbe->db);
+                auto dbEnc = constants(vdbe->db->enc, 8);
 
                 auto curIdxAttr = colOp.getAttrOfType<mlir::IntegerAttr>("curIdx");
                 auto columnAttr = colOp.getAttrOfType<mlir::IntegerAttr>("column");
@@ -1025,7 +1027,107 @@ namespace mlir {
                         myAssert(LOC, tEqATypeP2);
                     } // end assert(t == pC->aType[p2]);
 
-                    // TODO: Lines 221-...
+                    /// if (pC->szRow >= aOffset[p2 + 1])
+                    curBlock = rewriter.getBlock();
+                    auto blockAfterSzRowGeOffsetP2Plus1 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                    auto blockSzRowNotGeOffsetP2Plus1 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                    auto blockSzRowGeOffsetP2Plus1 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+                    // Get pc->szRow
+                    auto sZRowVal = rewriter.create<LoadOp>(LOC, szRowAddress);
+                    // Get &aOffset[p2 + 1]
+                    auto aOffsetP2Plus1Addr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, aOffset, constants(columnAttr.getSInt() + 1, 32));
+                    // Load aOffset[p2 + 1]
+                    auto aOffsetP2Plus1 = rewriter.create<LoadOp>(LOC, aOffsetP2Plus1Addr);
+                    // Check whether pC->szRow >= aOffset[p2 + 1]
+                    auto sZRowGtOffsetP2Plus1 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::sge, sZRowVal, aOffsetP2Plus1);
+                    // Insert branching
+                    rewriter.create<CondBrOp>(LOC, sZRowGtOffsetP2Plus1, blockSzRowGeOffsetP2Plus1, blockSzRowNotGeOffsetP2Plus1);
+
+                    { // if (pC->szRow >= aOffset[p2 + 1])
+                        rewriter.setInsertionPointToStart(blockSzRowGeOffsetP2Plus1);
+
+                        /// zData = pC->aRow + aOffset[p2];
+                        auto aRowValue = rewriter.create<LoadOp>(LOC, pCaRowAddress);
+                        auto aRowAsInteger = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, aRowValue);
+                        auto aOffsetP2Addr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, aOffset, constants(columnAttr.getSInt(), 32));
+                        auto aOffsetP2_u32 = rewriter.create<LoadOp>(LOC, aOffsetP2Addr);
+                        auto aOffsetP2 = rewriter.create<ZExtOp>(LOC, T::i64Ty, aOffsetP2_u32);
+                        auto aRowPlusAOffsetP2 = rewriter.create<AddOp>(LOC, aRowAsInteger, aOffsetP2);
+                        auto newZDataValue = rewriter.create<IntToPtrOp>(LOC, T::i8PtrTy, aRowPlusAOffsetP2);
+                        rewriter.create<StoreOp>(LOC, newZDataValue, zDataAddress);
+
+                        /// if (t < 12)
+                        curBlock = rewriter.getBlock();
+                        auto blockAfterTLt12 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                        auto blockNotTLt12 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                        auto blockTLt12 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                        auto tValue = rewriter.create<LoadOp>(LOC, tAddr);
+                        // auto tLt12 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ult, tValue, constants(12, 32));
+                        auto tLt12 = constants(0, 1);
+                        rewriter.create<CondBrOp>(LOC, tLt12, blockTLt12, blockNotTLt12);
+
+                        { // if (t < 12)
+                            rewriter.setInsertionPointToStart(blockTLt12);
+
+                            rewriter.create<CallOp>(LOC,
+                                    f_sqlite3VdbeSerialGet, ValueRange{ newZDataValue, tValue, pDest }
+                            );
+
+                            rewriter.create<BranchOp>(LOC, blockAfterTLt12);
+                        } // end if (t < 12)
+                        { // else of if (t < 12)
+                            rewriter.setInsertionPointToStart(blockNotTLt12);
+
+                            /// u16 aFlag[] = {MEM_Blob, MEM_Str | MEM_Term};
+                            auto aFlag = rewriter.create<AllocaOp>(LOC, T::i16PtrTy, constants(2, 32), 0);
+                            rewriter.create<StoreOp>(LOC, constants(MEM_Blob, 16), aFlag);
+                            auto aFlag1 = rewriter.create<GEPOp>(LOC, T::i16PtrTy, aFlag, constants(1, 32));
+                            rewriter.create<StoreOp>(LOC, constants(MEM_Str | MEM_Term, 16), aFlag1);
+
+                            /// pDest->n = len = (t - 12) / 2;
+                            // TODO: Check that len is never used as an address
+                            auto tMinus12 = rewriter.create<SubOp>(LOC, tValue, constants(12, 32));
+                            auto tMinus12Over2 = rewriter.create<LShrOp>(LOC, tMinus12, constants(1, 32));
+                            auto len = tMinus12Over2;
+
+                            auto pDestNAddr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, pDest, ValueRange {
+                                constants(0, 32), // &*pDest
+                                constants(4, 32)  // n is fourth field
+                            });
+
+                            rewriter.create<StoreOp>(LOC, tMinus12Over2, pDestNAddr);
+
+                            auto pDestEncAddr = rewriter.create<GEPOp>(LOC, T::i8PtrTy, pDest, ValueRange {
+                                constants(0, 32), // &*pDest
+                                constants(2, 32)  // enc is second field
+                            });
+                            rewriter.create<StoreOp>(LOC, dbEnc, pDestEncAddr);
+
+                            // TODO: pDest->szMalloc < len + 2
+
+                            { // if (pDest->szMalloc < len + 2)
+
+                            } // end if (pDest->szMalloc < len + 2)
+                            { // else of if (pDest->szMalloc < len + 2)
+
+                            } // end else of (pDest->szMalloc < len + 2)
+
+                            // TODO: memcpy(...)
+
+                            rewriter.create<BranchOp>(LOC, blockAfterTLt12);
+                        } // end else of if (t < 12)
+
+                        rewriter.setInsertionPointToStart(blockAfterTLt12);
+                        rewriter.create<BranchOp>(LOC, blockAfterSzRowGeOffsetP2Plus1);
+                    } // end if (pC->szRow >= aOffset[p2 + 1])
+                    { // else of if (pC->szRow >= aOffset[p2 + 1])
+                        rewriter.setInsertionPointToStart(blockSzRowNotGeOffsetP2Plus1);
+
+                        rewriter.create<BranchOp>(LOC, blockAfterSzRowGeOffsetP2Plus1);
+                    } // end else of if (pC->szRow >= aOffset[p2 + 1])
+
+                    rewriter.setInsertionPointToStart(blockAfterSzRowGeOffsetP2Plus1);
 
                     rewriter.create<BranchOp>(LOC, blockColumnEnd);
                 } // End after cacheStatus != cacheCtr

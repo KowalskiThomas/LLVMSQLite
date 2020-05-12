@@ -32,6 +32,7 @@ LLVMFuncOp f_sqlite3GetVarint32;
 LLVMFuncOp f_sqlite3VdbeOneByteSerialTypeLen;
 LLVMFuncOp f_sqlite3VdbeSerialTypeLen;
 LLVMFuncOp f_sqlite3VdbeMemRelease;
+LLVMFuncOp f_sqlite3VdbeSerialGet;
 // mlir::LLVM::LLVMFuncOp f_assert;
 
 #define GENERATE_SYMBOL(ref_name, f, symbol_name) \
@@ -270,6 +271,18 @@ void Prerequisites::generateReferenceToAssert(ModuleOp m, LLVMDialect* d) {
     GENERATE_SYMBOL(f_assert, my_assert, "my_assert");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeSerialGet(ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty,
+            {
+                T::i8PtrTy,
+                T::i32Ty,
+                T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeSerialGet, sqlite3VdbeSerialGet, "sqlite3VdbeSerialGet");
+}
+
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
@@ -291,4 +304,5 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeOneByteSerialTypeLen);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeSerialTypeLen);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemRelease);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeSerialGet);
 }

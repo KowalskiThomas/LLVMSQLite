@@ -27,6 +27,7 @@ ExternFuncOp f_sqlite3GetVarint32;
 ExternFuncOp f_sqlite3VdbeOneByteSerialTypeLen;
 ExternFuncOp f_sqlite3VdbeSerialTypeLen;
 ExternFuncOp f_sqlite3VdbeMemRelease;
+ExternFuncOp f_sqlite3VdbeSerialGet;
 
 void initialiseTypeCache(LLVMDialect*);
 
@@ -54,6 +55,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeOneByteSerialTypeLen);
     DECLARE_FUNCTION(sqlite3VdbeSerialTypeLen);
     DECLARE_FUNCTION(sqlite3VdbeMemRelease);
+    DECLARE_FUNCTION(sqlite3VdbeSerialGet);
     DECLARE_FUNCTION(Debug);
     DECLARE_FUNCTION(Assert);
 
