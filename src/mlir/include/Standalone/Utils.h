@@ -160,3 +160,6 @@
     val)
 
 #define TO_I64(val) WIDTH_TO(64, val)
+
+#define SPLIT_BLOCK rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
+#define GO_BACK_TO(b) rewriter.setInsertionPointToEnd(b)
