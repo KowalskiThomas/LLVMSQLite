@@ -242,25 +242,34 @@ void Prerequisites::generateReferenceTosqlite3VdbeSerialTypeLen(ModuleOp m, LLVM
     GENERATE_SYMBOL(f_sqlite3VdbeSerialTypeLen, sqlite3VdbeSerialTypeLen, "sqlite3VdbeSerialTypeLen")
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeMemRelease(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(d),
+            {
+                T::sqlite3_valuePtrTy
+            }, false);
 
-#define CALL_SYMBOL_GENERATOR(f) f(m, dialect)
+    GENERATE_SYMBOL(f_sqlite3VdbeMemRelease, sqlite3VdbeMemRelease, "sqlite3VdbeMemRelease");
+}
+
+#define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     generateNewFunction(m, dialect);
-    generateReferenceToAdd(m, dialect);
-    generateReferenceToProgress(m, dialect);
-    generateReferenceToAllocateCursor(m, dialect);
-    generateReferenceToSqlite3BtreeCursor(m, dialect);
-    generateReferenceToSqlite3BtreeCursorHintFlags(m, dialect);
-    generateReferenceTosqlite3VdbeSorterRewind(m, dialect);
-    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3BtreeFirst);
-    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3VdbeCursorMoveto);
-    CALL_SYMBOL_GENERATOR(generateReferenceToDebug);
-    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3VdbeMemSetNull);
-    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3BtreePayloadSize);
-    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3BtreePayloadFetch);
-    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3GetVarint32);
-    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3VdbeOneByteSerialTypeLen);
-    CALL_SYMBOL_GENERATOR(generateReferenceTosqlite3VdbeSerialTypeLen);
-    // generateReferenceTosqlite3BtreeFirst(m, dialect);
+    CALL_SYMBOL_GENERATOR(Add);
+    CALL_SYMBOL_GENERATOR(Progress);
+    CALL_SYMBOL_GENERATOR(AllocateCursor);
+    CALL_SYMBOL_GENERATOR(Sqlite3BtreeCursor);
+    CALL_SYMBOL_GENERATOR(Sqlite3BtreeCursorHintFlags);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeSorterRewind);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeFirst);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeCursorMoveto);
+    CALL_SYMBOL_GENERATOR(Debug);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemSetNull);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreePayloadSize);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreePayloadFetch);
+    CALL_SYMBOL_GENERATOR(sqlite3GetVarint32);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeOneByteSerialTypeLen);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeSerialTypeLen);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemRelease);
 }
