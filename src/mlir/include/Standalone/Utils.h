@@ -14,9 +14,9 @@
  * Adds code to print a message at JIT run-time (to be used in contexts where we have a rewriter)
  */
 #define PROGRESS(msg) { \
-    rewriter.create<mlir::LLVM::CallOp>(LOC, f_progress, mlir::ArrayRef<mlir::Value>{ \
-    rewriter.create<mlir::ConstantIntOp>(LOC, reinterpret_cast<const uint64_t>(msg), 64), \
-    rewriter.create<mlir::ConstantIntOp>(LOC, __LINE__, 32) \
+    rewriter.template create<mlir::LLVM::CallOp>(LOC, f_progress, mlir::ArrayRef<mlir::Value>{ \
+    rewriter.template create<mlir::ConstantIntOp>(LOC, reinterpret_cast<const uint64_t>(msg), 64), \
+    rewriter.template create<mlir::ConstantIntOp>(LOC, __LINE__, 32) \
     }); \
 }
 

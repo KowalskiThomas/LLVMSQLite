@@ -81,6 +81,98 @@ struct MyAssertOperator {
     }
 };
 
+template<typename Rewriter>
+struct GetVarint32Operator {
+    using MLIRContext = mlir::MLIRContext;
+    using Value = mlir::Value;
+
+    Rewriter& rewriter;
+    MLIRContext* ctx;
+    ConstantManager<Rewriter>& constants;
+
+    GetVarint32Operator(Rewriter& rewriter, ConstantManager<Rewriter>& constants, MLIRContext* ctx)
+        : rewriter(rewriter), ctx(ctx), constants(constants)
+    {
+    }
+
+    Value operator()(Value A, Value B, Value writeResultTo) {
+        // #define getVarint32(A,B)  \
+                            //   (u8)((*(A)<(u8)0x80)?((B)=(u32)*(A)),1:sqlite3GetVarint32((A),(u32 *)&(B)))
+        //
+        // Func getVarint32(A, B) as u8:
+        //   If *A < 0x80 Then
+        //     B = (u32)*A
+        //     Return 1
+        //   Else
+        //     Return sqlite3GetVarint32(A, (u32*)&B)
+        //   EndIf
+
+        LOWERING_NAMESPACE
+
+        // Read the content of pointer A
+        auto valA = rewriter.template create<LoadOp>(LOC, A);
+
+        PROGRESS("getVarint32: Check that everything is good!");
+
+        // Create new blocks:
+        // - One for if *A < 0x80
+        // - One for the else (A >= 0x80)
+        // - One for reuniting control flow
+        auto curBlock = rewriter.getBlock();
+        auto blockAfter = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockNotLessThan80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockLessThan80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+        // Check whether the *A < 0x80
+        auto condLessThan80 = rewriter.template create<ICmpOp>
+                (LOC, ICmpPredicate::ult, valA, constants(0x80, 8));
+
+        // Insert branching
+        rewriter.template create<CondBrOp>(LOC, condLessThan80,
+                                  blockLessThan80,
+                                  blockNotLessThan80);
+
+        { // if *A < 0x80
+            rewriter.setInsertionPointToStart(blockLessThan80);
+
+            PROGRESS("*A < 0x80")
+            // Convert *A to u32
+            auto aAsU32 = rewriter.template create<ZExtOp>(LOC, T::i32Ty, valA);
+
+            // B = *A
+            rewriter.template create<StoreOp>(LOC, aAsU32, B);
+
+            // "Return" 1
+            rewriter.template create<StoreOp>(LOC, constants(1, 32), writeResultTo);
+
+            rewriter.template create<BranchOp>(LOC, blockAfter);
+        } // end of if *A < 0x80
+        { // else of if *A < 0x80
+            rewriter.setInsertionPointToStart(blockNotLessThan80);
+
+            PROGRESS("ELSE(*A < 0x80)")
+            // Convert B to u32*
+            auto bAsU32Ptr = rewriter.template create<BitcastOp>(LOC, T::i32PtrTy, B);
+            // Call sqlite3GetVarint32(A, (u32*)B)
+            auto result = rewriter.template create<CallOp>
+                    (LOC, f_sqlite3GetVarint32,
+                     mlir::ValueRange{
+                             A,
+                             bAsU32Ptr
+                     }).getResult(0);
+
+            // "Return" the result of the function
+            // sqlite3GetVarint32 returns an u8 so we need to extend it
+            auto resultAsI32 = rewriter.template create<ZExtOp>(LOC, T::i32Ty, result);
+            rewriter.template create<StoreOp>(LOC, resultAsI32, writeResultTo);
+            rewriter.template create<BranchOp>(LOC, blockAfter);
+        } // end else of if *A < 0x80
+
+        rewriter.setInsertionPointToStart(blockAfter);
+    }
+};
+
+
 namespace mlir {
     namespace standalone {
         namespace passes {
@@ -94,6 +186,7 @@ namespace mlir {
 
                 ConstantManager constants(rewriter, ctx);
                 MyAssertOperator myAssert(rewriter, constants, ctx);
+                GetVarint32Operator generate_getVarint32(rewriter, constants, ctx);
                 auto pVdbe = constants(T::VdbePtrTy, vdbe);
 
                 auto curIdxAttr = colOp.getAttrOfType<mlir::IntegerAttr>("curIdx");
@@ -397,84 +490,6 @@ namespace mlir {
                         rewriter.create<StoreOp>(LOC, newCacheCtr, cacheStatusAddr);
 
                         //// pC->iHdrOffset = getVarint32(pC->aRow, aOffset[0]);
-                        auto generate_getVarint32 = [&rewriter, &ctx, &constants](auto A, auto B, auto writeResultTo) {
-                            // #define getVarint32(A,B)  \
-                            //   (u8)((*(A)<(u8)0x80)?((B)=(u32)*(A)),1:sqlite3GetVarint32((A),(u32 *)&(B)))
-                            //
-                            // Func getVarint32(A, B) as u8:
-                            //   If *A < 0x80 Then
-                            //     B = (u32)*A
-                            //     Return 1
-                            //   Else
-                            //     Return sqlite3GetVarint32(A, (u32*)&B)
-                            //   EndIf
-
-                            // Read the content of pointer A
-                            auto valA = rewriter.create<LoadOp>(LOC, A);
-
-                            PROGRESS("getVarint32: Check that everything is good!");
-
-                            // Create new blocks:
-                            // - One for if *A < 0x80
-                            // - One for the else (A >= 0x80)
-                            // - One for reuniting control flow
-                            auto curBlock = rewriter.getBlock();
-                            auto blockAfter = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
-                            auto blockNotLessThan80 = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
-                            auto blockLessThan80 = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
-
-
-                            // Check whether the *A < 0x80
-                            auto condLessThan80 = rewriter.create<ICmpOp>
-                                    (LOC, ICmpPredicate::ult, valA, constants(0x80, 8));
-
-                            // Insert branching 
-                            rewriter.create<CondBrOp>(LOC, condLessThan80,
-                                                      blockLessThan80,
-                                                      blockNotLessThan80);
-
-                            { // if *A < 0x80
-                                rewriter.setInsertionPointToStart(blockLessThan80);
-
-                                PROGRESS("*A < 0x80")
-                                // Convert *A to u32
-                                auto aAsU32 = rewriter.create<ZExtOp>(LOC, T::i32Ty, valA);
-
-                                // B = *A
-                                rewriter.create<StoreOp>(LOC, aAsU32, B);
-
-                                // "Return" 1
-                                rewriter.create<StoreOp>(LOC, constants(1, 32), writeResultTo);
-
-                                rewriter.create<BranchOp>(LOC, blockAfter);
-                            } // end of if *A < 0x80
-                            { // else of if *A < 0x80
-                                rewriter.setInsertionPointToStart(blockNotLessThan80);
-
-                                PROGRESS("ELSE(*A < 0x80)")
-                                // Convert B to u32*
-                                auto bAsU32Ptr = rewriter.create<BitcastOp>(LOC, T::i32PtrTy, B);
-                                // Call sqlite3GetVarint32(A, (u32*)B)
-                                auto result = rewriter.create<CallOp>
-                                        (LOC, f_sqlite3GetVarint32,
-                                         ValueRange{
-                                                 A,
-                                                 bAsU32Ptr
-                                         }).getResult(0);
-
-                                // "Return" the result of the function
-                                // sqlite3GetVarint32 returns an u8 so we need to extend it
-                                auto resultAsI32 = rewriter.create<ZExtOp>(LOC, T::i32Ty, result);
-                                rewriter.create<StoreOp>(LOC, resultAsI32, writeResultTo);
-                                rewriter.create<BranchOp>(LOC, blockAfter);
-                            } // end else of if *A < 0x80
-
-                            rewriter.setInsertionPointToStart(blockAfter);
-                        };
-
                         auto aRow = rewriter.create<LoadOp>(LOC, pCaRowAddress);
 
                         // pC->iHdrOffset = getVarint32(pC->aRow, aOffset[0]);
@@ -491,12 +506,9 @@ namespace mlir {
                         auto curBlock = rewriter.getBlock();
 
                         // if (pC->szRow < aOffset[0])
-                        auto blockSzRowLessThanAOffset = SPLIT_BLOCK;
-                        GO_BACK_TO(curBlock);
-                        auto blockSzRowNotLessThanAOffset = SPLIT_BLOCK;
-                        GO_BACK_TO(curBlock);
-                        auto blockAfterSZRowLessThanAOffset = SPLIT_BLOCK;
-                        GO_BACK_TO(curBlock);
+                        auto blockSzRowLessThanAOffset = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                        auto blockSzRowNotLessThanAOffset = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                        auto blockAfterSZRowLessThanAOffset = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                         auto szRow = rewriter.create<LoadOp>(LOC, szRowAddress);
                         aOffset0 = rewriter.create<LoadOp>(LOC, aOffset);
@@ -553,12 +565,9 @@ namespace mlir {
                             );
 
                     auto curBlock = rewriter.getBlock();
-                    auto blockNHdrParsedLtP2 = SPLIT_BLOCK;
-                    GO_BACK_TO(curBlock);
-                    auto blockNHdrParsedNotLtP2 = SPLIT_BLOCK;
-                    GO_BACK_TO(curBlock);
-                    auto blockAfterNHdrParsedLtP2 = SPLIT_BLOCK;
-                    GO_BACK_TO(curBlock);
+                    auto blockNHdrParsedLtP2 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                    auto blockNHdrParsedNotLtP2 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                    auto blockAfterNHdrParsedLtP2 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                     rewriter.create<CondBrOp>(LOC, nHdrParsedLtP2,
                                               blockNHdrParsedLtP2,
@@ -575,12 +584,9 @@ namespace mlir {
                                                                             aOffset0);
 
                         auto curBlock = rewriter.getBlock();
-                        auto blockAfterHdrOffsetLtAOffset0 = SPLIT_BLOCK;
-                        GO_BACK_TO(curBlock);
-                        auto blockHdrOffsetNotLtAOffset0 = SPLIT_BLOCK;
-                        GO_BACK_TO(curBlock);
-                        auto blockHdrOffsetLtAOffset0 = SPLIT_BLOCK;
-                        GO_BACK_TO(curBlock);
+                        auto blockAfterHdrOffsetLtAOffset0 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                        auto blockHdrOffsetNotLtAOffset0 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                        auto blockHdrOffsetLtAOffset0 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                         rewriter.create<CondBrOp>(LOC, iHdrOffsetLtAOffset0,
                                                   blockHdrOffsetLtAOffset0,
@@ -595,12 +601,9 @@ namespace mlir {
                             auto aRowIsNull = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, aRow, null);
 
                             auto curBlock = rewriter.getBlock();
-                            auto blockAfterRowIsNull = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
-                            auto blockRowIsNotNull = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
-                            auto blockRowIsNull = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
+                            auto blockAfterRowIsNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockRowIsNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockRowIsNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                             rewriter.create<CondBrOp>(LOC, aRowIsNull,
                                                       blockRowIsNull,
@@ -623,8 +626,7 @@ namespace mlir {
 
                             // create label op_column_read_header:
                             curBlock = rewriter.getBlock();
-                            auto blockOpColumnReadHeader = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
+                            auto blockOpColumnReadHeader = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                             rewriter.create<BranchOp>(LOC, blockOpColumnReadHeader);
 
                             rewriter.setInsertionPointToStart(blockOpColumnReadHeader);
@@ -660,12 +662,9 @@ namespace mlir {
 
                             /* DO WHILE */
                             curBlock = rewriter.getBlock();
-                            auto blockAfterDoWhile = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
-                            auto blockDoWhileCondition = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
-                            auto blockDoWhileBlock = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
+                            auto blockAfterDoWhile = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockDoWhileCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockDoWhileBlock = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                             // Start doing the do-while action
                             rewriter.create<BranchOp>(LOC, blockDoWhileBlock);
@@ -674,12 +673,9 @@ namespace mlir {
                                 rewriter.setInsertionPointToStart(blockDoWhileBlock);
 
                                 auto curBlock = rewriter.getBlock();
-                                auto blockIfLt80 = SPLIT_BLOCK;
-                                GO_BACK_TO(curBlock);
-                                auto blockIfNotLt80 = SPLIT_BLOCK;
-                                GO_BACK_TO(curBlock);
-                                auto blockAfterIfLt80 = SPLIT_BLOCK;
-                                GO_BACK_TO(curBlock);
+                                auto blockIfLt80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                                auto blockIfNotLt80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                                auto blockAfterIfLt80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                                 // Get address to pC->aType[i]
                                 auto iValue = rewriter.create<LoadOp>(LOC, iAddr);
@@ -838,10 +834,8 @@ namespace mlir {
                             auto aAndBOrCOrD = rewriter.create<OrOp>(LOC, aAndBOrC, offset64GtPayloadSize);
 
                             curBlock = rewriter.getBlock();
-                            auto blockAfterCondition = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
-                            auto blockConditionTrue = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
+                            auto blockAfterCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockConditionTrue = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                             rewriter.create<CondBrOp>(LOC, aAndBOrCOrD, blockConditionTrue, blockAfterCondition);
 
@@ -849,12 +843,9 @@ namespace mlir {
                                 rewriter.setInsertionPointToStart(blockConditionTrue);
 
                                 auto curBlock = rewriter.getBlock();
-                                auto blockAfterAOffset0Eq0 = SPLIT_BLOCK;
-                                GO_BACK_TO(curBlock);
-                                auto blockNotAOffset0Eq0 = SPLIT_BLOCK;
-                                GO_BACK_TO(curBlock);
-                                auto blockAOffset0Eq0 = SPLIT_BLOCK;
-                                GO_BACK_TO(curBlock);
+                                auto blockAfterAOffset0Eq0 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                                auto blockNotAOffset0Eq0 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                                auto blockAOffset0Eq0 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                                 // IDEA: Check if we can use the old aOffset
                                 auto aOffset0Value = rewriter.create<LoadOp>(LOC, aOffset);
@@ -901,8 +892,7 @@ namespace mlir {
                             rewriter.create<StoreOp>(LOC, diff, iHdrOffsetAddr);
 
                             curBlock = rewriter.getBlock();
-                            auto blockARowIsNull = SPLIT_BLOCK;
-                            GO_BACK_TO(curBlock);
+                            auto blockARowIsNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                             // Load pC->aRow
                             auto aRowVal = rewriter.create<LoadOp>(LOC, pCaRowAddress);
@@ -936,8 +926,7 @@ namespace mlir {
                         curBlock = rewriter.getBlock();
                         // We are already in a condition that is nHdrParsed <= p2
                         // If the condition is false, we just jump out of that parent condition
-                        auto blockNHdrParsedLtP2_2 = SPLIT_BLOCK;
-                        GO_BACK_TO(curBlock);
+                        auto blockNHdrParsedLtP2_2 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                         auto nHdrParsedVal = rewriter.create<LoadOp>(LOC, nHdrParsedAddr);
                         auto p2 = constants(colOp.columnAttr().getSInt(), 16);
@@ -1004,10 +993,8 @@ namespace mlir {
                     auto vdbeMemDynamic = generateVdbeDynamic(pDest);
 
                     curBlock = rewriter.getBlock();
-                    auto blockAfterVdbeMemDynamic = SPLIT_BLOCK;
-                    GO_BACK_TO(curBlock);
-                    auto blockVdbeMemDynamic = SPLIT_BLOCK;
-                    GO_BACK_TO(curBlock);
+                    auto blockAfterVdbeMemDynamic = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                    auto blockVdbeMemDynamic = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     rewriter.create<CondBrOp>(LOC, vdbeMemDynamic, blockVdbeMemDynamic, blockAfterVdbeMemDynamic);
 
                     { // if (VdbeMemDynamic(pDest))
