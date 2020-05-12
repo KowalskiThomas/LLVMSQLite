@@ -22,6 +22,7 @@ ExternFuncOp f_sqlite3VdbeMemSetNull;
 ExternFuncOp f_sqlite3BtreePayloadSize;
 ExternFuncOp f_sqlite3BtreePayloadFetch;
 ExternFuncOp f_debug;
+ExternFuncOp f_assert;
 ExternFuncOp f_sqlite3GetVarint32;
 ExternFuncOp f_sqlite3VdbeOneByteSerialTypeLen;
 ExternFuncOp f_sqlite3VdbeSerialTypeLen;
@@ -54,6 +55,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeSerialTypeLen);
     DECLARE_FUNCTION(sqlite3VdbeMemRelease);
     DECLARE_FUNCTION(Debug);
+    DECLARE_FUNCTION(Assert);
 
     static void runPrerequisites(ModuleOp, LLVMDialect*);
 };

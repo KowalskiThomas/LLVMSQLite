@@ -27,6 +27,7 @@ LLVMFuncOp f_sqlite3VdbeMemSetNull;
 LLVMFuncOp f_sqlite3BtreePayloadSize;
 LLVMFuncOp f_sqlite3BtreePayloadFetch;
 LLVMFuncOp f_debug;
+LLVMFuncOp f_assert;
 LLVMFuncOp f_sqlite3GetVarint32;
 LLVMFuncOp f_sqlite3VdbeOneByteSerialTypeLen;
 LLVMFuncOp f_sqlite3VdbeSerialTypeLen;
@@ -59,6 +60,12 @@ uint64_t printPtr(void *ptr, void *s, uint32_t line) {
 void debug() {
     // This function should not be called but allows me to easily find where
     // a piece of code was translated in IR.
+}
+
+void my_assert(bool x) {
+    if (!x) {
+        llvm::outs() << "Assert evaluated to false!";
+    }
 }
 
 }
@@ -253,6 +260,16 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemRelease(ModuleOp m, LLVMDia
     GENERATE_SYMBOL(f_sqlite3VdbeMemRelease, sqlite3VdbeMemRelease, "sqlite3VdbeMemRelease");
 }
 
+void Prerequisites::generateReferenceToAssert(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(d),
+            {
+                    T::i1Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_assert, my_assert, "my_assert");
+}
+
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
@@ -266,6 +283,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3BtreeFirst);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeCursorMoveto);
     CALL_SYMBOL_GENERATOR(Debug);
+    CALL_SYMBOL_GENERATOR(Assert);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemSetNull);
     CALL_SYMBOL_GENERATOR(sqlite3BtreePayloadSize);
     CALL_SYMBOL_GENERATOR(sqlite3BtreePayloadFetch);

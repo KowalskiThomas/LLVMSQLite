@@ -556,9 +556,12 @@ namespace mlir {
                             auto aRowIsNull = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, aRow, null);
 
                             auto curBlock = rewriter.getBlock();
-                            auto blockAfterRowIsNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-                            auto blockRowIsNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-                            auto blockRowIsNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockAfterRowIsNull = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
+                            auto blockRowIsNotNull = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
+                            auto blockRowIsNull = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
 
                             rewriter.create<CondBrOp>(LOC, aRowIsNull,
                                                       blockRowIsNull,
@@ -581,7 +584,8 @@ namespace mlir {
 
                             // create label op_column_read_header:
                             curBlock = rewriter.getBlock();
-                            auto blockOpColumnReadHeader = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockOpColumnReadHeader = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
                             rewriter.create<BranchOp>(LOC, blockOpColumnReadHeader);
 
                             rewriter.setInsertionPointToStart(blockOpColumnReadHeader);
@@ -617,9 +621,12 @@ namespace mlir {
 
                             /* DO WHILE */
                             curBlock = rewriter.getBlock();
-                            auto blockAfterDoWhile = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-                            auto blockDoWhileCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-                            auto blockDoWhileBlock = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockAfterDoWhile = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
+                            auto blockDoWhileCondition = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
+                            auto blockDoWhileBlock = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
 
                             // Start doing the do-while action
                             rewriter.create<BranchOp>(LOC, blockDoWhileBlock);
@@ -628,9 +635,12 @@ namespace mlir {
                                 rewriter.setInsertionPointToStart(blockDoWhileBlock);
 
                                 auto curBlock = rewriter.getBlock();
-                                auto blockIfLt80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-                                auto blockIfNotLt80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-                                auto blockAfterIfLt80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                                auto blockIfLt80 = SPLIT_BLOCK;
+                                GO_BACK_TO(curBlock);
+                                auto blockIfNotLt80 = SPLIT_BLOCK;
+                                GO_BACK_TO(curBlock);
+                                auto blockAfterIfLt80 = SPLIT_BLOCK;
+                                GO_BACK_TO(curBlock);
 
                                 // Get address to pC->aType[i]
                                 auto iValue = rewriter.create<LoadOp>(LOC, iAddr);
@@ -749,12 +759,14 @@ namespace mlir {
                                 // Load the value of i
                                 auto iValue = rewriter.create<LoadOp>(LOC, iAddr);
                                 // Cond. 1: i <= p2
-                                auto iLessThanP2 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::sle, iValue, constants(p2, 32));
+                                auto iLessThanP2 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::sle, iValue,
+                                                                           constants(p2, 32));
                                 // Cond. 2: zHdr < zEndHdr
                                 auto zHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zHdrValue);
                                 // auto zEndHdrValue = rewriter.create<LoadOp>(LOC, zEndHdr);
                                 auto zEndHdrAsInt = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, zEndHdrValue);
-                                auto zHdrLessThanEndHdr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ult, zHdrAsInt, zEndHdrAsInt);
+                                auto zHdrLessThanEndHdr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ult, zHdrAsInt,
+                                                                                  zEndHdrAsInt);
                                 // Both conditions and-combined
                                 /// CONDITION: while (i <= p2 && zHdr < zEndHdr);
                                 auto doWhileCondition = rewriter.create<AndOp>(LOC, iLessThanP2, zHdrLessThanEndHdr);
@@ -773,18 +785,24 @@ namespace mlir {
                             auto payloadSize_u32 = rewriter.create<LoadOp>(LOC, payloadSizeAddress);
                             auto payloadSize = rewriter.create<ZExtOp>(LOC, T::i64Ty, payloadSize_u32);
 
-                            /* A */ auto zHdrGeZEndHdr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::uge, zHdrAsInt, zEndHdrAsInt);
-                            /* B */ auto zHdrGtZEndHdr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ugt, zHdrAsInt, zEndHdrAsInt);
-                            /* C */ auto offset64NePayloadSize = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ne, offset64Value, payloadSize);
-                            /* D */ auto offset64GtPayloadSize = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ugt, offset64Value, payloadSize);
+                            /* A */ auto zHdrGeZEndHdr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::uge, zHdrAsInt,
+                                                                                 zEndHdrAsInt);
+                            /* B */ auto zHdrGtZEndHdr = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ugt, zHdrAsInt,
+                                                                                 zEndHdrAsInt);
+                            /* C */ auto offset64NePayloadSize = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ne,
+                                                                                         offset64Value, payloadSize);
+                            /* D */ auto offset64GtPayloadSize = rewriter.create<ICmpOp>(LOC, ICmpPredicate::ugt,
+                                                                                         offset64Value, payloadSize);
 
                             auto bOrC = rewriter.create<OrOp>(LOC, zHdrGtZEndHdr, offset64NePayloadSize);
                             auto aAndBOrC = rewriter.create<AndOp>(LOC, zHdrGeZEndHdr, bOrC);
                             auto aAndBOrCOrD = rewriter.create<OrOp>(LOC, aAndBOrC, offset64GtPayloadSize);
 
                             curBlock = rewriter.getBlock();
-                            auto blockAfterCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-                            auto blockConditionTrue = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockAfterCondition = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
+                            auto blockConditionTrue = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
 
                             rewriter.create<CondBrOp>(LOC, aAndBOrCOrD, blockConditionTrue, blockAfterCondition);
 
@@ -792,13 +810,17 @@ namespace mlir {
                                 rewriter.setInsertionPointToStart(blockConditionTrue);
 
                                 auto curBlock = rewriter.getBlock();
-                                auto blockAfterAOffset0Eq0 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-                                auto blockNotAOffset0Eq0 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-                                auto blockAOffset0Eq0 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                                auto blockAfterAOffset0Eq0 = SPLIT_BLOCK;
+                                GO_BACK_TO(curBlock);
+                                auto blockNotAOffset0Eq0 = SPLIT_BLOCK;
+                                GO_BACK_TO(curBlock);
+                                auto blockAOffset0Eq0 = SPLIT_BLOCK;
+                                GO_BACK_TO(curBlock);
 
                                 // IDEA: Check if we can use the old aOffset
                                 auto aOffset0Value = rewriter.create<LoadOp>(LOC, aOffset);
-                                auto aOffset0Eq0 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, aOffset0Value, constants(0, 32));
+                                auto aOffset0Eq0 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, aOffset0Value,
+                                                                           constants(0, 32));
                                 rewriter.create<CondBrOp>(LOC, aOffset0Eq0, blockAOffset0Eq0, blockNotAOffset0Eq0);
 
                                 { // if (aOffset[0] == 0)
@@ -840,7 +862,8 @@ namespace mlir {
                             rewriter.create<StoreOp>(LOC, diff, iHdrOffsetAddr);
 
                             curBlock = rewriter.getBlock();
-                            auto blockARowIsNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockARowIsNull = SPLIT_BLOCK;
+                            GO_BACK_TO(curBlock);
 
                             // Load pC->aRow
                             auto aRowVal = rewriter.create<LoadOp>(LOC, pCaRowAddress);
@@ -874,7 +897,8 @@ namespace mlir {
                         curBlock = rewriter.getBlock();
                         // We are already in a condition that is nHdrParsed <= p2
                         // If the condition is false, we just jump out of that parent condition
-                        auto blockNHdrParsedLtP2_2 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                        auto blockNHdrParsedLtP2_2 = SPLIT_BLOCK;
+                        GO_BACK_TO(curBlock);
 
                         auto nHdrParsedVal = rewriter.create<LoadOp>(LOC, nHdrParsedAddr);
                         auto p2 = constants(colOp.columnAttr().getSInt(), 16);
@@ -923,17 +947,17 @@ namespace mlir {
                     auto generateVdbeDynamic = [&ctx, &rewriter, &constants](auto pDest) {
                         auto memAggOrMemDyn = constants(MEM_Agg | MEM_Dyn, 16);
                         auto flagsAddr = rewriter.create<GEPOp>
-                                (LOC, T::i16PtrTy, pDest, ValueRange {
-                                    constants(0, 32), // &*pDest
-                                    constants(1, 32)  // flags is second field of sqlite3_value
+                                (LOC, T::i16PtrTy, pDest, ValueRange{
+                                        constants(0, 32), // &*pDest
+                                        constants(1, 32)  // flags is second field of sqlite3_value
                                 });
                         auto flags = rewriter.create<LoadOp>(LOC, flagsAddr);
                         Value anded = rewriter.create<mlir::LLVM::AndOp>(LOC, memAggOrMemDyn, flags);
                         auto andedIsNotNull = rewriter.create<ICmpOp>
                                 (LOC, ICmpPredicate::eq,
-                                        rewriter.create<mlir::LLVM::ConstantOp>
-                                            (LOC, T::i16Ty, rewriter.getI16IntegerAttr(0)),
-                                        anded
+                                 rewriter.create<mlir::LLVM::ConstantOp>
+                                         (LOC, T::i16Ty, rewriter.getI16IntegerAttr(0)),
+                                 anded
                                 );
                         return andedIsNotNull;
                     };
@@ -941,20 +965,63 @@ namespace mlir {
                     auto vdbeMemDynamic = generateVdbeDynamic(pDest);
 
                     curBlock = rewriter.getBlock();
-                    auto blockAfterVdbeMemDynamic = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-                    auto blockVdbeMemDynamic = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                    auto blockAfterVdbeMemDynamic = SPLIT_BLOCK;
+                    GO_BACK_TO(curBlock);
+                    auto blockVdbeMemDynamic = SPLIT_BLOCK;
+                    GO_BACK_TO(curBlock);
                     rewriter.create<CondBrOp>(LOC, vdbeMemDynamic, blockVdbeMemDynamic, blockAfterVdbeMemDynamic);
 
                     { // if (VdbeMemDynamic(pDest))
                         rewriter.setInsertionPointToStart(blockVdbeMemDynamic);
 
                         /// sqlite3VdbeMemSetNull(pDest);
-                        rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange{ pDest });
+                        rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange{pDest});
 
                         rewriter.create<BranchOp>(LOC, blockAfterVdbeMemDynamic);
                     } // end if (VdbeMemDynamic(pDest))
 
                     rewriter.setInsertionPointToStart(blockAfterVdbeMemDynamic);
+
+                    {
+                        auto tVal = rewriter.create<LoadOp>(LOC, tAddr);
+                        // Constant P2
+                        auto p2 = constants(colOp.columnAttr().getSInt(), 32);
+                        // Get &pC->aType[p2]
+                        auto aTypeP2Addr = rewriter.create<GEPOp>
+                                (LOC, T::i32PtrTy, pCValue, ValueRange{
+                                        constants(0, 32),  // *pC
+                                        constants(23, 32), // &pC->aType
+                                        p2             // &pC->aType[p2]
+                                });
+                        // Load pC->aType[p2]
+                        auto aTypeP2 = rewriter.create<LoadOp>(LOC, aTypeP2Addr);
+                        auto tEqATypeP2 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, tVal, aTypeP2);
+
+                        auto my_assert = [&rewriter, &constants, &ctx](Location loc, mlir::Value val) {
+                            auto d = ctx->getRegisteredDialect<LLVMDialect>();
+                            if (val.getType().isInteger(1) || val.getType() == LLVMType::getIntNTy(d, 1))
+                                rewriter.create<CallOp>(loc, f_assert, ValueRange{val});
+                            else {
+                                auto found = false;
+                                for (auto i = 2; i < 64; i++) {
+                                    if (val.getType().isInteger(i) || val.getType() == LLVMType::getIntNTy(d, i)) {
+                                        auto valAs1 = rewriter.create<ICmpOp>(loc, ICmpPredicate::ne,
+                                                                              val, constants(0, i));
+                                        rewriter.create<CallOp>(loc, f_assert, ValueRange{valAs1});
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (found)
+                                    return;
+
+                                err("Couldn't find the right operation to convert variable for assertion")
+                                val.dump();
+                            }
+                        };
+
+                        my_assert(LOC, tEqATypeP2);
+                    }
 
                     // TODO: Lines 221-...
 
