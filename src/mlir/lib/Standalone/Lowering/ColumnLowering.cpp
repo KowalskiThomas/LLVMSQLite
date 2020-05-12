@@ -43,6 +43,44 @@
 #define SPLIT_BLOCK rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
 #define GO_BACK_TO(b) rewriter.setInsertionPointToEnd(b)
 
+template<class Rewriter>
+struct MyAssertOperator {
+    using ValueRange = mlir::ValueRange;
+    using MLIRContext = mlir::MLIRContext;
+
+    Rewriter& rewriter;
+    ConstantManager<Rewriter>& constants;
+    MLIRContext* ctx;
+
+    MyAssertOperator(Rewriter& rewriter, ConstantManager<Rewriter>& constants, MLIRContext* ctx)
+    : rewriter(rewriter), constants(constants), ctx(ctx)
+    {
+    }
+
+    void operator()(mlir::Location loc, mlir::Value val) {
+        auto d = ctx->getRegisteredDialect<LLVMDialect>();
+        if (val.getType().isInteger(1) || val.getType() == LLVMType::getIntNTy(d, 1))
+            rewriter.template create<CallOp>(loc, f_assert, ValueRange{val});
+        else {
+            auto found = false;
+            for (auto i = 2; i < 64; i++) {
+                if (val.getType().isInteger(i) || val.getType() == LLVMType::getIntNTy(d, i)) {
+                    auto valAs1 = rewriter.template create<ICmpOp>(loc, ICmpPredicate::ne,
+                                                          val, constants(0, i));
+                    rewriter.template create<CallOp>(loc, f_assert, ValueRange{valAs1});
+                    found = true;
+                    break;
+                }
+            }
+            if (found)
+                return;
+
+            err("Couldn't find the right operation to convert variable for assertion")
+            val.dump();
+        }
+    }
+};
+
 namespace mlir {
     namespace standalone {
         namespace passes {
@@ -55,6 +93,7 @@ namespace mlir {
                 auto firstBlock = rewriter.getBlock();
 
                 ConstantManager constants(rewriter, ctx);
+                MyAssertOperator myAssert(rewriter, constants, ctx);
                 auto pVdbe = constants(T::VdbePtrTy, vdbe);
 
                 auto curIdxAttr = colOp.getAttrOfType<mlir::IntegerAttr>("curIdx");
@@ -982,7 +1021,7 @@ namespace mlir {
 
                     rewriter.setInsertionPointToStart(blockAfterVdbeMemDynamic);
 
-                    {
+                    { // assert(t == pC->aType[p2]);
                         auto tVal = rewriter.create<LoadOp>(LOC, tAddr);
                         // Constant P2
                         auto p2 = constants(colOp.columnAttr().getSInt(), 32);
@@ -996,32 +1035,8 @@ namespace mlir {
                         // Load pC->aType[p2]
                         auto aTypeP2 = rewriter.create<LoadOp>(LOC, aTypeP2Addr);
                         auto tEqATypeP2 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, tVal, aTypeP2);
-
-                        auto my_assert = [&rewriter, &constants, &ctx](Location loc, mlir::Value val) {
-                            auto d = ctx->getRegisteredDialect<LLVMDialect>();
-                            if (val.getType().isInteger(1) || val.getType() == LLVMType::getIntNTy(d, 1))
-                                rewriter.create<CallOp>(loc, f_assert, ValueRange{val});
-                            else {
-                                auto found = false;
-                                for (auto i = 2; i < 64; i++) {
-                                    if (val.getType().isInteger(i) || val.getType() == LLVMType::getIntNTy(d, i)) {
-                                        auto valAs1 = rewriter.create<ICmpOp>(loc, ICmpPredicate::ne,
-                                                                              val, constants(0, i));
-                                        rewriter.create<CallOp>(loc, f_assert, ValueRange{valAs1});
-                                        found = true;
-                                        break;
-                                    }
-                                }
-                                if (found)
-                                    return;
-
-                                err("Couldn't find the right operation to convert variable for assertion")
-                                val.dump();
-                            }
-                        };
-
-                        my_assert(LOC, tEqATypeP2);
-                    }
+                        myAssert(LOC, tEqATypeP2);
+                    } // end assert(t == pC->aType[p2]);
 
                     // TODO: Lines 221-...
 
