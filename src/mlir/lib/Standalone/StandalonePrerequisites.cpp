@@ -32,6 +32,7 @@ LLVMFuncOp f_sqlite3VdbeSerialTypeLen;
 LLVMFuncOp f_sqlite3VdbeMemRelease;
 LLVMFuncOp f_sqlite3VdbeSerialGet;
 LLVMFuncOp f_sqlite3VdbeMemGrow;
+LLVMFuncOp f_sqlite3VdbeMemFromBtree;
 
 LLVMFuncOp f_memCpy;
 
@@ -291,9 +292,9 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemGrow(ModuleOp m, LLVMDialec
     auto funcTy = LLVMType::getFunctionTy(
             T::i32Ty,
             {
-                T::sqlite3_valuePtrTy, // pMem
-                T::i32Ty, // n
-                T::i32Ty  // preserve
+                    T::sqlite3_valuePtrTy, // pMem
+                    T::i32Ty, // n
+                    T::i32Ty  // preserve
             }, false);
 
     GENERATE_SYMBOL(f_sqlite3VdbeMemGrow, sqlite3VdbeMemGrow, "sqlite3VdbeMemGrow");
@@ -309,6 +310,19 @@ void Prerequisites::generateReferenceTomemCpy(ModuleOp m, LLVMDialect *d) {
             }, false);
 
     GENERATE_SYMBOL(f_memCpy, memcpy, "memcpy");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeMemFromBtree(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty,
+            {
+                    T::BtCursorPtrTy,
+                    T::i32Ty,
+                    T::i32Ty,
+                    T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemFromBtree, sqlite3VdbeMemFromBtree, "sqlite3VdbeMemFromBtree");
 }
 
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
@@ -332,6 +346,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemRelease);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeSerialGet);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemGrow);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemFromBtree);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

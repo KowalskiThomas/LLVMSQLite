@@ -29,6 +29,7 @@ ExternFuncOp f_sqlite3VdbeSerialTypeLen;
 ExternFuncOp f_sqlite3VdbeMemRelease;
 ExternFuncOp f_sqlite3VdbeSerialGet;
 ExternFuncOp f_sqlite3VdbeMemGrow;
+ExternFuncOp f_sqlite3VdbeMemFromBtree;
 ExternFuncOp f_memCpy;
 
 void initialiseTypeCache(LLVMDialect*);
@@ -58,7 +59,8 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeSerialTypeLen);
     DECLARE_FUNCTION(sqlite3VdbeMemRelease);
     DECLARE_FUNCTION(sqlite3VdbeSerialGet);
-    DECLARE_FUNCTION(sqlite3VdbeMemGrow)
+    DECLARE_FUNCTION(sqlite3VdbeMemGrow);
+    DECLARE_FUNCTION(sqlite3VdbeMemFromBtree);
 
     DECLARE_FUNCTION(memCpy);
 

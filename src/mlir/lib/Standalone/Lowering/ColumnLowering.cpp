@@ -1072,6 +1072,119 @@ namespace mlir {
                     { // else of if (pC->szRow >= aOffset[p2 + 1])
                         rewriter.setInsertionPointToStart(blockSzRowNotGeOffsetP2Plus1);
 
+                        /// pDest->enc = encoding;
+                        auto pDestEncAddr = rewriter.create<GEPOp>(LOC, T::i8PtrTy, pDest, ValueRange {
+                                constants(0, 32), // &*pDest
+                                constants(2, 32)  // enc is second field
+                        });
+                        rewriter.create<StoreOp>(LOC, dbEnc, pDestEncAddr);
+
+                        // (pOp->p5 & (OPFLAG_LENGTHARG | OPFLAG_TYPEOFARG)) != 0
+                        auto p5AndLengthArgOrTypeOfArg = colOp.flagsAttr().getUInt() & (OPFLAG_LENGTHARG | OPFLAG_TYPEOFARG);
+                        auto p5AndLengthArgOrTypeOfArgNotNull = constants(p5AndLengthArgOrTypeOfArg == 0 ? 0 : 1, 1);
+                        auto condC = p5AndLengthArgOrTypeOfArgNotNull;
+
+                        // ((t >= 12 && (t & 1) == 0) || (pOp->p5 & OPFLAG_TYPEOFARG) != 0)
+                        //// (t & 1) == 0
+                        auto tValue = rewriter.create<LoadOp>(LOC, tAddr);
+                        auto tAnd1 = rewriter.create<AndOp>(LOC, tValue, constants(1, 32));
+                        auto tAnd1IsNull = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, tAnd1, constants(0, 32));
+                        //// t >= 12
+                        auto tGe12 = rewriter.create<ICmpOp>(LOC, ICmpPredicate::sge, tValue, constants(12, 32));
+                        //// ((t >= 12 && (t & 1) == 0)
+                        auto condA = rewriter.create<AndOp>(LOC, tGe12, tAnd1IsNull);
+                        //// (pOp->p5 & OPFLAG_TYPEOFARG) != 0)
+                        auto p5AndTypeOfArg = colOp.flagsAttr().getUInt() & OPFLAG_TYPEOFARG;
+                        auto p5AndTypeOfArgNotNull = p5AndTypeOfArg == 0 ? 0 : 1;
+                        auto condB = constants(p5AndTypeOfArgNotNull, 1);
+                        //// ((t >= 12 && (t & 1) == 0) || (pOp->p5 & OPFLAG_TYPEOFARG) != 0)
+                        auto condAOrCondB = rewriter.create<OrOp>(LOC, condA, condB);
+
+                        auto condCAnd_condAOrCondB = rewriter.create<AndOp>(LOC, condC, condAOrCondB);
+
+                        auto len = rewriter.create<CallOp>(LOC, f_sqlite3VdbeSerialTypeLen, ValueRange{
+                            tValue
+                        }).getResult(0);
+                        auto lenIsNull = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, len, constants(0, 32));
+
+                        auto condCAnd_condAOrCondB__OrLenIsNull = rewriter.create<OrOp>(LOC, condCAnd_condAOrCondB, lenIsNull);
+
+                        curBlock = rewriter.getBlock();
+                        auto blockTrue = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                        auto blockFalse = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                        auto blockAfter = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+                        rewriter.create<CondBrOp>(LOC, condCAnd_condAOrCondB__OrLenIsNull, blockTrue, blockFalse);
+                        { // if (...)
+                            rewriter.setInsertionPointToStart(blockTrue);
+
+                            /// sqlite3VdbeSerialGet((u8 *) sqlite3CtypeMap, t, pDest);
+                            auto cTypeMap = constants(T::i8PtrTy, (u8*)sqlite3CtypeMap);
+                            rewriter.create<CallOp>(LOC, f_sqlite3VdbeSerialGet, ValueRange {
+                                cTypeMap, tValue, pDest
+                            });
+
+                            rewriter.create<BranchOp>(LOC, blockAfter);
+                        } // end if (...)
+                        { // else of if (...)
+                            rewriter.setInsertionPointToStart(blockFalse);
+
+                            /////// Get pC->uc.pCursor as a BtCursor*
+                            // Get the address of the cursor from pC->uc.pCursor
+                            auto pCrsrAddress = rewriter.create<GEPOp>
+                                    (LOC, T::VdbeCursorPtrPtrTy, pCValue,
+                                     ValueRange{
+                                             CONSTANT_INT(0, 32),  // &pC
+                                             CONSTANT_INT(12, 32), // &pc->uc
+                                             CONSTANT_INT(0, 32)   // pCursor (first item of union-struct)
+                                     });
+
+                            // Load the value of the pointer (address of the cursor)
+                            auto pCrsrAsCursor = rewriter.create<LoadOp>(LOC, pCrsrAddress);
+                            // Convert this VdbeCursor* to BtCursor* (VdbeCursor is a "parent type")
+                            auto pCrsr = rewriter.create<BitcastOp>(LOC, T::BtCursorPtrTy, pCrsrAsCursor);
+
+                            //// Get aOffset[p2]
+                            auto aOffsetP2Addr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, aOffset, constants(colOp.columnAttr().getSInt(), 32));
+                            auto aOffsetP2Val = rewriter.create<LoadOp>(LOC, aOffsetP2Addr);
+
+                            /// rc = sqlite3VdbeMemFromBtree(pC->uc.pCursor, aOffset[p2], len, pDest);
+                            auto result = rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemFromBtree, ValueRange {
+                                pCrsr, aOffsetP2Val, len, pDest
+                            }).getResult(0);
+
+                            PROGRESS("TODO: Check that rc != SQLITE_OK goto abort_due_to_error")
+
+                            /// sqlite3VdbeSerialGet((const u8 *) pDest->z, t, pDest);
+                            // Get &pDest->z
+                            auto zAddr = rewriter.create<GEPOp>(LOC, T::i8PtrPtrTy, pDest,ValueRange {
+                                    constants(0, 32), // &*pDest
+                                    constants(5, 32)  // 6-th field of sqlite3_value
+                            });
+                            // Load pDest->z
+                            auto zValue = rewriter.create<LoadOp>(LOC, zAddr);
+                            // Convert pDest->z to u8*
+                            auto zValueAsU8Ptr = rewriter.create<BitcastOp>(LOC, T::i8PtrTy, zValue);
+                            // Call sqlite3VdbeSerialGet
+                            rewriter.create<CallOp>(LOC, f_sqlite3VdbeSerialGet, ValueRange {
+                                zValueAsU8Ptr, tValue, pDest
+                            });
+
+                            /// pDest->flags &= ~MEM_Ephem;
+                            auto flagsAddr = rewriter.create<GEPOp>
+                                    (LOC, T::i16PtrTy, pDest, ValueRange{
+                                            constants(0, 32), // &*pDest
+                                            constants(1, 32)  // flags is second field of sqlite3_value
+                                    });
+                            auto flagsValue = rewriter.create<LoadOp>(LOC, flagsAddr);
+                            auto notMemEphem = ~MEM_Ephem;
+                            auto newFlagsValue = rewriter.create<AndOp>(LOC, flagsValue, constants(notMemEphem, 16));
+                            rewriter.create<StoreOp>(LOC, newFlagsValue, flagsAddr);
+
+                            rewriter.create<BranchOp>(LOC, blockAfter);
+                        } // end else of if (...)
+
+                        rewriter.setInsertionPointToStart(blockAfter);
                         rewriter.create<BranchOp>(LOC, blockAfterSzRowGeOffsetP2Plus1);
                     } // end else of if (pC->szRow >= aOffset[p2 + 1])
 
