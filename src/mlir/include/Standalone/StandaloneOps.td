@@ -118,13 +118,13 @@ def Standalone_Rewind : Standalone_Op<"Rewind"> {
 def Standalone_Column : Standalone_Op<"Column"> {
     let summary = "Extracts a value from a record";
 
-    let arguments = (ins I32Attr:$curIdx, I32Attr:$column, I32Attr:$extractTo, I64Attr:$defaultValue, I16Attr:$flags);
+    let arguments = (ins I64Attr:$counter, I32Attr:$curIdx, I32Attr:$column, I32Attr:$extractTo, I64Attr:$defaultValue, I16Attr:$flags);
 }
 
-def Standalone_ResultRow : Standalone_Op<"ResultRow"> {
+def Standalone_ResultRow : Standalone_Op<"ResultRow", [Terminator]> {
 let summary = "Calls the callback";
 
-let arguments = (ins I32Attr:$firstCol, I32Attr:$nCol);
+let arguments = (ins I64Attr:$counter, I32Attr:$firstCol, I32Attr:$nCol);
 }
 
 #endif // STANDALONE_OPS

@@ -1,4 +1,5 @@
 #include <unordered_map>
+#include <src/mlir/include/Standalone/ConstantManager.h>
 #include "sqlite_bridge.h"
 
 #include "Standalone/StandalonePrerequisites.h"
@@ -36,10 +37,35 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     auto builder = mlir::OpBuilder(ctx);
     auto* entryBlock = func.addEntryBlock();
     builder.setInsertionPointToStart(entryBlock);
+    ConstantManager constants(builder, ctx);
 
+    auto& rewriter = builder;
+
+    PROGRESS("Hello")
     // Each time we translate an instruction, we need to branch from its block to the next block
     // We store the last instruction's block to this end.
     mlir::Block* lastBlock = entryBlock;
+
+    auto pcAddr = constants(T::i32PtrTy, (int*)&vdbe->pc);
+    auto pcValue = builder.create<LoadOp>(LOCB, pcAddr);
+    auto pcValueIs123 = builder.create<ICmpOp>(LOCB, ICmpPredicate::eq, pcValue, constants(123, 32));
+
+    PROGRESS("Hello 2")
+    auto curBlock = builder.getBlock();
+    auto blockAfterJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+    auto blockJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+    builder.create<CondBrOp>(LOCB, pcValueIs123, blockJump, blockAfterJump);
+    { // If pC == 123
+        builder.setInsertionPointToStart(blockJump);
+
+        auto brOp = builder.create<mlir::BranchOp>(LOCB, entryBlock);
+        operations_to_update[10].push_back(brOp.operator mlir::Operation *());
+
+    } // End If pC == 123
+
+    builder.setInsertionPointToStart(blockAfterJump);
+    lastBlock = blockAfterJump;
 
     // Iterate over the VDBE programme
     bool writeBranchOut = true;
@@ -153,6 +179,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 builder.create<mlir::standalone::Column>
                         (LOCB,
+                         INTEGER_ATTR(64, true, pc),
                          INTEGER_ATTR(32, true, cursor),
                          INTEGER_ATTR(32, true, column),
                          INTEGER_ATTR(32, true, extractTo),
@@ -169,12 +196,13 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 builder.create<mlir::standalone::ResultRow>
                         (LOCB,
+                         INTEGER_ATTR(64, true, pc),
                          INTEGER_ATTR(32, true, firstColumnIndex),
                          INTEGER_ATTR(32, true, nColumn)
                         );
 
                 lastOpSeen = true;
-                newWriteBranchOut = true;
+                newWriteBranchOut = false;
                 break;
             }
         }
@@ -238,9 +266,7 @@ void prepareFunction(MLIRContext& context, LLVMDialect* llvmDialect, ModuleOp& t
     }
 
     auto inTypes = mlir::ArrayRef<mlir::Type>{
-            mlir::standalone::VdbeTypes::VdbeType::get(ctx),
-            builder.getIntegerType(64),
-            builder.getIntegerType(64)
+            T::VdbePtrTy
     };
 
     auto funcTy = builder.getFunctionType(inTypes, builder.getIntegerType(32));

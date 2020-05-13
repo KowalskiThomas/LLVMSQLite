@@ -3,7 +3,7 @@
 #include "Standalone/StandalonePassManager.h"
 #include "Standalone/StandalonePasses.h"
 
-int runJit(mlir::ModuleOp module) {
+int runJit(mlir::ModuleOp module, Vdbe* p) {
     // Initialize LLVM targets.
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
@@ -22,22 +22,7 @@ int runJit(mlir::ModuleOp module) {
     }
     auto &engine = maybeEngine.get();
 
-    // Invoke the JIT-compiled function.
-    struct Vdbe {
-        void* sqlite3ptr = 0;
-        Vdbe* vdbeptr = 0;
-        Vdbe* vdbeptr2 = 0;
-        void* parseptr = 0;
-        int16_t myInt = 0;
-        int32_t myOtherInt = 0;
-    };
-
-    Vdbe my_vdbe;
     int32_t returnedValue = -1;
-
-    void* arg1 = &my_vdbe;
-    void* arg2 = (void*)456;
-    void* arg3 = (void*)789;
 
     auto expectedFPtr = engine->lookup(JIT_MAIN_FN_NAME);
     decltype(expectedFPtr.takeError()) result = llvm::Error::success();
@@ -56,11 +41,11 @@ int runJit(mlir::ModuleOp module) {
         // - Pass the address of addr
         // The last parameter is used to store the returned value
         llvm::outs() << "Calling\n";
-        llvm::SmallVector<void*, 8> args = {(void*)&arg1, (void*)&arg2, (void*)&arg3, (void*)&returnedValue };
+        llvm::SmallVector<void*, 8> args = {(void*)&p, (void*)&returnedValue };
         (*fptr)(args.data());
     }
 
-    llvm::outs() << my_vdbe.myInt << ' ' << my_vdbe.myOtherInt << ' ' << arg2 << ' ' << arg3 << ' ' << returnedValue << '\n';
+    llvm::outs() << "Returned value " << returnedValue << '\n';
     llvm::outs().flush();
 
     return 0;

@@ -36,4 +36,4 @@ extern "C" {
 }
 
 void prepareFunction(mlir::MLIRContext &context, mlir::LLVM::LLVMDialect *llvmDialect, mlir::ModuleOp &theModule);
-int runJit(mlir::ModuleOp module);
+int runJit(mlir::ModuleOp module, Vdbe*);

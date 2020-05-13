@@ -16,7 +16,8 @@
 #define PROGRESS(msg) { \
     rewriter.template create<mlir::LLVM::CallOp>(LOC, f_progress, mlir::ArrayRef<mlir::Value>{ \
     rewriter.template create<mlir::ConstantIntOp>(LOC, reinterpret_cast<const uint64_t>(msg), 64), \
-    rewriter.template create<mlir::ConstantIntOp>(LOC, __LINE__, 32) \
+    rewriter.template create<mlir::ConstantIntOp>(LOC, __LINE__, 32), \
+    rewriter.template create<mlir::ConstantIntOp>(LOC, reinterpret_cast<const uint64_t>(__FILE_NAME__), 64) \
     }); \
 }
 
@@ -37,7 +38,8 @@
     builder.create<mlir::LLVM::CallOp>(LOCB, f_printPtr, mlir::ArrayRef<mlir::Value>{ \
     builder.create<mlir::LLVM::PtrToIntOp>(LOCB, T::i64Ty, ptr), \
     builder.create<mlir::ConstantIntOp>(LOCB, reinterpret_cast<const uint64_t>(msg), 64), \
-    builder.create<mlir::ConstantIntOp>(LOCB, __LINE__, 32) \
+    builder.create<mlir::ConstantIntOp>(LOCB, __LINE__, 32), \
+    rewriter.template create<mlir::ConstantIntOp>(LOC, reinterpret_cast<const uint64_t>(__FILE_NAME__), 64) \
     }); \
 }
 
@@ -52,7 +54,8 @@
     builder.create<mlir::LLVM::CallOp>(LOCB, f_printPtr, mlir::ArrayRef<mlir::Value>{ \
     val, \
     builder.create<mlir::ConstantIntOp>(LOCB, reinterpret_cast<const uint64_t>(msg), 64), \
-    builder.create<mlir::ConstantIntOp>(LOCB, __LINE__, 32) \
+    builder.create<mlir::ConstantIntOp>(LOCB, __LINE__, 32), \
+    rewriter.template create<mlir::ConstantIntOp>(LOC, reinterpret_cast<const uint64_t>(__FILE_NAME__), 64) \
     }); \
 }
 

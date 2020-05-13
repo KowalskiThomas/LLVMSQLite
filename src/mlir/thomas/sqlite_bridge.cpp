@@ -54,7 +54,7 @@ int jitVdbeStep(Vdbe* p) {
     auto mod = mlir::translateModuleToLLVMIR(theModule);
     mod->dump();
 
-    runJit(theModule);
+    runJit(theModule, p);
 
     llvm::errs() << "\n\n";
 }

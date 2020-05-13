@@ -245,18 +245,39 @@ namespace mlir::standalone::passes {
                 auto flagsAndEphem = bitAnd(LOC, pMemFlagsValue, MEM_Ephem);
                 auto flagsAndEphemNotNull = iCmp(LOC, Pred::ne, flagsAndEphem, 0);
 
-                // TODO:
+                auto curBlock = rewriter.getBlock();
+                auto blockAfterFlagAndEphemNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                auto blockFlagsAndEphemNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
-                call(LOC, f_sqlite3VdbeMemMakeWriteable, pMemIAddr);
+                condBranch(LOC, flagsAndEphemNotNull, blockFlagsAndEphemNotNull, blockAfterFlagAndEphemNotNull);
+
+                { // if &pMem[i]->flags&MEM_Ephem
+                    ip_start(blockFlagsAndEphemNotNull);
+                    auto rc = call(LOC, f_sqlite3VdbeMemMakeWriteable, pMemIAddr);
+                    branch(LOC, blockAfterFlagAndEphemNotNull);
+                } // end if &pMem[i]->flags&MEM_Ephem
+
+                ip_start(blockAfterFlagAndEphemNotNull);
+
             } // End De-ephemeralize
             call(LOC, f_sqlite3VdbeMemNulTerminate, pMemIAddr);
         }
+
+        // TODO: if (db->mallocFailed) goto no_mem;
+
+        /// p->pc = (int) (pOp - aOp) + 1;
+        auto pcAddr = constants(T::i32PtrTy, (int*)&vdbe->pc);
+        auto newPc = constants(rrOp.counterAttr().getSInt() + 1, 32);
+        store(LOC, newPc, pcAddr);
 
         branch(LOC, blockEndResultRow);
 
         ip_start(blockEndResultRow);
 
+        rewriter.create<LLVM::ReturnOp>(LOC, constants(SQLITE_ROW, 32));
+
         rewriter.eraseOp(rrOp);
+        parentModule.dump();
         return success();
     } // matchAndRewrite
 

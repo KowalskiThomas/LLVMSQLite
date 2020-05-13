@@ -54,14 +54,14 @@ uint32_t add(uint32_t a, uint32_t b) {
     return a + b;
 }
 
-uint64_t printProgress(void *s, uint32_t line) {
-    llvm::outs() << "[" << line << "] Msg: " << (char *) s << " (" << (uint64_t) (s) << ")\n";
+uint64_t printProgress(void *s, uint32_t line, const char* fileName) {
+    llvm::outs() << "[" << fileName << " " << line << "] Msg: " << (char *) s << " (" << (uint64_t) (s) << ")\n";
     llvm::outs().flush();
     return 0;
 }
 
-uint64_t printPtr(void *ptr, void *s, uint32_t line) {
-    llvm::outs() << "[" << line << "] Ptr: " << (int64_t) (ptr) << " " << (char *) s << "\n";
+uint64_t printPtr(void *ptr, void *s, uint32_t line, const char* fileName) {
+    llvm::outs() << "[" << fileName << " " << line << "] Ptr: " << (int64_t) (ptr) << " " << (char *) s << "\n";
     llvm::outs().flush();
     return 0;
 }
@@ -110,15 +110,13 @@ void Prerequisites::generateReferenceToProgress(ModuleOp m, LLVMDialect *dialect
     }
     done = true;
 
-    auto i32Ty = T::i32Ty;
-    auto i64Ty = T::i64Ty;
-    auto funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(dialect), {i64Ty, i32Ty}, false);
+    auto funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(dialect), {T::i64Ty, T::i32Ty, T::i64Ty}, false);
     auto builder = mlir::OpBuilder(m);
     builder.setInsertionPointToStart(m.getBody());
     f_progress = builder.create<LLVMFuncOp>(m.getLoc(), "printProgress", funcTy, Linkage::External);
     llvm::sys::DynamicLibrary::AddSymbol("printProgress", reinterpret_cast<void *>(printProgress));
 
-    funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(dialect), {i64Ty, i64Ty, i32Ty}, false);
+    funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(dialect), {T::i64Ty, T::i64Ty, T::i32Ty, T::i64Ty}, false);
     f_printPtr = builder.create<LLVMFuncOp>(m.getLoc(), "printPtr", funcTy, Linkage::External);
     llvm::sys::DynamicLibrary::AddSymbol("printPtr", reinterpret_cast<void *>(printPtr));
 }
@@ -267,7 +265,7 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemRelease(ModuleOp m, LLVMDia
                     T::sqlite3_valuePtrTy
             }, false);
 
-    GENERATE_SYMBOL(f_memCpy, memcpy, "f_memCpy");
+    GENERATE_SYMBOL(f_sqlite3VdbeMemRelease, sqlite3VdbeMemRelease, "f_sqlite3VdbeMemRelease");
 }
 
 void Prerequisites::generateReferenceToAssert(ModuleOp m, LLVMDialect *d) {
@@ -304,6 +302,25 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemGrow(ModuleOp m, LLVMDialec
     GENERATE_SYMBOL(f_sqlite3VdbeMemGrow, sqlite3VdbeMemGrow, "sqlite3VdbeMemGrow");
 }
 
+extern "C" {
+    void * my_memcpy(void* dst, const void* src, unsigned int cnt)
+    {
+        char *pszDest = (char *)dst;
+        const char *pszSource =( const char*)src;
+        if((pszDest!= NULL) && (pszSource!= NULL))
+        {
+            while(cnt) //till cnt
+            {
+                //Copy byte by byte
+                auto test = *pszSource;
+                *(pszDest++)= *(pszSource++);
+                --cnt;
+            }
+        }
+        return dst;
+    }
+}
+
 void Prerequisites::generateReferenceTomemCpy(ModuleOp m, LLVMDialect *d) {
     auto funcTy = LLVMType::getFunctionTy(
             T::i8PtrTy,
@@ -313,7 +330,7 @@ void Prerequisites::generateReferenceTomemCpy(ModuleOp m, LLVMDialect *d) {
                     T::i64Ty    // n
             }, false);
 
-    GENERATE_SYMBOL(f_memCpy, memcpy, "memcpy");
+    GENERATE_SYMBOL(f_memCpy, my_memcpy, "my_memcpy");
 }
 
 void Prerequisites::generateReferenceTosqlite3VdbeMemFromBtree(ModuleOp m, LLVMDialect *d) {
