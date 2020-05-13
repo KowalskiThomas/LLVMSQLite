@@ -42,6 +42,11 @@ struct MyBuilder {
         return rewriter.template create<ICmpOp>(loc, pred, lhs, rhs);
     }
 
+    Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, int rhs) {
+        auto cst = constants(rhs, getBitWidth(lhs));
+        return rewriter.template create<ICmpOp>(loc, pred, lhs, cst);
+    }
+
     void insertBranchOp(mlir::Location loc, mlir::Block* b) {
         rewriter.template create<BranchOp>(loc, b);
     }
@@ -53,6 +58,10 @@ struct MyBuilder {
     template<typename... V>
     Value insertGEPOp(Location loc, mlir::Type ty, Value base, V... indexes) {
         return rewriter.template create<GEPOp>(loc, ty, base, ValueRange{ indexes... });
+    }
+
+    Value insertGEPOp(Location loc, mlir::Type ty, Value base, ValueRange indexes) {
+        return rewriter.template create<GEPOp>(loc, ty, base, indexes);
     }
 
     Value insertLoad(Location loc, Value addr) {
@@ -93,6 +102,16 @@ struct MyBuilder {
         return insertOrOp(loc, lhs, cst);
     }
 
+    Value insertAndOp(Location loc, Value lhs, Value rhs) {
+        return rewriter.template create<AndOp>(loc, lhs, rhs);
+    }
+
+    Value insertAndOp(Location loc, Value lhs, int rhs) {
+        auto rightSize = getBitWidth(lhs);
+        auto cst = constants(rhs, rightSize);
+        return insertAndOp(loc, lhs, cst);
+    }
+
     void insertStoreOp(Location loc, Value value, Value addr) {
         rewriter.template create<StoreOp>(loc, value, addr);
     }
@@ -118,7 +137,7 @@ namespace mlir::standalone::passes {
             return builder.insertCallOp(loc, f, ValueRange{args...});
         };
 
-        auto iCmp = [&builder](mlir::Location loc, ICmpPredicate pred, Value lhs, Value rhs) {
+        auto iCmp = [&builder](mlir::Location loc, ICmpPredicate pred, Value lhs, auto rhs) {
             return builder.insertICmpOp(loc, pred, lhs, rhs);
         };
 
@@ -137,6 +156,16 @@ namespace mlir::standalone::passes {
         auto getElementPtr = [&builder](mlir::Location loc, mlir::Type ty, Value base, auto... indexes) {
             return builder.insertGEPOp(loc, ty, base, indexes...);
         };
+        auto getElementPtrImm = [&builder, &rewriter, llvmDialect, &constants](mlir::Location loc, mlir::Type ty, Value base, auto... indexes) {
+            llvm::SmallVector<int, 16> x { indexes... };
+            llvm::SmallVector<Value, 16> values;
+            auto intTy = LLVMType::getIntNTy(llvmDialect, 32);
+            for(auto i : x) {
+                auto attr = rewriter.getIntegerAttr(rewriter.getIntegerType(32), i);
+                values.push_back(rewriter.create<mlir::LLVM::ConstantOp>(loc, intTy, attr));
+            }
+            return builder.insertGEPOp(loc, ty, base, (mlir::ValueRange) values);
+        };
 
         auto load = [&builder](mlir::Location loc, mlir::Value addr) {
             return builder.insertLoad(loc, addr);
@@ -150,11 +179,17 @@ namespace mlir::standalone::passes {
             return builder.insertOrOp(loc, val, x);
         };
 
+        auto bitAnd = [&builder](mlir::Location loc, mlir::Value val, auto x) {
+            return builder.insertAndOp(loc, val, x);
+        };
+
         auto store = [&builder](mlir::Location loc, mlir::Value value, mlir::Value addr) {
             builder.insertStoreOp(loc, value, addr);
         };
 
+        // auto i = rewriter.create<AllocaOp>(LOC, T::i32PtrTy, constants(1, 32));
         auto i = alloca(LOC, T::i32PtrTy);
+
 
         auto rc = call(LOC, f_sqlite3VdbeCheckFk, constants(T::VdbePtrTy, vdbe), constants(0, 32));
         auto sqliteOk = constants(SQLITE_OK, 32);
@@ -187,9 +222,35 @@ namespace mlir::standalone::passes {
                 );
 
         auto cacheCtrValue = load(LOC, cacheCtrAddr);
-        auto cacheCtrPlus2 = add(LOC, cacheCtrValue, 2);
+            auto cacheCtrPlus2 = add(LOC, cacheCtrValue, 2);
         auto cacheCtrOr1 = bitOr(LOC, cacheCtrValue, 1);
         store(LOC, cacheCtrOr1, cacheCtrAddr);
+
+        int firstCol = rrOp.firstColAttr().getSInt();
+        int nCol = rrOp.nColAttr().getSInt();
+        // Out of JIT
+        auto pMem = &vdbe->aMem[firstCol];
+        // In JIT
+        /// p->pResultSet = &aMem[pOp->p1];
+        auto aMemP1Addr = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[firstCol]);
+        auto pResultSetAddr = constants(T::sqlite3_valuePtrPtrTy, &vdbe->pResultSet);
+        store(LOC, aMemP1Addr, pResultSetAddr);
+        // auto pMem = pResultSetAddr;
+        for(size_t it = 0; it < nCol; it++) {
+            auto pMemIAddr = constants(T::sqlite3_valuePtrTy, &pMem[i]);
+            { // De-ephemeralize
+                CALL_DEBUG
+                auto pMemFlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pMemIAddr, 0, 1);
+                auto pMemFlagsValue = load(LOC, pMemFlagsAddr);
+                auto flagsAndEphem = bitAnd(LOC, pMemFlagsValue, MEM_Ephem);
+                auto flagsAndEphemNotNull = iCmp(LOC, Pred::ne, flagsAndEphem, 0);
+
+                // TODO:
+
+                call(LOC, f_sqlite3VdbeMemMakeWriteable, pMemIAddr);
+            } // End De-ephemeralize
+            call(LOC, f_sqlite3VdbeMemNulTerminate, pMemIAddr);
+        }
 
         branch(LOC, blockEndResultRow);
 
