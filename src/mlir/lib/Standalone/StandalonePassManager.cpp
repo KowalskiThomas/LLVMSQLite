@@ -67,16 +67,10 @@ void VdbeToLLVM::runOnOperation() {
         patterns.insert<OpenReadLowering>(&getContext());
         patterns.insert<RewindLowering>(&getContext());
         patterns.insert<ColumnLowering>(&getContext());
-
-        // patterns.insert<Plus32Lowering>(&getContext());
-        // patterns.insert<InitRegLowering>(&getContext());
-        // patterns.insert<IntegerLowering>(&getContext());
-        // patterns.insert<OpenCursorLowering>(&getContext());
+        patterns.insert<ResultRowLowering>(&getContext());
 
         mlir::populateStdToLLVMConversionPatterns(typeConverter, patterns);
     }
-
-
 
     mlir::ModuleOp module = getOperation();
 

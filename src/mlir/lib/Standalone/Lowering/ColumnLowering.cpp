@@ -844,6 +844,7 @@ namespace mlir {
                     rewriter.setInsertionPointToStart(blockAfterNHdrParsedLtP2);
 
                     auto generateVdbeDynamic = [&ctx, &rewriter, &constants](auto pDest) {
+                        CALL_DEBUG
                         auto memAggOrMemDyn = constants(MEM_Agg | MEM_Dyn, 16);
                         auto flagsAddr = rewriter.create<GEPOp>
                                 (LOC, T::i16PtrTy, pDest, ValueRange{

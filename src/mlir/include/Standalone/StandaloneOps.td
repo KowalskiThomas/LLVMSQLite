@@ -121,4 +121,10 @@ def Standalone_Column : Standalone_Op<"Column"> {
     let arguments = (ins I32Attr:$curIdx, I32Attr:$column, I32Attr:$extractTo, I64Attr:$defaultValue, I16Attr:$flags);
 }
 
+def Standalone_ResultRow : Standalone_Op<"ResultRow"> {
+let summary = "Calls the callback";
+
+let arguments = (ins I32Attr:$firstCol, I32Attr:$nCol);
+}
+
 #endif // STANDALONE_OPS'
