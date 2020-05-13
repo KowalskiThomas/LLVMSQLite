@@ -45,7 +45,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     bool writeBranchOut = true;
 
     // Used to stop generating code after a certain instruction is seen (and finished)
-    bool opColumnSeen = false;
+    bool lastOpSeen = false;
     for(auto pc = 0llu; pc < vdbe->nOp; pc++) {
         // Create a block for that operation
         auto block = func.addBlock();
@@ -160,7 +160,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                          INTEGER_ATTR(16, false, flags)
                         );
 
-                opColumnSeen = true;
                 newWriteBranchOut = true;
                 break;
             }
@@ -174,6 +173,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                          INTEGER_ATTR(32, true, nColumn)
                         );
 
+                lastOpSeen = true;
                 newWriteBranchOut = true;
                 break;
             }
@@ -201,8 +201,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         writeBranchOut = newWriteBranchOut;
 
         // TODO: Remove this to do the whole thing
-        if (op.opcode == OP_ResultRow) {
-            out("Exiting code generation early after OP_Column")
+        if (op.opcode != OP_ResultRow && lastOpSeen) {
+            out("Exiting code generation early after OP_Column at op " << sqlite3OpcodeName(op.opcode))
             break;
         }
     }

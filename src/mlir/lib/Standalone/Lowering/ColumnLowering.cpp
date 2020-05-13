@@ -6,42 +6,6 @@
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/GetVarint32Operator.h"
 
-#define CALL_DEBUG { \
-    rewriter.create<CallOp>(LOC, f_debug, ValueRange{}); \
-}
-
-#define EXIT_PASS_EARLY(with_call_to_debug) { \
-    if (with_call_to_debug) { \
-        CALL_DEBUG \
-    } \
-    rewriter.eraseOp(colOp); \
-    err("QSDQSD EXIT EARLY"); \
-    parentModule.dump(); \
-    return success(); \
-};
-
-#define FIX_AND_EXIT \
-    { \
-        auto curBlock = rewriter.getBlock(); \
-        auto& b = firstBlock; \
-        while(b = b->getNextNode()) { \
-            if (b == blockColumnEnd) \
-                continue; \
-            \
-            if (b == curBlock) \
-                continue; \
-            \
-            if (b->empty()) { \
-                rewriter.setInsertionPointToStart(b); \
-                rewriter.create<BranchOp>(LOC, blockColumnEnd); \
-            } \
-        } \
-        rewriter.setInsertionPointToEnd(curBlock); \
-        CALL_DEBUG \
-        rewriter.create<BranchOp>(LOC, blockColumnEnd); \
-        EXIT_PASS_EARLY(false) \
-    }
-
 namespace mlir {
     namespace standalone {
         namespace passes {

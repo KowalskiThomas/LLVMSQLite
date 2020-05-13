@@ -127,4 +127,4 @@ let summary = "Calls the callback";
 let arguments = (ins I32Attr:$firstCol, I32Attr:$nCol);
 }
 
-#endif // STANDALONE_OPS'
+#endif // STANDALONE_OPS
