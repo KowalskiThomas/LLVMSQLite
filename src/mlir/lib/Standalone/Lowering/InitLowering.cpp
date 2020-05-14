@@ -30,7 +30,7 @@ namespace mlir {
                     rewriter.create<mlir::LLVM::StoreOp>(LOC, cst0, ptr);
                 }
 
-                {
+                { // Jump to P2
                     auto ptrToP2 = PTR_TO_P2(0);
                     auto p2 = rewriter.create<mlir::LLVM::LoadOp>(LOC, ptrToP2);
 

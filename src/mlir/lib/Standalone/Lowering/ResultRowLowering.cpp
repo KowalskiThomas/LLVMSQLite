@@ -239,7 +239,6 @@ namespace mlir::standalone::passes {
         for(size_t it = 0; it < nCol; it++) {
             auto pMemIAddr = constants(T::sqlite3_valuePtrTy, &pMem[i]);
             { // De-ephemeralize
-                CALL_DEBUG
                 auto pMemFlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pMemIAddr, 0, 1);
                 auto pMemFlagsValue = load(LOC, pMemFlagsAddr);
                 auto flagsAndEphem = bitAnd(LOC, pMemFlagsValue, MEM_Ephem);

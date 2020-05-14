@@ -33,6 +33,11 @@ int runJit(mlir::ModuleOp module, Vdbe* p) {
         llvm::errs() << "JIT invocation failed\n";
         return -1;
     } else {
+        sqlite3VdbeEnter(p);
+        if (p->rc == SQLITE_NOMEM) {
+            err("ERROR: Can't allocate memory")
+        }
+
         auto fptr = *expectedFPtr;
         // The function wants addresses to arguments
         // So if we want to pass value 123, we need to
@@ -48,5 +53,5 @@ int runJit(mlir::ModuleOp module, Vdbe* p) {
     llvm::outs() << "Returned value " << returnedValue << '\n';
     llvm::outs().flush();
 
-    return 0;
+    return returnedValue;
 }

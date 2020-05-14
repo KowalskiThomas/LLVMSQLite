@@ -13,6 +13,7 @@ namespace mlir {
 
                 auto firstBlock = rewriter.getBlock();
 
+                /// pC = p->apCsr[pOp->p1];
                 // The address of the array of (pointers to) cursors in the VDBE
                 auto apCsr = CONSTANT_PTR(T::VdbeCursorPtrPtrTy, vdbe->apCsr);
                 // The address of this particular pointer-to-cursor
@@ -21,6 +22,7 @@ namespace mlir {
                 auto pC = rewriter.create<LoadOp>(LOC, pCAddr);
                 // A variable to store results from functions
                 auto res = rewriter.create<AllocaOp>(LOC, T::i32PtrTy, CONSTANT_INT(1, 32), 0);
+                rewriter.create<StoreOp>(LOC, CONSTANT_INT(1, 32), res);
 
                 // The address of the curType field
                 auto curTypeAddr = rewriter.create<GEPOp>(LOC, T::i8PtrTy, pC,
@@ -71,60 +73,66 @@ namespace mlir {
 
                 {
                     // not isSorter branch
-                    auto ip = rewriter.saveInsertionPoint();
                     rewriter.setInsertionPointToStart(blockNotSorter);
 
                     PROGRESS("OP_Rewind: Cursor is not a sorter");
                     // Get the address of the cursor from pC->uc.pCursor
-                    auto pCrsrAddress = rewriter.create<GEPOp>(LOC, T::VdbeCursorPtrPtrTy, pC,
-                            ValueRange{CONSTANT_INT(0, 32),  // &pC
-                                              CONSTANT_INT(12, 32), // &pc->uc
-                                              CONSTANT_INT(0, 32)   // pCursor (first item of union-struct)
-                    });
+                    auto pCrsrAddress = rewriter.create<GEPOp>
+                            (LOC, T::VdbeCursorPtrPtrTy, pC, ValueRange{
+                                CONSTANT_INT(0, 32),  // &pC
+                                CONSTANT_INT(12, 32), // &pc->uc
+                                CONSTANT_INT(0, 32)   // pCursor (first item of union-struct)
+                            });
 
                     // Load the value of the pointer (address of the cursor)
                     auto pCrsrAsCursor = rewriter.create<LoadOp>(LOC, pCrsrAddress);
                     // Convert this VdbeCursor* to BtCursor* (VdbeCursor is a "parent type")
                     auto pCrsr = rewriter.create<BitcastOp>(LOC, T::BtCursorPtrTy, pCrsrAsCursor);
                     // Call sqlite3BtreeFirst
-                    auto tempRc = rewriter.create<CallOp>(LOC, f_sqlite3BtreeFirst,
-                                            ValueRange{pCrsr, res}).getResult(0);
+                    auto tempRc = rewriter.create<CallOp>(LOC, f_sqlite3BtreeFirst, ValueRange{
+                        pCrsr, res
+                    }).getResult(0);
                     // Store the result in rc
                     rewriter.create<StoreOp>(LOC, tempRc, rc);
 
-                    // TRANSLATED pC->deferredMoveto = 0;
-                    auto deferredMoveToAddr = rewriter.create<GEPOp>(LOC, T::i8PtrTy, pC,
-                            ValueRange{CONSTANT_INT(0, 32), // Address of pC
-                                       CONSTANT_INT(3, 32)}); // Address of deferredMoveTo
+                    PROGRESS_PRINT_INT(tempRc, "Returned by sqlite3BtreeFirst")
+
+                    /// pC->deferredMoveto = 0;
+                    auto deferredMoveToAddr = rewriter.create<GEPOp>
+                            (LOC, T::i8PtrTy, pC, ValueRange{
+                                CONSTANT_INT(0, 32), // Address of *pC
+                                CONSTANT_INT(3, 32)  // Address of deferredMoveTo
+                            });
                     rewriter.create<StoreOp>(LOC, CONSTANT_INT(0, 8), deferredMoveToAddr);
 
-                    // TRANSLATED pC->cacheStatus = CACHE_STALE;
-                    auto cacheStatusAddr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, pC,
-                            ValueRange{CONSTANT_INT(0, 32), // Address of *pC
-                                       CONSTANT_INT(9, 32)}); // Address of cacheStatus
+                    /// pC->cacheStatus = CACHE_STALE;
+                    auto cacheStatusAddr = rewriter.create<GEPOp>
+                            (LOC, T::i32PtrTy, pC, ValueRange{
+                                CONSTANT_INT(0, 32), // Address of *pC
+                                CONSTANT_INT(9, 32)  // Address of cacheStatus
+                            });
                     rewriter.create<StoreOp>(LOC, CONSTANT_INT(CACHE_STALE, 32), cacheStatusAddr);
 
                     // Branch back to endBlock
                     rewriter.create<BranchOp>(LOC, endBlock);
-
-                    rewriter.restoreInsertionPoint(ip);
                 }
 
                 rewriter.setInsertionPointToStart(endBlock);
 
                 // TODO: if (rc) goto abort_due_to_error;
 
-                // TRANSLATED pC->nullRow = (u8) res;
+                /// pC->nullRow = (u8) res;
                 auto resValue = rewriter.create<LoadOp>(LOC, res);
                 auto resAsI8 = rewriter.create<TruncOp>(LOC, T::i8Ty, resValue);
-                auto pNullRow = rewriter.create<GEPOp>(LOC, T::VdbeCursorTy, pC,
-                        ValueRange{
-                    CONSTANT_INT(0, 32), // Address of *pC
-                    CONSTANT_INT(2, 32)  // Address of pC->nullRow
-                });
+                auto pNullRow = rewriter.create<GEPOp>
+                        (LOC, T::VdbeCursorTy, pC, ValueRange{
+                            CONSTANT_INT(0, 32), // Address of *pC
+                            CONSTANT_INT(2, 32)  // Address of pC->nullRow
+                        });
                 rewriter.create<StoreOp>(LOC, resAsI8, pNullRow);
 
                 // TODO: if (res) goto jump_to_p2;
+                PROGRESS_PRINT_INT(resValue, "Value of res");
 
                 rewriter.eraseOp(rewindOp);
                 return success();

@@ -6,16 +6,10 @@ namespace mlir {
     namespace standalone {
         namespace passes {
             LogicalResult OpenReadLowering::matchAndRewrite(OpenRead orOp, PatternRewriter &rewriter) const {
-                using namespace mlir::LLVM;
-                using LoadOp = mlir::LLVM::LoadOp;
-                using CallOp = mlir::LLVM::CallOp;
-                using StoreOp = mlir::LLVM::StoreOp;
-                using OrOp = mlir::LLVM::OrOp;
-                using AndOp = mlir::LLVM::AndOp;
-
                 auto op = &orOp;
                 auto &builder = rewriter;
                 LOWERING_PASS_HEADER
+                LOWERING_NAMESPACE
 
 
                 auto pVdbe = CONSTANT_PTR(T::VdbePtrTy, vdbe);
@@ -35,14 +29,16 @@ namespace mlir {
 
                 auto pX = rewriter.create<LoadOp>(LOC, ppX);
 
+                // TODO: pOp->opcode == OpenWrite ...
+
                 auto wrFlag = CONSTANT_INT(0, 32);
 
-                auto p5Value = orOp.getAttrOfType<IntegerAttr>("P5").getValue().getLimitedValue();
+                auto p5Value = orOp.getAttrOfType<IntegerAttr>("P5").getUInt();
                 Value rootPage = orOp.rootPage();
                 // If P5 says that P2 is a register (and not an integer)
-                if (p5Value & OPFLAG_P2ISREG || true) {
+                if (p5Value & OPFLAG_P2ISREG) {
                     out("Writing special case for OPFLAG_P2ISREG");
-                    // Get the address at which the array of sqlite3_value starts
+                    // Get the address at which the array of sqlite3_value (aMem) starts
                     auto addressOfRegisters = rewriter.create<IntToPtrOp>(LOC, T::sqlite3_valuePtrTy,
                                                                           (Value) CONSTANT_INT(vdbe->aMem, 64));
                     // Get the address of the value we're looking for
@@ -55,6 +51,8 @@ namespace mlir {
                                      CONSTANT_INT(0, 32)  // Element 0 of union-struct
                              });
 
+                    out("TODO: Add 3826 sqlite3VdbeMemIntegerify(pIn2);")
+
                     // Load the content at the address of the union
                     auto regContent = rewriter.create<LoadOp>(LOC, adressOfValue);
                     // Register contains a union -> BitCast it to i64
@@ -65,79 +63,81 @@ namespace mlir {
                     rootPage = valueAsI32;
                 }
 
-
                 // WE ASSUME THAT WE KNOW WE HAVE pOp->p4type == P4_INT32
+                // TODO: Add the other case
                 auto nField = orOp.P4();
 
-                auto pCur = rewriter.create<CallOp>(LOC,
-                                                    f_allocateCursor,
-                                                    ValueRange{
-                                                            pVdbe,
-                                                            orOp.curIdx(),
-                                                            nField,
-                                                            orOp.database(),
-                                                            CONSTANT_INT(CURTYPE_BTREE, 8)}
-                ).getResult(0);
-
+                auto pCur = rewriter.create<CallOp>
+                        (LOC, f_allocateCursor,ValueRange{
+                            pVdbe,
+                            orOp.curIdx(),
+                            nField,
+                            orOp.database(),
+                            CONSTANT_INT(CURTYPE_BTREE, 8)
+                        }).getResult(0);
 
                 // pCur->nullRow = 1;
-                auto pNullRow = rewriter.create<GEPOp>(LOC, T::i8PtrTy, pCur,
-                                                       ValueRange{CONSTANT_INT(0, 32),
-                                                                  CONSTANT_INT(2, 32)});
+                auto pNullRow = rewriter.create<GEPOp>
+                        (LOC, T::i8PtrTy, pCur,ValueRange{
+                            CONSTANT_INT(0, 32),
+                            CONSTANT_INT(2, 32)
+                        });
                 rewriter.create<StoreOp>(LOC, CONSTANT_INT(1, 8), pNullRow);
 
                 // pCur->isOrdered = 1;
                 auto pMixedParameters = rewriter.create<GEPOp>
-                        (LOC, T::i8PtrTy, pCur,
-                         ValueRange{CONSTANT_INT(0, 32),
-                                    CONSTANT_INT(5, 32)});
+                        (LOC, T::i8PtrTy, pCur, ValueRange{
+                            CONSTANT_INT(0, 32),
+                            CONSTANT_INT(5, 32)
+                        });
 
-                mlir::Value curValue = rewriter.create<LoadOp>
-                        (LOC, pMixedParameters);
+                mlir::Value curValue = rewriter.create<LoadOp>(LOC, pMixedParameters);
 
                 curValue = rewriter.create<OrOp>(LOC, curValue, CONSTANT_INT(4, 8));
                 rewriter.create<StoreOp>(LOC, curValue, pMixedParameters);
 
                 // pCur->pgnoRoot = p2;
                 auto ppgnoRoot = rewriter.create<GEPOp>
-                        (LOC, T::i32PtrTy, pCur,
-                         ValueRange{CONSTANT_INT(0, 32),
-                                    CONSTANT_INT(15, 32)});
+                        (LOC, T::i32PtrTy, pCur, ValueRange{
+                            CONSTANT_INT(0, 32),
+                            CONSTANT_INT(15, 32)
+                        });
 
                 rewriter.create<StoreOp>(LOC, rootPage, ppgnoRoot);
 
+                // TODO: To update when using P4_KEYINFO
                 auto pKeyInfo = CONSTANT_PTR(T::KeyInfoPtrTy, nullptr);
-                // rewriter.create<IntToPtrOp>(LOC, T::KeyInfoPtrTy, CONSTANT_INT(nullptr, 64));
 
                 auto pCur_uc_pCursor_addr = rewriter.create<GEPOp>
-                        (LOC, T::BtCursorPtrTy.getPointerTo(),
-                         pCur,
-                         ValueRange{CONSTANT_INT(0, 32),
-                                    CONSTANT_INT(12, 32),
-                                    CONSTANT_INT(0, 32)}
-                        );
+                        (LOC, T::BtCursorPtrTy.getPointerTo(), pCur, ValueRange{
+                            CONSTANT_INT(0, 32),  // &*pCur
+                            CONSTANT_INT(12, 32), // &pCur->uc
+                            CONSTANT_INT(0, 32)   // &pCur->uc.pCursor
+                        });
 
                 auto pCur_uc_pCursor = rewriter.create<LoadOp>(LOC, pCur_uc_pCursor_addr);
 
                 auto rc = rewriter.create<CallOp>
-                        (LOC,
-                         f_sqlite3BtreeCursor,
-                         mlir::ArrayRef<mlir::Value>{pX, orOp.rootPage(), wrFlag, pKeyInfo, pCur_uc_pCursor}
-                        ).getResult(0);
+                        (LOC, f_sqlite3BtreeCursor, ValueRange{
+                            pX, orOp.rootPage(), wrFlag, pKeyInfo, pCur_uc_pCursor
+                        }).getResult(0);
 
                 PROGRESS_PRINT_INT(TO_I64(rc), "<- value returned by sqlite3_BtreeCursor")
 
-                // pCur->pKeyInfo = pKeyInfo;
-                auto ppKeyInfo = rewriter.create<GEPOp>(LOC, T::KeyInfoPtrTy.getPointerTo(), pCur,
-                                                        ValueRange{CONSTANT_INT(0, 32),
-                                                                   CONSTANT_INT(13, 32)});
+                /// pCur->pKeyInfo = pKeyInfo;
+                auto ppKeyInfo = rewriter.create<GEPOp>
+                        (LOC, T::KeyInfoPtrTy.getPointerTo(), pCur, ValueRange{
+                            CONSTANT_INT(0, 32),
+                            CONSTANT_INT(13, 32)
+                        });
                 rewriter.create<StoreOp>(LOC, pKeyInfo, ppKeyInfo);
 
                 // TODO: pCur->isTable = pOp->p4type != P4_KEYINFO;
 
                 unsigned hint = p5Value & (OPFLAG_BULKCSR | OPFLAG_SEEKEQ);
-                rewriter.create<CallOp>(LOC, f_sqlite3BtreeCursorHintFlags,
-                                        ValueRange{pCur_uc_pCursor, CONSTANT_INT(hint, 32)});
+                rewriter.create<CallOp>(LOC, f_sqlite3BtreeCursorHintFlags, ValueRange{
+                    pCur_uc_pCursor, CONSTANT_INT(hint, 32)
+                });
 
                 // TODO: if (rc) goto abort_due_to_error
 

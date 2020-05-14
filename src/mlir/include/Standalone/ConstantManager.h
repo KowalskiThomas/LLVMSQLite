@@ -61,7 +61,8 @@ public:
      * @param width the constant width
      * @return the mlir::Value that has been created
      */
-    mlir::Value& insertConstant(uint64_t x, size_t width) {
+    mlir::Value insertConstant(uint64_t x, size_t width) {
+        /*
         if (constants.find(width) == constants.end()) {
             constants[width] = std::unordered_map<size_t, mlir::Value>{};
         }
@@ -69,9 +70,17 @@ public:
         if (c.find(x) != c.end()) {
             return c[x];
         }
+        */
 
-        c[x] = rewriter.template create<mlir::ConstantIntOp>(LOC, (uint64_t)(x), width);
-        return c[x];
+        auto ty = mlir::LLVM::LLVMType::getIntNTy(ctx->getRegisteredDialect<mlir::LLVM::LLVMDialect>(), width);
+        auto attr = rewriter.getIntegerAttr(rewriter.getIntegerType(width), x);
+        // c[x] = rewriter.template create<mlir::LLVM::ConstantOp>(LOC, ty, attr);
+        // return c[x];
+        return rewriter.template create<mlir::LLVM::ConstantOp>(LOC, ty, attr);
+
+        // Old version using mlir::ConstantIntOp
+        // c[x] = rewriter.template create<mlir::ConstantIntOp>(LOC, (uint64_t)(x), width);
+        // return c[x];
     }
 
     /**
@@ -82,7 +91,8 @@ public:
      * @return the mlir::Value that has been created
      */
     template<typename X>
-    mlir::Value& insertPointer(mlir::Type type, X* x) {
+    mlir::Value insertPointer(mlir::Type type, X* x) {
+        /*
         if (pointers.find(type) == pointers.end()) {
             pointers[type] = umap<void*, mlir::Value>{};
         }
@@ -91,10 +101,16 @@ public:
         if (p.find(x) != p.end()) {
             return p[x];
         }
+        */
 
+        return rewriter.template create<mlir::LLVM::IntToPtrOp>(LOC, type,
+                                                                rewriter.template create<mlir::ConstantIntOp>(LOC, reinterpret_cast<uint64_t>(x), 64));
+
+        /*
         p[x] = rewriter.template create<mlir::LLVM::IntToPtrOp>(LOC, type,
                 rewriter.template create<mlir::ConstantIntOp>(LOC, reinterpret_cast<uint64_t>(x), 64));
         return p[x];
+        */
     }
 
     /**
@@ -104,7 +120,7 @@ public:
      * @return the mlir::Value that has been created
      */
     template<typename X>
-    mlir::Value& operator()(X x) {
+    mlir::Value operator()(X x) {
         return insertConstant(x, CHAR_BIT * sizeof(X));
     }
 
@@ -116,7 +132,7 @@ public:
      * @return the mlir::Value that has been created
      */
     template<typename X>
-    mlir::Value& operator()(X x, size_t width) {
+    mlir::Value operator()(X x, size_t width) {
         return insertConstant(x, width);
     }
 

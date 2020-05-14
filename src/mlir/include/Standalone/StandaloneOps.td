@@ -106,7 +106,7 @@ def Standalone_Halt : Standalone_TerminatorOp<"Halt"> {
 def Standalone_OpenRead : Standalone_Op<"OpenRead"> {
     let summary = "Opens a cursor and whatnot";
 
-    let arguments = (ins I32:$curIdx, I64:$rootPage, I32:$database, I32:$P4, I16Attr:$P5);
+    let arguments = (ins I64:$counter, I32:$curIdx, I64:$rootPage, I32:$database, I32:$P4, I16Attr:$P5);
 }
 
 def Standalone_Rewind : Standalone_Op<"Rewind"> {

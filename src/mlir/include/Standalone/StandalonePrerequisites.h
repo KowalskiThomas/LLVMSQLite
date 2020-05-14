@@ -12,6 +12,8 @@ using ModuleOp = mlir::ModuleOp;
 ExternFuncOp addFunction;
 ExternFuncOp f_progress;
 ExternFuncOp f_printPtr;
+ExternFuncOp f_printPtrAndValue;
+
 ExternFuncOp f_allocateCursor;
 ExternFuncOp f_sqlite3BtreeCursor;
 ExternFuncOp f_sqlite3BtreeCursorHintFlags;
@@ -48,7 +50,6 @@ public:
     static void generateNewFunction(ModuleOp, LLVMDialect*);
     static void generateReferenceToAdd(ModuleOp, LLVMDialect*);
 
-    DECLARE_FUNCTION(Progress);
     DECLARE_FUNCTION(AllocateCursor);
     DECLARE_FUNCTION(Sqlite3BtreeCursor);
     DECLARE_FUNCTION(Sqlite3BtreeCursorHintFlags);
@@ -74,6 +75,9 @@ public:
 
     DECLARE_FUNCTION(Debug);
     DECLARE_FUNCTION(Assert);
+
+    DECLARE_FUNCTION(Progress);
+
 
     static void runPrerequisites(ModuleOp, LLVMDialect*);
 };

@@ -690,12 +690,41 @@ static int sqlite3Step(Vdbe *p){
 #ifndef SQLITE_OMIT_EXPLAIN
   if( p->explain ){
     rc = sqlite3VdbeList(p);
-  }else
+  } else
 #endif /* SQLITE_OMIT_EXPLAIN */
   {
     db->nVdbeExec++;
-    rc = sqlite3VdbeExec(p);
-    db->nVdbeExec--;
+    // THOMAS SWITCH HERE azeaze
+    rc = sqlite3VdbeExec2(p);
+
+    printf("Finished execution of sqlite3VdbeExec. Dumping memory.\n");
+    for(int i = 0; i < p->nMem; i++) {
+        Mem* mem = &p->aMem[i];
+      printf("MEM %d%s%s\n", i,
+        (mem->flags & MEM_Dyn) ? " (dyn.)" : "",
+        (mem->flags & MEM_Ephem) ? " (ephem.)" : ""
+        // (mem->flags & MEM_Undefined) ? " (undef.)" : ""
+      );
+      if (!(mem->flags & MEM_Undefined)) {
+          if (mem->flags & MEM_Str) {
+              printf("  Is String: %s\n", mem->z);
+          } else if (mem->flags & MEM_Int) {
+              printf("  Is int: %lld\n", mem->u.i);
+          } else if (mem->flags & MEM_Real) {
+              printf("  Is real: %f\n", mem->u.r);
+          } else if (mem->flags & MEM_IntReal) {
+              printf("  Is IntReal\n");
+          } else if (mem->flags & MEM_Null) {
+              printf("  Is NULL\n");
+          } else {
+              printf("  Is not a type I can show\n");
+          }
+      } else {
+          printf("  [Undefined]\n");
+      }
+    }
+
+  db->nVdbeExec--;
   }
 
   if( rc!=SQLITE_ROW ){

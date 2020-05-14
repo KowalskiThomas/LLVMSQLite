@@ -152,6 +152,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                     */
                 } else {
                     builder.create<mlir::standalone::OpenRead>(LOCB,
+                                                               constants(pc, 64),
                                                                CONSTANT_INT(curIdx, 32),
                                                                CONSTANT_INT(rootPage, 32),
                                                                CONSTANT_INT(dbIdx, 32),

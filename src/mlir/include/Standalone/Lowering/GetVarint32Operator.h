@@ -18,7 +18,7 @@ struct GetVarint32Operator {
 
     Value operator()(Value A, Value B, Value writeResultTo) {
         // #define getVarint32(A,B)  \
-                            //   (u8)((*(A)<(u8)0x80)?((B)=(u32)*(A)),1:sqlite3GetVarint32((A),(u32 *)&(B)))
+        //   (u8)((*(A)<(u8)0x80)?((B)=(u32)*(A)),1:sqlite3GetVarint32((A),(u32 *)&(B)))
         //
         // Func getVarint32(A, B) as u8:
         //   If *A < 0x80 Then
@@ -33,8 +33,6 @@ struct GetVarint32Operator {
         // Read the content of pointer A
         auto valA = rewriter.template create<LoadOp>(LOC, A);
 
-        PROGRESS("getVarint32: Check that everything is good!");
-
         // Create new blocks:
         // - One for if *A < 0x80
         // - One for the else (A >= 0x80)
@@ -44,9 +42,9 @@ struct GetVarint32Operator {
         auto blockNotLessThan80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
         auto blockLessThan80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
-        // Check whether the *A < 0x80
+        // Check whether *A < 0x80
         auto condLessThan80 = rewriter.template create<ICmpOp>
-                (LOC, ICmpPredicate::ult, valA, constants(0x80, 8));
+                (LOC, ICmpPredicate::sgt, valA, constants(-1, 8));
 
         // Insert branching
         rewriter.template create<CondBrOp>(LOC, condLessThan80,
@@ -76,8 +74,7 @@ struct GetVarint32Operator {
             auto bAsU32Ptr = rewriter.template create<BitcastOp>(LOC, T::i32PtrTy, B);
             // Call sqlite3GetVarint32(A, (u32*)B)
             auto result = rewriter.template create<CallOp>
-                    (LOC, f_sqlite3GetVarint32,
-                     mlir::ValueRange{
+                    (LOC, f_sqlite3GetVarint32, mlir::ValueRange {
                              A,
                              bAsU32Ptr
                      }).getResult(0);

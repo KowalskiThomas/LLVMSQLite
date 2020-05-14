@@ -2756,8 +2756,10 @@ case OP_Offset: {          /* out3 */
                         offset64 = aOffset[i];
                         zHdr = zData + pC->iHdrOffset;
                         zEndHdr = zData + aOffset[0];
+                        // printf("Initial i = %d, initial offset 64 = %d, zHdr = %p, zEndHdr = %p\n",i, offset64, zHdr, zEndHdr);
                         testcase(zHdr >= zEndHdr);
                         do {
+                            // printf("Do-while\n");
                             if ((pC->aType[i] = t = zHdr[0]) < 0x80) {
                                 zHdr++;
                                 offset64 += sqlite3VdbeOneByteSerialTypeLen(t);
@@ -2774,6 +2776,7 @@ case OP_Offset: {          /* out3 */
       ** (2) the entire header was used but not all data was used
       ** (3) the end of the data extends beyond the end of the record.
       */
+                        // printf("Zhdr = %p, ZEndHdr = %p, Offset64 = %llu, PayloadSize = %u\n", zHdr, zEndHdr, offset64, pC->payloadSize);
                         if ((zHdr >= zEndHdr && (zHdr > zEndHdr || offset64 != pC->payloadSize))
                             || (offset64 > pC->payloadSize)
                                 ) {

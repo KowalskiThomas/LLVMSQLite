@@ -17,6 +17,7 @@ using LLVMFuncOp = mlir::LLVM::LLVMFuncOp;
 LLVMFuncOp addFunction;
 LLVMFuncOp f_progress;
 LLVMFuncOp f_printPtr;
+LLVMFuncOp f_printPtrAndValue;
 LLVMFuncOp f_allocateCursor;
 LLVMFuncOp f_sqlite3BtreeCursor;
 LLVMFuncOp f_sqlite3BtreeCursorHintFlags;
@@ -55,13 +56,20 @@ uint32_t add(uint32_t a, uint32_t b) {
 }
 
 uint64_t printProgress(void *s, uint32_t line, const char* fileName) {
-    llvm::outs() << "[" << fileName << " " << line << "] Msg: " << (char *) s << " (" << (uint64_t) (s) << ")\n";
+    llvm::outs() << "[" << fileName << " " << line << "] Msg: " << (char *) s << /* " (" << (uint64_t) (s) << ")" << */ "\n";
     llvm::outs().flush();
     return 0;
 }
 
 uint64_t printPtr(void *ptr, void *s, uint32_t line, const char* fileName) {
-    llvm::outs() << "[" << fileName << " " << line << "] Ptr: " << (int64_t) (ptr) << " " << (char *) s << "\n";
+    llvm::outs() << "[" << fileName << " " << line << "] Int: " << (char *) s << " " << (int64_t) (ptr) << " " << "\n";
+    llvm::outs().flush();
+    return 0;
+}
+
+uint64_t printPtrAndValue(void* ptr, void* value, void* msg, uint32_t line, const char* fileName) {
+    llvm::outs() << "[" << fileName << " " << line << "] Ptr: " << (const char*)msg
+                 << "Value = " << (uint64_t)value << " Ptr = " << (uint64_t)ptr << ", " << "\n";
     llvm::outs().flush();
     return 0;
 }
@@ -119,6 +127,17 @@ void Prerequisites::generateReferenceToProgress(ModuleOp m, LLVMDialect *dialect
     funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(dialect), {T::i64Ty, T::i64Ty, T::i32Ty, T::i64Ty}, false);
     f_printPtr = builder.create<LLVMFuncOp>(m.getLoc(), "printPtr", funcTy, Linkage::External);
     llvm::sys::DynamicLibrary::AddSymbol("printPtr", reinterpret_cast<void *>(printPtr));
+
+    funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(dialect), {
+            T::i64Ty, // ptr
+            T::i64Ty, // value
+            T::i64Ty, // message
+            T::i32Ty, // line
+            T::i64Ty  // filename
+    }, false);
+
+    f_printPtrAndValue = builder.create<LLVMFuncOp>(m.getLoc(), "printPtrAndValue", funcTy, Linkage::External);
+    llvm::sys::DynamicLibrary::AddSymbol("printPtrAndValue", reinterpret_cast<void*>(printPtrAndValue));
 }
 
 
