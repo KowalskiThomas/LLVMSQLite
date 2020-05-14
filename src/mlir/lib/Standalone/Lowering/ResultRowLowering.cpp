@@ -273,6 +273,11 @@ namespace mlir::standalone::passes {
 
         ip_start(blockEndResultRow);
 
+        auto aCountAddr = constants(T::i32PtrTy, &vdbe->aCounter[SQLITE_STMTSTATUS_VM_STEP]);
+        auto aCountVal = rewriter.create<LoadOp>(LOC, aCountAddr);
+        auto newAcountVal = rewriter.create<AddOp>(LOC, aCountVal, constants(1, 32));
+        rewriter.create<StoreOp>(LOC, newAcountVal, aCountAddr);
+
         rewriter.create<LLVM::ReturnOp>(LOC, constants(SQLITE_ROW, 32));
 
         rewriter.eraseOp(rrOp);

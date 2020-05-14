@@ -410,7 +410,7 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemNulTerminate(ModuleOp m, LL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
-    generateNewFunction(m, dialect);
+    // generateNewFunction(m, dialect);
     CALL_SYMBOL_GENERATOR(Add);
     CALL_SYMBOL_GENERATOR(Progress);
     CALL_SYMBOL_GENERATOR(AllocateCursor);
