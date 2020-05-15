@@ -7,6 +7,7 @@ set(LOWERING_FILES
     Lowering/RewindLowering.cpp
     Lowering/ColumnLowering.cpp
     Lowering/ResultRowLowering.cpp
+    Lowering/NextLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

@@ -1,3 +1,5 @@
+#pragma once
+
 // #include "thomas.h
 #include "mlir/Target/LLVMIR.h"
 #include "mlir/IR/Types.h"

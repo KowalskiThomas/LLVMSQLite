@@ -8,6 +8,7 @@
 #include "Standalone/StandalonePassManager.h"
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/TypeDefinitions.h"
+#include "Standalone/Lowering/Printer.h"
 
 #include "Standalone/VdbeContext.h"
 
@@ -38,31 +39,34 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     auto* entryBlock = func.addEntryBlock();
     builder.setInsertionPointToStart(entryBlock);
     ConstantManager constants(builder, ctx);
+    mlir::Printer print(ctx, builder, __FILE_NAME__);
 
     auto& rewriter = builder;
 
-    PROGRESS("Hello")
     // Each time we translate an instruction, we need to branch from its block to the next block
     // We store the last instruction's block to this end.
     mlir::Block* lastBlock = entryBlock;
 
     auto pcAddr = constants(T::i32PtrTy, (int*)&vdbe->pc);
     auto pcValue = builder.create<LoadOp>(LOCB, pcAddr);
-    auto pcValueIs123 = builder.create<ICmpOp>(LOCB, ICmpPredicate::eq, pcValue, constants(123, 32));
+    auto pcValueIs123 = builder.create<ICmpOp>
+            (LOCB, ICmpPredicate::ne,
+                pcValue, constants(0, 32)
+            );
 
-    PROGRESS("Hello 2")
     auto curBlock = builder.getBlock();
     auto blockAfterJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
     auto blockJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
+    print(LOCL, pcValue, "PCounter");
+
     builder.create<CondBrOp>(LOCB, pcValueIs123, blockJump, blockAfterJump);
-    { // If pC == 123
+    { // If pC != 0
         builder.setInsertionPointToStart(blockJump);
 
         auto brOp = builder.create<mlir::BranchOp>(LOCB, entryBlock);
         operations_to_update[10].push_back(brOp.operator mlir::Operation *());
-
-    } // End If pC == 123
+    } // End If pC != 0
 
     builder.setInsertionPointToStart(blockAfterJump);
     lastBlock = blockAfterJump;
@@ -202,18 +206,42 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                          INTEGER_ATTR(32, true, nColumn)
                         );
 
-                lastOpSeen = true;
                 newWriteBranchOut = false;
+                break;
+            }
+            case OP_Next: {
+                auto curIdx = op.p1;
+                auto jumpTo = op.p2;
+                auto curHint = op.p3;
+                auto p4 = op.p4;
+                auto p5 = op.p5;
+
+                builder.create<mlir::standalone::Next>
+                    (LOCB,
+                         INTEGER_ATTR(32, true, curIdx),
+                         INTEGER_ATTR(32, true, jumpTo),
+                         INTEGER_ATTR(32, true, curHint),
+                         INTEGER_ATTR(64, false, (uint64_t)p4.p),
+                         INTEGER_ATTR(16, false, p5)
+                    );
+
+                newWriteBranchOut = true;
+                lastOpSeen = true;
                 break;
             }
         }
 
         // Add the block to the blocks map (for use in branches)
+        out("Adding block " << pc)
         blocks[pc] = block;
 
         // Update all instructions that branch to this instruction but couldn't refer to it before
         for(auto op : operations_to_update[pc]) {
+            out("Updating " << op)
             op->getBlockOperands()[0].set(block);
+
+            // ModuleOp parentModule = (op->getParentOfType<ModuleOp>());
+            // parentModule.dump();
         }
         // Remove these instructions from the map
         operations_to_update.erase(pc);

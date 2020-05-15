@@ -41,6 +41,8 @@ struct VdbeRunner {
         out("Destroying runner")
     }
 
+    static inline bool doneAlreadyOnce = false;
+
     VdbeRunner(Vdbe* p)
     : engine(nullptr),
       vdbe(p),
@@ -49,6 +51,9 @@ struct VdbeRunner {
       vdbeDialect(ctx->getRegisteredDialect<VdbeDialect>()),
       builder(mlir::OpBuilder(ctx))
     {
+        if (doneAlreadyOnce)
+            assert(false);
+        doneAlreadyOnce = true;
         init();
 
         initialiseTypeCache(llvmDialect);
@@ -94,7 +99,6 @@ struct VdbeRunner {
     void(*fptr)(void**) = nullptr;
 
     int runJit() {
-
         if (!runningInitialised) {
             // Initialize LLVM targets.
             llvm::InitializeNativeTarget();
@@ -102,14 +106,14 @@ struct VdbeRunner {
 
             runningInitialised = true;
 
-            // An optimization pipeline to use within the execution engine.
-            auto optPipeline = mlir::makeOptimizingTransformer(
-                    /* optLevel */ enableOpt ? 3 : 0,
-                    /* sizeLevel */ 0,
-                    /* targetMachine */ nullptr
-            );
-
             {
+                // An optimization pipeline to use within the execution engine.
+                auto optPipeline = mlir::makeOptimizingTransformer(
+                        /* optLevel */ enableOpt ? 3 : 0,
+                        /* sizeLevel */ 0,
+                        /* targetMachine */ nullptr
+                );
+
                 // Create an MLIR execution engine. The execution engine eagerly JIT-compiles
                 // the module.
                 auto maybeEngine = mlir::ExecutionEngine::create(theModule, optPipeline);
@@ -146,10 +150,11 @@ struct VdbeRunner {
         // - Put the address of var in a variable addr
         // - Pass the address of addr
         // The last parameter is used to store the returned value
-        llvm::outs() << "Calling\n";
+        llvm::outs() << "Calling JITted function\n";
         llvm::SmallVector<void*, 8> args = {(void*)&vdbe, (void*)&returnedValue };
         (*fptr)(args.data());
 
+        sqlite3VdbeLeave(vdbe);
 
         llvm::outs() << "Returned value " << returnedValue << '\n';
         llvm::outs().flush();
@@ -205,6 +210,8 @@ auto getModuleForVdbe(Vdbe* p) {
 
 auto runners = std::unordered_map<Vdbe*, VdbeRunner*>{};
 
+auto doneAlreadyOnce = false;
+
 int jitVdbeStep(Vdbe* p) {
     init();
 
@@ -212,6 +219,12 @@ int jitVdbeStep(Vdbe* p) {
         return runners[p]->run();
     }
 
+    if (doneAlreadyOnce) {
+        out("exiting")
+        return -1;
+    }
+
     runners[p] = new VdbeRunner(p);
+    doneAlreadyOnce = true;
     return runners[p]->run();
 }

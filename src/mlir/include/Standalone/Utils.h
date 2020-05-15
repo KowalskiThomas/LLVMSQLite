@@ -4,6 +4,7 @@
  * Returns the location for current file and line (to be used in contexts where we have a rewriter)
  */
 #define LOC (rewriter.getFileLineColLoc(mlir::Identifier::get(__FILE__, ctx), __LINE__, 0))
+#define LOCL LOC, __LINE__
 
 /**
  * Returns the location for current file and line (to be used in contexts where we have a builder)
@@ -153,7 +154,41 @@
     using OrOp = mlir::LLVM::OrOp; \
     using AndOp = mlir::LLVM::AndOp; \
     using AllocaOp = mlir::LLVM::AllocaOp; \
-    using BranchOp = mlir::BranchOp;
+    using BranchOp = mlir::BranchOp; \
+    using BitcastOp = mlir::LLVM::BitcastOp; \
+    using IntToPtrOp = mlir::LLVM::IntToPtrOp; \
+    using PtrToIntOp = mlir::LLVM::PtrToIntOp; \
+    using CondBrOp = mlir::LLVM::CondBrOp; \
+    using ICmpOp = mlir::LLVM::ICmpOp; \
+    using Pred = mlir::LLVM::ICmpPredicate;
+
+#define USING_OPS \
+    using MLIRContext = mlir::MLIRContext; \
+    using LLVMDialect = mlir::LLVM::LLVMDialect; \
+    using Value = mlir::Value; \
+    using Type = mlir::Type; \
+    using Block = mlir::Block; \
+    using Location = mlir::Location; \
+    using ValueRange = mlir::ValueRange; \
+    using LLVMType = mlir::LLVM::LLVMType; \
+     \
+    using LoadOp = mlir::LLVM::LoadOp; \
+    using CallOp = mlir::LLVM::CallOp; \
+    using StoreOp = mlir::LLVM::StoreOp; \
+    using OrOp = mlir::LLVM::OrOp; \
+    using AndOp = mlir::LLVM::AndOp; \
+    using AllocaOp = mlir::LLVM::AllocaOp; \
+    using BranchOp = mlir::BranchOp; \
+    using LLVMFuncOp = mlir::LLVM::LLVMFuncOp; \
+    using ICmpPredicate = mlir::LLVM::ICmpPredicate; \
+    using ICmpOp = mlir::LLVM::ICmpOp; \
+    using CondBrOp = mlir::LLVM::CondBrOp; \
+    using GEPOp = mlir::LLVM::GEPOp; \
+    using AddOp = mlir::LLVM::AddOp; \
+    using PtrToIntOp = mlir::LLVM::PtrToIntOp; \
+    using IntToPtrOp = mlir::LLVM::IntToPtrOp; \
+    using BitcastOp = mlir::LLVM::BitcastOp; \
+
 
 
 

@@ -127,4 +127,10 @@ let summary = "Calls the callback";
 let arguments = (ins I64Attr:$counter, I32Attr:$firstCol, I32Attr:$nCol);
 }
 
+def Standalone_Next : Standalone_Op<"Next"> {
+let summary = "Advances the cursor P1 then jumps to P2. Uses P3 to advance.";
+
+let arguments = (ins I32Attr:$curIdx, I32Attr:$jumpTo, I32Attr:$curHint, I64Attr:$advancer, I16Attr:$P5);
+}
+
 #endif // STANDALONE_OPS
