@@ -5,7 +5,6 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/StandaloneDialect.h"
 #include "Standalone/StandaloneOps.h"
-#include "Standalone/StandalonePassManager.h"
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/TypeDefinitions.h"
 #include "Standalone/Lowering/Printer.h"
@@ -32,7 +31,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
     // Operations that depend on a block that has not yet been built.
     // This map should be checked for at the end of every block / operation translation to update jumps.
-    std::unordered_map<size_t, llvm::SmallVector<mlir::Operation*, 128>> operations_to_update;
+    std::unordered_map<size_t, llvm::SmallVector<std::pair<mlir::Operation*, size_t>, 128>> operations_to_update;
 
     // Create an OpBuilder and make it write in the (new) function's entryBlock
     auto builder = mlir::OpBuilder(ctx);
@@ -58,14 +57,12 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     auto blockAfterJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
     auto blockJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
-    print(LOCL, pcValue, "PCounter");
-
     builder.create<CondBrOp>(LOCB, pcValueIs123, blockJump, blockAfterJump);
     { // If pC != 0
         builder.setInsertionPointToStart(blockJump);
 
         auto brOp = builder.create<mlir::BranchOp>(LOCB, entryBlock);
-        operations_to_update[10].push_back(brOp.operator mlir::Operation *());
+        operations_to_update[10].push_back(std::make_pair(brOp.operator mlir::Operation *(), 0));
     } // End If pC != 0
 
     builder.setInsertionPointToStart(blockAfterJump);
@@ -124,21 +121,18 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 // If the destination block hasn't been created yet, add this operation to the
                 // ones that need to be updated when the destination block is created
                 if (toBlock == entryBlock) {
-                    operations_to_update[toBlockPc].push_back(op.getOperation());
+                    operations_to_update[toBlockPc].push_back(std::make_pair(op.getOperation(), 0));
                 }
 
                 break;
             }
             case OP_Halt: {
-                /* auto returnOp = */ builder.create<mlir::standalone::Halt>(LOCB);
+                builder.create<mlir::standalone::Halt>(LOCB);
+                lastOpSeen = true;
                 newWriteBranchOut = false;
                 break;
             }
             case OP_OpenRead: {
-                // TODO: Remove that
-                // op.p2 = 5;
-                // vdbe->aMem[5].u.i = 123;
-
                 auto curIdx = op.p1;
                 auto rootPage = op.p2;
                 auto dbIdx = op.p3;
@@ -192,7 +186,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                          INTEGER_ATTR(16, false, flags)
                         );
 
-                newWriteBranchOut = true;
                 break;
             }
             case OP_ResultRow: {
@@ -216,39 +209,51 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p4 = op.p4;
                 auto p5 = op.p5;
 
-                builder.create<mlir::standalone::Next>
+                auto blockJumpTo = entryBlock;
+                auto blockFallThrough = entryBlock;
+                if (blocks.find(jumpTo) != blocks.end()) {
+                    blockJumpTo = blocks[jumpTo];
+                }
+
+                auto op = builder.create<mlir::standalone::Next>
                     (LOCB,
                          INTEGER_ATTR(32, true, curIdx),
-                         INTEGER_ATTR(32, true, jumpTo),
                          INTEGER_ATTR(32, true, curHint),
                          INTEGER_ATTR(64, false, (uint64_t)p4.p),
-                         INTEGER_ATTR(16, false, p5)
+                         INTEGER_ATTR(16, false, p5),
+                         blockJumpTo,
+                         blockFallThrough
                     );
 
-                newWriteBranchOut = true;
-                lastOpSeen = true;
+                if (block == entryBlock) {
+                    operations_to_update[jumpTo].push_back(std::make_pair(op.getOperation(), 0));
+                }
+
+                operations_to_update[pc + 1].push_back(std::make_pair(op.getOperation(), 1));
+
+                newWriteBranchOut = false;
                 break;
             }
         }
 
         // Add the block to the blocks map (for use in branches)
-        out("Adding block " << pc)
         blocks[pc] = block;
 
         // Update all instructions that branch to this instruction but couldn't refer to it before
-        for(auto op : operations_to_update[pc]) {
-            out("Updating " << op)
-            op->getBlockOperands()[0].set(block);
-
-            // ModuleOp parentModule = (op->getParentOfType<ModuleOp>());
-            // parentModule.dump();
+        for(auto opAndIdx : operations_to_update[pc]) {
+            auto op = opAndIdx.first;
+            auto idx = opAndIdx.second;
+            op->getBlockOperands()[idx].set(block);
         }
+
         // Remove these instructions from the map
         operations_to_update.erase(pc);
 
         // Add a branch from the latest block to this one
         if (writeBranchOut) {
             builder.setInsertionPointToEnd(lastBlock);
+            out("Writing at the end of this block")
+            lastBlock->print(llvm::outs());
             vdbeCtx->outBranches[pc] = builder.create<mlir::BranchOp>(LOCB, block);
             builder.setInsertionPointToStart(block);
         }
@@ -258,12 +263,13 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         writeBranchOut = newWriteBranchOut;
 
         // TODO: Remove this to do the whole thing
-        if (op.opcode != OP_ResultRow && lastOpSeen) {
+        if (lastOpSeen) {
             out("Exiting code generation early after OP_Column at op " << sqlite3OpcodeName(op.opcode))
             break;
         }
     }
 
+    /*
     // Add the returning block and a branch from the last VDBE instruction block to it
     auto endBlock = func.addBlock();
     builder.setInsertionPointToEnd(lastBlock);
@@ -273,6 +279,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     builder.setInsertionPointToStart(endBlock);
     auto return0 = builder.create<mlir::ConstantIntOp>(LOCB, 0, 32);
     builder.create<mlir::ReturnOp>(LOCB, (mlir::Value)return0);
+    */
 
     // If the map is not empty, then we didn't generate the destination block of some branches.
     assert(operations_to_update.empty());

@@ -71,18 +71,22 @@ struct MyBuilder {
         return rewriter.template create<BitcastOp>(loc, ty, x);
     }
 
-    size_t getBitWidth(Value x) const {
+    size_t getBitWidth(Type x) const {
         static std::vector<size_t> possibleSizes { 1, 8, 16, 32, 64 };
         auto rightSize = 0llu;
         for(auto size : possibleSizes)
-            if (x.getType().isInteger(size)
-                || x.getType() == LLVMType::getIntNTy(llvmDialect, size) ) {
+            if (x.isInteger(size)
+                || x == LLVMType::getIntNTy(llvmDialect, size) ) {
                 rightSize = size;
                 break;
             }
 
         assert(rightSize > 0);
         return rightSize;
+    }
+
+    size_t getBitWidth(Value v) const {
+        return getBitWidth(v.getType());
     }
 
     Value insertAddOp(Location loc, Value lhs, int rhs) {
@@ -113,6 +117,18 @@ struct MyBuilder {
 
     void insertStoreOp(Location loc, Value value, Value addr) {
         rewriter.template create<StoreOp>(loc, value, addr);
+    }
+
+    void insertStoreOp(Location loc, int x, Value addr) {
+        // mlir::LLVM::LLVMType::isPointerTy()
+        assert(addr.getType().cast<mlir::LLVM::LLVMType>().isPointerTy());
+        auto ty = addr.getType().cast<mlir::LLVM::LLVMType>().getPointerElementTy();
+        out(ty);
+        assert(ty.isIntegerTy());
+        auto width = getBitWidth(ty);
+
+        auto cst = constants(x, width);
+        insertStoreOp(loc, cst, addr);
     }
 };
 
@@ -173,7 +189,7 @@ auto bitAnd = [&builder](mlir::Location loc, mlir::Value val, auto x) { \
     return builder.insertAndOp(loc, val, x); \
 }; \
  \
-auto store = [&builder](mlir::Location loc, mlir::Value value, mlir::Value addr) { \
+auto store = [&builder](mlir::Location loc, auto value, mlir::Value addr) { \
     builder.insertStoreOp(loc, value, addr); \
 }; \
 \

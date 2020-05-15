@@ -9,10 +9,16 @@ namespace mlir {
                 auto op = &haltOp;
                 LOWERING_PASS_HEADER
 
+                // TODO: This is not complete at all (in comparison with the vdbe.c implementation)
+
                 PROGRESS("Halting execution");
                 {
                     auto& builder = rewriter;
-                    rewriter.create<mlir::ReturnOp>(LOC, (mlir::Value)CONSTANT_INT(3, 32));
+                    auto p = CONSTANT_PTR(T::VdbePtrTy, vdbe);
+                    rewriter.create<mlir::LLVM::CallOp>(LOC, f_sqlite3VdbeHalt, ValueRange {
+                        p
+                    });
+                    rewriter.create<mlir::ReturnOp>(LOC, (mlir::Value)CONSTANT_INT(SQLITE_DONE, 32));
                 }
 
                 rewriter.eraseOp(haltOp);

@@ -39,6 +39,7 @@ LLVMFuncOp f_sqlite3VdbeCloseStatement;
 LLVMFuncOp f_sqlite3VdbeMemMakeWriteable;
 LLVMFuncOp f_sqlite3VdbeMemNulTerminate;
 LLVMFuncOp f_sqlite3BtreeNext;
+LLVMFuncOp f_sqlite3VdbeHalt;
 
 LLVMFuncOp f_memCpy;
 
@@ -430,10 +431,18 @@ void Prerequisites::generateReferenceTosqlite3BtreeNext(ModuleOp m, LLVMDialect*
     GENERATE_SYMBOL(f_sqlite3BtreeNext, sqlite3BtreeNext, "sqlite3BtreeNext");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeHalt(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::VdbePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeHalt, sqlite3VdbeHalt, "sqlite3VdbeHalt");
+}
+
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
-    // generateNewFunction(m, dialect);
     CALL_SYMBOL_GENERATOR(Add);
     CALL_SYMBOL_GENERATOR(Progress);
     CALL_SYMBOL_GENERATOR(AllocateCursor);
@@ -457,6 +466,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemMakeWriteable);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemNulTerminate);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeNext);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeHalt);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

@@ -122,15 +122,16 @@ def Standalone_Column : Standalone_Op<"Column"> {
 }
 
 def Standalone_ResultRow : Standalone_Op<"ResultRow", [Terminator]> {
-let summary = "Calls the callback";
+    let summary = "Calls the callback";
 
-let arguments = (ins I64Attr:$counter, I32Attr:$firstCol, I32Attr:$nCol);
+    let arguments = (ins I64Attr:$counter, I32Attr:$firstCol, I32Attr:$nCol);
 }
 
-def Standalone_Next : Standalone_Op<"Next"> {
-let summary = "Advances the cursor P1 then jumps to P2. Uses P3 to advance.";
+def Standalone_Next : Standalone_Op<"Next", [Terminator]> {
+    let summary = "Advances the cursor P1 then jumps to P2. Uses P3 to advance.";
 
-let arguments = (ins I32Attr:$curIdx, I32Attr:$jumpTo, I32Attr:$curHint, I64Attr:$advancer, I16Attr:$P5);
+    let arguments = (ins I32Attr:$curIdx, I32Attr:$curHint, I64Attr:$advancer, I16Attr:$P5);
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
 }
 
 #endif // STANDALONE_OPS
