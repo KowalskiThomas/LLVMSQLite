@@ -10,6 +10,8 @@ namespace mlir {
                 auto op = &initOp;
                 LOWERING_PASS_HEADER
 
+                auto jumpToAttr = initOp.jumpTo();
+
                 // The number 0
                 auto cst0 = rewriter.create<mlir::LLVM::ConstantOp>(LOC, T::i32Ty,
                         rewriter.getIntegerAttr(rewriter.getIntegerType(32), 0));
@@ -30,28 +32,8 @@ namespace mlir {
                     rewriter.create<mlir::LLVM::StoreOp>(LOC, cst0, ptr);
                 }
 
-                { // Jump to P2
-                    auto ptrToP2 = PTR_TO_P2(0);
-                    auto p2 = rewriter.create<mlir::LLVM::LoadOp>(LOC, ptrToP2);
+                rewriter.create<mlir::BranchOp>(LOC, jumpToAttr);
 
-                    // Check whether p2 == 0
-                    auto comparison = rewriter.create<mlir::LLVM::ICmpOp>(LOC, mlir::LLVM::ICmpPredicate::eq, p2, cst0);
-
-
-                    auto p2Minus1 = rewriter.create<mlir::LLVM::URemOp>(LOC, p2, cst1);
-
-
-                    // If P2 == 0, then jump to next block, otherwise jump to instruction P2 - 1
-                    auto branch = rewriter.create<mlir::LLVM::CondBrOp>(LOC,
-                            /* P2 == 0 ? */ comparison,
-                            /* Then */ vdbeDialect->vdbeContext.blocks[2],
-                            /* Else */ vdbeDialect->vdbeContext.blocks[p2]
-                    );
-
-                }
-
-                // Split the block to get rid of the existing BranchOp
-                /* auto end = */ rewriter.getBlock()->splitBlock(initOp);
                 rewriter.eraseOp(initOp);
                 return success();
             } // matchAndRewrite

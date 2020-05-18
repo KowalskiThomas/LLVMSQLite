@@ -81,10 +81,12 @@ def Standalone_OpenCursorOp : Standalone_Op<"OpenCursor"> {
     let results = (outs I32:$returnCode);
 }
 
-def Standalone_InitOp : Standalone_Op<"Init"> {
+def Standalone_InitOp : Standalone_Op<"Init", [Terminator]> {
     let summary = "Jumps to $jump_to if not 0. Updates the Once value so that all Once opcodes will run again.";
 
     let arguments = (ins I64:$jump_to);
+
+    let successors = (successor AnySuccessor:$jumpTo);
 }
 
 def Standalone_Noop : Standalone_Op<"Noop"> {
@@ -93,7 +95,7 @@ def Standalone_Noop : Standalone_Op<"Noop"> {
     let arguments = (ins I64:$pc);
 }
 
-def Standalone_Goto : Standalone_TerminatorOp<"Goto"> {
+def Standalone_Goto : Standalone_TerminatorOp<"Goto", [Terminator]> {
     let summary = "Unconditionally jumps to instruction $pc";
 
     let successors = (successor AnySuccessor:$dest);
@@ -132,6 +134,12 @@ def Standalone_Next : Standalone_Op<"Next", [Terminator]> {
 
     let arguments = (ins I32Attr:$curIdx, I32Attr:$curHint, I64Attr:$advancer, I16Attr:$P5);
     let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
+}
+
+def Standalone_Transaction : Standalone_Op<"Transaction"> {
+    let summary = "Begin a transaction on database P1 if a transaction is not already active. If P2 is non-zero, then a write-transaction is started, or if a read-transaction is already active, it is upgraded to a write-transaction. If P2 is zero, then a read-transaction is started.";
+
+    let arguments = (ins I32Attr:$dbIdx, I32Attr:$isWrite, I32Attr:$P3, I64Attr:$P4, I16Attr:$P5);
 }
 
 #endif // STANDALONE_OPS

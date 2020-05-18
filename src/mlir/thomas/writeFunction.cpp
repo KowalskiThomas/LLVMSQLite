@@ -104,13 +104,30 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
 #endif
             case OP_Init: {
-                auto param = builder.create<mlir::ConstantIntOp>(LOCB, op.p1, 64);
-                builder.create<mlir::standalone::InitOp>(LOCB, param);
+                auto initValue = op.p1;
+
+                auto param = constants(initValue, 64);
+                auto initOp = builder.create<mlir::standalone::InitOp>
+                    (LOCB,
+                        param,
+                        entryBlock
+                    );
+
+                auto jumpTo = op.p2;
+                if (jumpTo == 0) {
+                    jumpTo = pc + 1;
+                }
+                operations_to_update[jumpTo].push_back(std::make_pair(initOp, 0));
+
+                newWriteBranchOut = false;
                 break;
             }
             case OP_Noop: {
                 auto pcParam = builder.create<mlir::ConstantIntOp>(LOCB, pc, 64);
-                builder.create<mlir::standalone::Noop>(LOCB, pcParam);
+                builder.create<mlir::standalone::Noop>
+                        (LOCB,
+                            pcParam
+                        );
                 break;
             }
             case OP_Goto: {
@@ -127,7 +144,10 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 }
 
                 // Create the jump
-                auto op = builder.create<mlir::standalone::Goto>(LOCB, toBlock);
+                auto op = builder.create<mlir::standalone::Goto>(
+                    LOCB,
+                    toBlock
+                );
 
                 // If the destination block hasn't been created yet, add this operation to the
                 // ones that need to be updated when the destination block is created
@@ -139,7 +159,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
             }
             case OP_Halt: {
                 builder.create<mlir::standalone::Halt>(LOCB);
-                lastOpSeen = true;
                 newWriteBranchOut = false;
                 break;
             }
@@ -245,6 +264,25 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 newWriteBranchOut = false;
                 break;
             }
+            case OP_Transaction: {
+                auto dbIdx = op.p1;
+                auto isWrite = op.p2;
+                auto p3 = op.p3;
+                auto p4 = (uint64_t)op.p4.p;
+                auto p5 = op.p5;
+
+                builder.create<mlir::standalone::Transaction>
+                        (LOCB,
+                                INTEGER_ATTR(32, true, dbIdx),
+                                INTEGER_ATTR(32, true, isWrite),
+                                INTEGER_ATTR(32, true, p3),
+                                INTEGER_ATTR(64, true, p4),
+                                INTEGER_ATTR(16, true, p5)
+                        );
+
+                newWriteBranchOut = true;
+                break;
+            }
         }
 
         // Add the block to the blocks map (for use in branches)
@@ -261,7 +299,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         operations_to_update.erase(pc);
 
         // Add a branch from the latest block to this one
-        lastBlock->print(llvm::outs());
         if (writeBranchOut) {
             builder.setInsertionPointToEnd(lastBlock);
             vdbeCtx->outBranches[pc] = builder.create<mlir::BranchOp>(LOCB, block);

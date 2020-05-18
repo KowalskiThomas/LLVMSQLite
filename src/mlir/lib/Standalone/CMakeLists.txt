@@ -8,6 +8,7 @@ set(LOWERING_FILES
     Lowering/ColumnLowering.cpp
     Lowering/ResultRowLowering.cpp
     Lowering/NextLowering.cpp
+    Lowering/TransactionLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

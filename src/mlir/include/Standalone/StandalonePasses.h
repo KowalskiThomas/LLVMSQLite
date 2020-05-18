@@ -99,6 +99,13 @@ namespace mlir {
             LogicalResult matchAndRewrite(Next rewindOp, PatternRewriter& rewriter) const override;
         };
 
+        class TransactionLowering : public mlir::OpRewritePattern<Transaction> {
+        public:
+            using mlir::OpRewritePattern<Transaction>::OpRewritePattern;
+
+            LogicalResult matchAndRewrite(Transaction txnOp, PatternRewriter& rewriter) const override;
+        };
+
         } // namespace passes
     } // namespace standalone
 } // namespace mlir

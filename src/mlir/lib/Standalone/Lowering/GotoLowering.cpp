@@ -14,7 +14,6 @@ namespace mlir {
 
                 rewriter.create<mlir::BranchOp>(LOC, jumpOp.dest());
 
-                rewriter.getBlock()->splitBlock(jumpOp);
                 rewriter.eraseOp(jumpOp);
                 return success();
             } // matchAndRewrite
