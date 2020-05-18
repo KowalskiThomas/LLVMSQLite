@@ -122,7 +122,7 @@ namespace mlir {
                             pX, orOp.rootPage(), wrFlag, pKeyInfo, pCur_uc_pCursor
                         }).getResult(0);
 
-                PROGRESS_PRINT_INT(TO_I64(rc), "<- value returned by sqlite3_BtreeCursor")
+                PROGRESS_PRINT_INT(TO_I64(rc), "Value returned by sqlite3_BtreeCursor : ")
 
                 /// pCur->pKeyInfo = pKeyInfo;
                 auto ppKeyInfo = rewriter.create<GEPOp>
@@ -138,6 +138,7 @@ namespace mlir {
                 rewriter.create<CallOp>(LOC, f_sqlite3BtreeCursorHintFlags, ValueRange{
                     pCur_uc_pCursor, CONSTANT_INT(hint, 32)
                 });
+
 
                 // TODO: if (rc) goto abort_due_to_error
 
