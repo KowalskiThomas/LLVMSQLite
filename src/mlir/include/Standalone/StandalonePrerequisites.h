@@ -7,9 +7,7 @@
 using namespace mlir::LLVM;
 using ModuleOp = mlir::ModuleOp;
 
-// TODO: Remove addFunction
 #define ExternFuncOp extern LLVMFuncOp
-ExternFuncOp addFunction;
 ExternFuncOp f_progress;
 ExternFuncOp f_printPtr;
 ExternFuncOp f_printPtrAndValue;
@@ -48,10 +46,6 @@ struct Prerequisites {
     using LLVMDialect = mlir::LLVM::LLVMDialect;
 
 public:
-    // These are temporary
-    static void generateNewFunction(ModuleOp, LLVMDialect*);
-    static void generateReferenceToAdd(ModuleOp, LLVMDialect*);
-
     DECLARE_FUNCTION(AllocateCursor);
     DECLARE_FUNCTION(Sqlite3BtreeCursor);
     DECLARE_FUNCTION(Sqlite3BtreeCursorHintFlags);

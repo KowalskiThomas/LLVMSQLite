@@ -3,17 +3,15 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
-namespace mlir {
-namespace standalone {
-namespace passes {
+namespace mlir::standalone::passes {
 namespace {
     static void useMacros() {
         auto *ctx = std::declval<mlir::MLIRContext *>();
         auto &builder = *std::declval<mlir::OpBuilder *>();
         auto &rewriter = *std::declval<mlir::ConversionPatternRewriter *>();
-        auto &val = *std::declval<mlir::Value*>();
-        auto *vdbe = static_cast<Vdbe*>(nullptr);
-        auto *vdbeCtx = std::declval<VdbeContext*>();
+        auto &val = *std::declval<mlir::Value *>();
+        auto *vdbe = static_cast<Vdbe *>(nullptr);
+        auto *vdbeCtx = std::declval<VdbeContext *>();
         PROGRESSB("__unused__")
         PROGRESS("__unused__")
         PROGRESS_PRINT_PTR(val, "__unused__")
@@ -21,7 +19,7 @@ namespace {
             out("__unused__")
         }
         {
-            auto op = static_cast<mlir::ModuleOp*>(nullptr);
+            auto op = static_cast<mlir::ModuleOp *>(nullptr);
             LOWERING_PASS_HEADER
         }
         {
@@ -40,45 +38,6 @@ namespace {
         }
     }
 } // namespace
-
-/*
-mlir::LogicalResult
-Plus32Lowering::matchAndRewrite(mlir::Operation *op, llvm::ArrayRef<mlir::Value> operands,
-                                                  mlir::ConversionPatternRewriter &rewriter) const {
-    auto *llvmDialect = op->getContext()->getRegisteredDialect<LLVM::LLVMDialect>();
-    assert(llvmDialect && "expected llvm dialect to be registered");
-    auto *ctx = op->getContext();
-    ModuleOp parentModule = op->getParentOfType<ModuleOp>();
-
-    auto thirtyTwo = rewriter.create<ConstantIntOp>(LOC, 32, 32);
-    auto inputValue = op->getOperand(0);
-    auto result = rewriter.create<AddIOp>(LOC, thirtyTwo, inputValue);
-
-    rewriter.replaceOp(op, { result });
-    return success();
-}
-
-mlir::LogicalResult InitRegLowering::matchAndRewrite(mlir::Operation *op, llvm::ArrayRef<mlir::Value> operands,
-                                                   mlir::ConversionPatternRewriter &rewriter) const {
-    auto *llvmDialect = op->getContext()->getRegisteredDialect<LLVM::LLVMDialect>();
-    assert(llvmDialect && "expected llvm dialect to be registered");
-    auto* ctx = op->getContext();
-    ModuleOp parentModule = op->getParentOfType<ModuleOp>();
-
-    auto intTy = LLVM::LLVMType::getInt32Ty(llvmDialect);
-    auto structTy = T::sqlite3_valuePtrTy;
-    auto structPtrTy = structTy.getPointerTo();
-    auto constInt = IntegerAttr::get(IntegerType::get(32, rewriter.getContext()), 1);
-    auto iOne = rewriter.create<LLVM::ConstantOp>(LOC, intTy, constInt);
-    auto s = rewriter.create<LLVM::AllocaOp>(LOC, structTy.getPointerTo(), iOne, 0);
-
-    auto s2 = rewriter.create<LLVM::AllocaOp>(LOC, structPtrTy.getPointerTo(), iOne, 0);
-    auto s3 = rewriter.create<LLVM::StoreOp>(LOC, s, s2);
-
-    rewriter.replaceOp(op, { iOne });
-    return success();
-}
-*/
 
 mlir::LogicalResult IntegerLowering::matchAndRewrite(mlir::Operation *op, llvm::ArrayRef<mlir::Value> operands,
                                                    mlir::ConversionPatternRewriter &rewriter) const {
@@ -102,13 +61,10 @@ mlir::LogicalResult OpenCursorLowering::matchAndRewrite(mlir::Operation *op, llv
 
     auto firstParam = operands[0];
     auto secondParam = operands[1];
-    auto result2 = rewriter.create<mlir::LLVM::CallOp>(LOC, addFunction, ArrayRef<Value>{ firstParam, secondParam });
+    assert(false && "We should not be lowering ADDs");
+    // auto result2 = rewriter.create<mlir::LLVM::CallOp>(LOC, addFunction, ArrayRef<Value>{ firstParam, secondParam });
 
-    PROGRESS("add has been called and returned");
-
-    rewriter.replaceOp(op, { result2.getResult(0) });
+    // rewriter.replaceOp(op, { result2.getResult(0) });
     return success();
 }
-} // namespace passes
-} // namespace standalone
-} // namespace mlir
+} // namespace mlir::standalone::passes

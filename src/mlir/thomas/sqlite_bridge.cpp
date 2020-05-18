@@ -7,13 +7,7 @@
 bool enableOpt = false;
 const char* const JIT_MAIN_FN_NAME = "jittedFunction";
 
-static bool initialised = false;
-
 static void init() {
-    if (initialised)
-        return;
-
-    initialised = true;
     mlir::registerAllDialects();
     mlir::registerAllPasses();
 
@@ -24,16 +18,16 @@ static void init() {
 struct VdbeRunner {
     using MLIRContext = mlir::MLIRContext;
     using VdbeDialect = mlir::standalone::StandaloneDialect;
+    using LLVMDialect = mlir::LLVM::LLVMDialect;
 
     MLIRContext context;
     MLIRContext* ctx;
 
     mlir::LLVM::LLVMDialect* llvmDialect;
+    VdbeDialect* vdbeDialect;
 
     mlir::OpBuilder builder;
     mlir::ModuleOp theModule;
-
-    VdbeDialect* vdbeDialect;
 
     Vdbe* vdbe;
 
@@ -41,19 +35,14 @@ struct VdbeRunner {
         out("Destroying runner")
     }
 
-    static inline bool doneAlreadyOnce = false;
-
     VdbeRunner(Vdbe* p)
     : engine(nullptr),
       vdbe(p),
       ctx(&context),
       llvmDialect(context.getRegisteredDialect<LLVMDialect>()),
-      vdbeDialect(ctx->getRegisteredDialect<VdbeDialect>()),
+      vdbeDialect(context.getRegisteredDialect<VdbeDialect>()),
       builder(mlir::OpBuilder(ctx))
     {
-        if (doneAlreadyOnce)
-            assert(false);
-        doneAlreadyOnce = true;
         init();
 
         initialiseTypeCache(llvmDialect);
@@ -210,8 +199,6 @@ auto getModuleForVdbe(Vdbe* p) {
 
 auto runners = std::unordered_map<Vdbe*, VdbeRunner*>{};
 
-auto doneAlreadyOnce = false;
-
 int jitVdbeStep(Vdbe* p) {
     init();
 
@@ -219,12 +206,6 @@ int jitVdbeStep(Vdbe* p) {
         return runners[p]->run();
     }
 
-    if (doneAlreadyOnce) {
-        out("exiting")
-        return -1;
-    }
-
     runners[p] = new VdbeRunner(p);
-    doneAlreadyOnce = true;
     return runners[p]->run();
 }

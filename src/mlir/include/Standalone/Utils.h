@@ -204,7 +204,7 @@
 
 
 #define CALL_DEBUG { \
-    rewriter.create<CallOp>(LOC, f_debug, ValueRange{}); \
+    rewriter.create<CallOp>(LOC, f_debug, mlir::ValueRange{}); \
 }
 
 #define EXIT_PASS_EARLY(with_call_to_debug) { \

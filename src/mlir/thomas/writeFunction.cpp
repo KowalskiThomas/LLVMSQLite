@@ -48,25 +48,36 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
     auto pcAddr = constants(T::i32PtrTy, (int*)&vdbe->pc);
     auto pcValue = builder.create<LoadOp>(LOCB, pcAddr);
-    auto pcValueIs123 = builder.create<ICmpOp>
-            (LOCB, ICmpPredicate::ne,
-                pcValue, constants(0, 32)
-            );
 
-    auto curBlock = builder.getBlock();
-    auto blockAfterJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-    auto blockJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+    mlir::Block* blockJump;
+    mlir::Block* blockAfterJump;
+    CALL_DEBUG
+    for(auto targetPc = 0; targetPc < vdbe->nOp; targetPc++) {
+        auto curBlock = builder.getBlock();
+        // Only certain codes can be jumped back to. This saves a lot of branching.
+        auto targetOpCode = vdbe->aOp[targetPc].opcode;
+        if (targetOpCode != OP_Next) {
+            continue;
+        }
 
-    builder.create<CondBrOp>(LOCB, pcValueIs123, blockJump, blockAfterJump);
-    { // If pC != 0
-        builder.setInsertionPointToStart(blockJump);
+        blockAfterJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto pcValueIsTarget = builder.create<ICmpOp>
+                (LOCB, ICmpPredicate::eq,
+                 pcValue, constants(targetPc, 32)
+                );
 
-        auto brOp = builder.create<mlir::BranchOp>(LOCB, entryBlock);
-        operations_to_update[10].push_back(std::make_pair(brOp.operator mlir::Operation *(), 0));
-    } // End If pC != 0
+        auto brOp = builder.create<CondBrOp>(LOCB, pcValueIsTarget, blockJump, blockAfterJump);
+        operations_to_update[targetPc].push_back(std::make_pair(brOp, 0));
 
-    builder.setInsertionPointToStart(blockAfterJump);
-    lastBlock = blockAfterJump;
+        // { // If pC == targetPC
+        //     builder.setInsertionPointToStart(blockJump);
+        //
+        //     auto brOp = builder.create<mlir::BranchOp>(LOCB, entryBlock);
+        // } // End If pC != 0
+
+        builder.setInsertionPointToStart(blockAfterJump);
+        lastBlock = blockAfterJump;
+    }
 
     // Iterate over the VDBE programme
     bool writeBranchOut = true;
@@ -79,7 +90,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         builder.setInsertionPointToStart(block);
         auto& op = vdbe->aOp[pc];
 
-        out(pc << " " << sqlite3OpcodeName(op.opcode))
+        out(pc << " - " << sqlite3OpcodeName(op.opcode))
 
         bool newWriteBranchOut = true;
         // Construct the adequate VDBE MLIR operation based on the instruction
@@ -250,10 +261,9 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         operations_to_update.erase(pc);
 
         // Add a branch from the latest block to this one
+        lastBlock->print(llvm::outs());
         if (writeBranchOut) {
             builder.setInsertionPointToEnd(lastBlock);
-            out("Writing at the end of this block")
-            lastBlock->print(llvm::outs());
             vdbeCtx->outBranches[pc] = builder.create<mlir::BranchOp>(LOCB, block);
             builder.setInsertionPointToStart(block);
         }
@@ -264,7 +274,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
         // TODO: Remove this to do the whole thing
         if (lastOpSeen) {
-            out("Exiting code generation early after OP_Column at op " << sqlite3OpcodeName(op.opcode))
+            out("Exiting code generation early after " << sqlite3OpcodeName(op.opcode))
             break;
         }
     }

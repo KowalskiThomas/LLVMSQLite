@@ -98,6 +98,7 @@ void my_assert(bool x, size_t line, const char* fileName) {
 
 }
 
+/*
 void Prerequisites::generateNewFunction(ModuleOp m, LLVMDialect *) {
     auto i32Ty = T::i32Ty;
     auto regTy = T::sqlite3_valuePtrTy;
@@ -113,22 +114,9 @@ void Prerequisites::generateNewFunction(ModuleOp m, LLVMDialect *) {
     );
     m.push_back(func);
 }
-
-void Prerequisites::generateReferenceToAdd(ModuleOp m, LLVMDialect *) {
-    auto funcTy = LLVMType::getFunctionTy(T::i32Ty, {T::i32Ty, T::i32Ty}, false);
-    auto builder = mlir::OpBuilder(m);
-    builder.setInsertionPointToStart(m.getBody());
-    addFunction = builder.create<LLVMFuncOp>(m.getLoc(), "add", funcTy, Linkage::External);
-    llvm::sys::DynamicLibrary::AddSymbol("add", reinterpret_cast<void *>(add));
-}
+*/
 
 void Prerequisites::generateReferenceToProgress(ModuleOp m, LLVMDialect *dialect) {
-    static bool done = false;
-    if (done) {
-        return;
-    }
-    done = true;
-
     auto funcTy = LLVMType::getFunctionTy(LLVMType::getVoidTy(dialect), {T::i64Ty, T::i32Ty, T::i64Ty}, false);
     auto builder = mlir::OpBuilder(m);
     builder.setInsertionPointToStart(m.getBody());
@@ -443,7 +431,6 @@ void Prerequisites::generateReferenceTosqlite3VdbeHalt(ModuleOp m, LLVMDialect* 
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
-    CALL_SYMBOL_GENERATOR(Add);
     CALL_SYMBOL_GENERATOR(Progress);
     CALL_SYMBOL_GENERATOR(AllocateCursor);
     CALL_SYMBOL_GENERATOR(Sqlite3BtreeCursor);
