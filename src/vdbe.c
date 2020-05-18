@@ -643,7 +643,7 @@ static SQLITE_NOINLINE Mem *out2PrereleaseWithClear(Mem *pOut) {
     return pOut;
 }
 
-static Mem *out2Prerelease(Vdbe *p, VdbeOp *pOp) {
+Mem *out2Prerelease(Vdbe *p, VdbeOp *pOp) {
     Mem *pOut;
     assert(pOp->p2 > 0);
     assert(pOp->p2 <= (p->nMem + 1 - p->nCursor));

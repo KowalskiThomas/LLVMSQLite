@@ -20,7 +20,7 @@ namespace mlir::standalone::passes {
 
         auto i = alloca(LOC, T::i32PtrTy);
 
-        auto rc = call(LOC, f_sqlite3VdbeCheckFk, constants(T::VdbePtrTy, vdbe), constants(0, 32));
+        auto rc = call(LOC, f_sqlite3VdbeCheckFk, constants(T::VdbePtrTy, vdbe), constants(0, 32)).getValue();
         auto sqliteOk = constants(SQLITE_OK, 32);
 
         auto rcNeOk = iCmp(LOC, Pred::ne, rc, sqliteOk);
@@ -43,7 +43,9 @@ namespace mlir::standalone::passes {
 
         ip_start(blockAfterRcNeOk);
 
-        rc = call(LOC, f_sqlite3VdbeCloseStatement, constants(T::VdbePtrTy, vdbe), constants(SAVEPOINT_RELEASE, 32));
+        rc = call(LOC, f_sqlite3VdbeCloseStatement,
+            constants(T::VdbePtrTy, vdbe), constants(SAVEPOINT_RELEASE, 32)
+        ).getValue();
 
         auto cacheCtrAddr = getElementPtr(LOC, T::i32PtrTy, constants(T::VdbePtrTy, vdbe),
                 constants(0, 32), // &*p

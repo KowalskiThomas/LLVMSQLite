@@ -43,6 +43,7 @@ LLVMFuncOp f_sqlite3VdbeHalt;
 LLVMFuncOp f_sqlite3BtreeBeginTrans;
 LLVMFuncOp f_sqlite3VtabSavepoint;
 LLVMFuncOp f_sqlite3BtreeBeginStmt;
+LLVMFuncOp f_out2Prerelease;
 
 LLVMFuncOp f_memCpy;
 
@@ -463,6 +464,20 @@ void Prerequisites::generateReferenceTosqlite3BtreeBeginStmt(ModuleOp m, LLVMDia
     GENERATE_SYMBOL(f_sqlite3BtreeBeginStmt, sqlite3BtreeBeginStmt, "sqlite3BtreeBeginStmt");
 }
 
+extern "C" {
+    Mem *out2Prerelease(Vdbe *p, VdbeOp *pOp);
+}
+
+void Prerequisites::generateReferenceToout2Prerelease(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::sqlite3_valuePtrTy, {
+                T::VdbePtrTy,
+                T::VdbeOpPtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_out2Prerelease, out2Prerelease, "out2Prerelease");
+}
+
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
@@ -492,6 +507,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3BtreeBeginTrans);
     CALL_SYMBOL_GENERATOR(sqlite3VtabSavepoint);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeBeginStmt);
+    CALL_SYMBOL_GENERATOR(out2Prerelease);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

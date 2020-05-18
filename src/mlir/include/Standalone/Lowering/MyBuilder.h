@@ -21,8 +21,14 @@ struct MyBuilder {
         return rewriter.template create<mlir::LLVM::AllocaOp>(loc, ty, constants(1, 32), 0);
     }
 
-    Value insertCallOp(mlir::Location loc, LLVMFuncOp func, mlir::ValueRange range) {
-        return rewriter.template create<CallOp>(loc, func, range).getResult(0);
+    llvm::Optional<Value> insertCallOp(mlir::Location loc, LLVMFuncOp func, mlir::ValueRange range) {
+        if (func.getNumFuncResults() == 0) {
+            rewriter.template create<CallOp>(loc, func, range);
+            return llvm::None;
+        }
+        auto callOp = rewriter.template create<CallOp>(loc, func, range);
+        auto result = callOp.getResult(0);
+        return llvm::Optional<Value>(result);
     }
 
     Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, mlir::Value rhs) {
@@ -139,7 +145,7 @@ auto alloca = [&builder](mlir::Location loc, mlir::Type ty) { \
 }; \
  \
 auto call = [&builder](mlir::Location loc, LLVM::LLVMFuncOp f, auto... args) { \
-    return builder.insertCallOp(loc, f, ValueRange{args...}); \
+    return builder.insertCallOp(loc, f, mlir::ValueRange{args...}); \
 }; \
  \
 auto iCmp = [&builder](mlir::Location loc, ICmpPredicate pred, Value lhs, auto rhs) { \

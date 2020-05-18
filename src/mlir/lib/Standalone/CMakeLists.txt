@@ -9,6 +9,10 @@ set(LOWERING_FILES
     Lowering/ResultRowLowering.cpp
     Lowering/NextLowering.cpp
     Lowering/TransactionLowering.cpp
+    Lowering/AggFinalLowering.cpp
+    Lowering/AggStepLowering.cpp
+    Lowering/NullLowering.cpp
+    Lowering/CopyLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

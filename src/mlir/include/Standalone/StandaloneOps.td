@@ -142,4 +142,29 @@ def Standalone_Transaction : Standalone_Op<"Transaction"> {
     let arguments = (ins I32Attr:$dbIdx, I32Attr:$isWrite, I32Attr:$P3, I64Attr:$P4, I16Attr:$P5);
 }
 
+def Standalone_Null : Standalone_Op<"Null"> {
+    let summary = "Puts null in some registers";
+
+    let arguments = (ins I64Attr:$pc, I32Attr:$setMemCleared, I32Attr:$firstReg, I32Attr:$lastReg);
+}
+
+def Standalone_AggStep : Standalone_Op<"AggStep"> {
+    let summary = "TODO";
+
+    let arguments = (ins I32Attr:$firstReg, I32Attr:$toReg, I64Attr:$function, I16Attr:$nReg);
+}
+
+def Standalone_AggFinal : Standalone_Op<"AggFinal"> {
+    let summary = "";
+
+    let arguments = (ins I32Attr:$toReg, I32Attr:$nArgs, I64Attr:$function);
+}
+
+def Standalone_Copy : Standalone_Op<"Copy"> {
+    let summary = "";
+
+    let arguments = (ins I32Attr:$firstFromReg, I32Attr:$nFromReg, I32Attr:$firstToReg);
+}
+
+
 #endif // STANDALONE_OPS

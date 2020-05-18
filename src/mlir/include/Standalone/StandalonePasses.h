@@ -3,6 +3,14 @@
 #include "Standalone/StandaloneDialect.h"
 #include "Standalone/StandaloneOps.h"
 
+#define DECLARE_LOWERING(op) \
+    class op##Lowering : public mlir::OpRewritePattern<op> { \
+    public: \
+        using mlir::OpRewritePattern<op>::OpRewritePattern; \
+         \
+        LogicalResult matchAndRewrite(op, PatternRewriter& rewriter) const override; \
+    };
+
 namespace mlir {
     namespace standalone {
         namespace passes {
@@ -105,6 +113,11 @@ namespace mlir {
 
             LogicalResult matchAndRewrite(Transaction txnOp, PatternRewriter& rewriter) const override;
         };
+
+        DECLARE_LOWERING(Null)
+        DECLARE_LOWERING(AggFinal)
+        DECLARE_LOWERING(AggStep)
+        DECLARE_LOWERING(Copy)
 
         } // namespace passes
     } // namespace standalone

@@ -71,7 +71,7 @@ namespace mlir::standalone::passes {
         // Convert pC->uc.pCursor to a BtCursor*
         auto pCursorAsBtree = bitCast(LOC, pCursor, T::BtCursorPtrTy);
         // Call the advancer function
-        auto rc = call(LOC, toCall, pCursorAsBtree, constants(hintsValue, 32));
+        auto rc = call(LOC, toCall, pCursorAsBtree, constants(hintsValue, 32)).getValue();
 
         print(LOCL, rc, "Advancer result:");
 

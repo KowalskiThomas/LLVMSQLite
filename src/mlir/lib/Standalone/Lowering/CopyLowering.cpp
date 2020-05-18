@@ -1,0 +1,47 @@
+#include <llvm/Support/DynamicLibrary.h>
+
+#include <src/mlir/include/Standalone/ConstantManager.h>
+#include <src/mlir/include/Standalone/Lowering/MyBuilder.h>
+#include "Standalone/AllIncludes.h"
+#include "Standalone/Lowering/AssertOperator.h"
+#include "Standalone/Lowering/Printer.h"
+
+#include "Standalone/StandalonePasses.h"
+#include "Standalone/StandalonePrerequisites.h"
+#include "Standalone/TypeDefinitions.h"
+
+
+namespace mlir::standalone::passes {
+    LogicalResult CopyLowering::matchAndRewrite(Copy txnOp, PatternRewriter &rewriter) const {
+        auto op = &txnOp;
+        LOWERING_PASS_HEADER
+        LOWERING_NAMESPACE
+
+        ConstantManager constants(rewriter, ctx);
+        MyBuilder builder(ctx, constants, rewriter);
+        MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
+        Printer print(ctx, rewriter, __FILE_NAME__);
+        myOperators
+
+        auto firstBlock = rewriter.getBlock();
+
+        auto firstFromRegAttr = txnOp.firstFromRegAttr();
+        auto nFromRegAttr = txnOp.nFromRegAttr();
+        auto firstToRegAttr = txnOp.firstToRegAttr();
+
+        auto firstFromReg = firstFromRegAttr.getSInt();
+        auto nFromReg = nFromRegAttr.getSInt();
+        auto firstToReg = firstToRegAttr.getSInt();
+
+        auto curBlock = rewriter.getBlock();
+        auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
+        auto blockAfterBtNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+        branch(LOC, endBlock);
+
+        ip_start(endBlock);
+        rewriter.eraseOp(txnOp);
+
+        return success();
+    } // matchAndRewrite
+} // namespace mlir::standalone::passes

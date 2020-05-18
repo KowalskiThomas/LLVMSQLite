@@ -60,7 +60,7 @@ namespace mlir::standalone::passes {
             ip_start(blockBtNotNull);
 
             auto rcTemp = call(LOC, f_sqlite3BtreeBeginTrans,
-                    pBtValue, constants(isWriteValue, 32), metaAddr);
+                    pBtValue, constants(isWriteValue, 32), metaAddr).getValue();
             store(LOC, rcTemp, rcAddr);
 
             {
@@ -89,7 +89,8 @@ namespace mlir::standalone::passes {
                 /// rc = sqlite3VtabSavepoint(db, SAVEPOINT_BEGIN, p->iStatement - 1);
                 auto iStatementValue = load(LOC, iStatementAddr);
                 auto iStatementValueMinus1 = add(LOC, iStatementValue, -1);
-                auto tempRc = call(LOC, f_sqlite3VtabSavepoint, constants(SAVEPOINT_BEGIN, 32), iStatementValueMinus1);
+                auto tempRc = call(LOC, f_sqlite3VtabSavepoint,
+                        constants(SAVEPOINT_BEGIN, 32), iStatementValueMinus1).getValue();
                 store(LOC, tempRc, rcAddr);
 
                 /// if (rc == SQLITE_OK)
@@ -101,7 +102,7 @@ namespace mlir::standalone::passes {
                 { // if (rc == SQLITE_OK)
                     ip_start(blockRcIsOk);
 
-                    auto rcTemp = call(LOC, f_sqlite3BtreeBeginStmt, pBtValue, iStatementValue);
+                    auto rcTemp = call(LOC, f_sqlite3BtreeBeginStmt, pBtValue, iStatementValue).getValue();
                     store(LOC, rcTemp, rcAddr);
 
                     branch(LOC, blockAfterRcIsOk);

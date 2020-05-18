@@ -55,7 +55,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         auto curBlock = builder.getBlock();
         // Only certain codes can be jumped back to. This saves a lot of branching.
         auto targetOpCode = vdbe->aOp[targetPc].opcode;
-        if (targetOpCode != OP_Next) {
+        if (targetOpCode != OP_Next && targetOpCode != OP_Halt) {
             continue;
         }
 
@@ -279,7 +279,22 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                                 INTEGER_ATTR(16, true, p5)
                         );
 
-                newWriteBranchOut = true;
+                break;
+            }
+            case OP_Null: {
+                auto setMemCleared = op.p1;
+                auto firstReg = op.p2;
+                auto lastReg = op.p3;
+
+                builder.create<mlir::standalone::Null>
+                        (LOCB,
+                            INTEGER_ATTR(64, false, pc),
+                            INTEGER_ATTR(32, true, setMemCleared),
+                            INTEGER_ATTR(32, true, firstReg),
+                            INTEGER_ATTR(32, true, lastReg)
+                        );
+
+                // lastOpSeen = true;
                 break;
             }
         }
