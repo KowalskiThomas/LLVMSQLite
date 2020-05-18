@@ -34,6 +34,10 @@ ExternFuncOp f_sqlite3VdbeMemMakeWriteable;
 ExternFuncOp f_sqlite3VdbeMemNulTerminate;
 ExternFuncOp f_sqlite3BtreeNext;
 ExternFuncOp f_sqlite3VdbeHalt;
+ExternFuncOp f_sqlite3BtreeBeginTrans;
+ExternFuncOp f_sqlite3VtabSavepoint;
+ExternFuncOp f_sqlite3BtreeBeginStmt;
+
 ExternFuncOp f_debug;
 ExternFuncOp f_assert;
 ExternFuncOp f_memCpy;
@@ -68,6 +72,9 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeMemNulTerminate);
     DECLARE_FUNCTION(sqlite3BtreeNext);
     DECLARE_FUNCTION(sqlite3VdbeHalt);
+    DECLARE_FUNCTION(sqlite3BtreeBeginTrans);
+    DECLARE_FUNCTION(sqlite3VtabSavepoint);
+    DECLARE_FUNCTION(sqlite3BtreeBeginStmt);
 
     DECLARE_FUNCTION(memCpy);
 

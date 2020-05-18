@@ -40,6 +40,9 @@ LLVMFuncOp f_sqlite3VdbeMemMakeWriteable;
 LLVMFuncOp f_sqlite3VdbeMemNulTerminate;
 LLVMFuncOp f_sqlite3BtreeNext;
 LLVMFuncOp f_sqlite3VdbeHalt;
+LLVMFuncOp f_sqlite3BtreeBeginTrans;
+LLVMFuncOp f_sqlite3VtabSavepoint;
+LLVMFuncOp f_sqlite3BtreeBeginStmt;
 
 LLVMFuncOp f_memCpy;
 
@@ -428,6 +431,38 @@ void Prerequisites::generateReferenceTosqlite3VdbeHalt(ModuleOp m, LLVMDialect* 
     GENERATE_SYMBOL(f_sqlite3VdbeHalt, sqlite3VdbeHalt, "sqlite3VdbeHalt");
 }
 
+void Prerequisites::generateReferenceTosqlite3BtreeBeginTrans(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::BtreePtrTy,
+                T::i32Ty,
+                T::i32PtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeBeginTrans, sqlite3BtreeBeginTrans, "sqlite3BtreeBeginTrans");
+}
+
+void Prerequisites::generateReferenceTosqlite3VtabSavepoint(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::sqlite3PtrTy,
+                T::i32Ty,
+                T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VtabSavepoint, sqlite3VtabSavepoint, "sqlite3VtabSavepoint");
+}
+
+void Prerequisites::generateReferenceTosqlite3BtreeBeginStmt(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::BtreePtrTy,
+                T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeBeginStmt, sqlite3BtreeBeginStmt, "sqlite3BtreeBeginStmt");
+}
+
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
@@ -454,6 +489,9 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemNulTerminate);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeNext);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeHalt);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeBeginTrans);
+    CALL_SYMBOL_GENERATOR(sqlite3VtabSavepoint);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeBeginStmt);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

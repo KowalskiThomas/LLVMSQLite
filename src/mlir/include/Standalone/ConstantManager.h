@@ -148,4 +148,13 @@ public:
     mlir::Value operator()(mlir::Type type, X* x) {
         return insertPointer(type, x);
     }
+
+    /**
+     * Wrapper (shorthand) for insertConstant when the constant is a boolean
+     * @param x the boolean value
+     * @return the mlir::Value that has been created
+     */
+    mlir::Value operator()(bool x) {
+        return insertConstant(x ? 1 : 0, 1);
+    }
 };

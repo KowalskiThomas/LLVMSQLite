@@ -51,7 +51,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
     mlir::Block* blockJump;
     mlir::Block* blockAfterJump;
-    CALL_DEBUG
     for(auto targetPc = 0; targetPc < vdbe->nOp; targetPc++) {
         auto curBlock = builder.getBlock();
         // Only certain codes can be jumped back to. This saves a lot of branching.
