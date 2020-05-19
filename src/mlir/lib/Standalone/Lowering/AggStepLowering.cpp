@@ -43,9 +43,11 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(aggStepOp); GO_BACK_TO(curBlock);
 
-
         auto nAddr = alloca(LOC, T::i32PtrTy);
         store(LOC, nReg, nAddr);
+
+        auto rcAddr = alloca(LOC, T::i32PtrTy);
+        store(LOC, 0, rcAddr);
 
         auto mallocSize = nReg * sizeof(sqlite3_value *) +
                 (sizeof(((sqlite3_context*)(nullptr))[0]) + sizeof(Mem) - sizeof(sqlite3_value *));
@@ -237,6 +239,7 @@ namespace mlir::standalone::passes {
                 ip_start(blockIsErrorPos);
 
                 print(LOCL, "TODO: Error while computing aggregate function");
+                store(LOC, isErrorVal, rcAddr);
 
                 branch(LOC, blockAfterIsErrorPos);
             } // end if (pCtx->isError > 0)
@@ -289,24 +292,20 @@ namespace mlir::standalone::passes {
             store(LOC, 0, isErrorAddr);
 
             { // assert rc != 0
-                // TODO: if (rc) goto abort_due_to_error
-                // TODO: the assertion
-            }
+                auto rcVal = load(LOC, rcAddr);
+                auto rcIs0 = iCmp(LOC, Pred::ne, rcVal, 0);
+                myAssert(LOCL, rcIs0);
+            } // end assert rc != 0
 
             branch(LOC, blockAfterIsError);
         } // end if (pCtx->isError)
 
         ip_start(blockAfterIsError);
-        CALL_DEBUG
 
         branch(LOC, endBlock);
 
         ip_start(endBlock);
         rewriter.eraseOp(aggStepOp);
-
-        err("THOMASKOWALSKI");
-        parentModule.dump();
-
 
         return success();
     } // matchAndRewrite
