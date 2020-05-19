@@ -44,6 +44,9 @@ LLVMFuncOp f_sqlite3BtreeBeginTrans;
 LLVMFuncOp f_sqlite3VtabSavepoint;
 LLVMFuncOp f_sqlite3BtreeBeginStmt;
 LLVMFuncOp f_out2Prerelease;
+LLVMFuncOp f_sqlite3VdbeMemInit;
+LLVMFuncOp f_sqlite3DbMallocRawNN;
+LLVMFuncOp f_sqlite3VdbeMemSetInt64;
 
 LLVMFuncOp f_memCpy;
 
@@ -478,6 +481,38 @@ void Prerequisites::generateReferenceToout2Prerelease(ModuleOp m, LLVMDialect* d
     GENERATE_SYMBOL(f_out2Prerelease, out2Prerelease, "out2Prerelease");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeMemInit(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(d), {
+                T::sqlite3_valuePtrTy,
+                T::sqlite3PtrTy,
+                T::i16Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemInit, sqlite3VdbeMemInit, "sqlite3VdbeMemInit");
+}
+
+void Prerequisites::generateReferenceTosqlite3DbMallocRawNN(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i8PtrTy, {
+                T::sqlite3PtrTy,
+                T::i64Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3DbMallocRawNN, sqlite3DbMallocRawNN, "sqlite3DbMallocRawNN");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeMemSetInt64(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(d), {
+                T::sqlite3_valuePtrTy,
+                T::i64Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemSetInt64, sqlite3VdbeMemSetInt64, "sqlite3VdbeMemSetInt64");
+}
+
+#undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
 void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
@@ -508,9 +543,14 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VtabSavepoint);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeBeginStmt);
     CALL_SYMBOL_GENERATOR(out2Prerelease);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemInit);
+    CALL_SYMBOL_GENERATOR(sqlite3DbMallocRawNN);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemSetInt64);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 
     CALL_SYMBOL_GENERATOR(Debug);
     CALL_SYMBOL_GENERATOR(Assert);
 }
+
+#undef CALL_SYMBOL_GENERATOR

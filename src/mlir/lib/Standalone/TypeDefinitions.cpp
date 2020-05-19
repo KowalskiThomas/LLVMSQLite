@@ -136,6 +136,7 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::TriggerPrgPtrTy = T::TriggerPrgTy.getPointerTo();
     T::VdbeFramePtrTy = T::VdbeFrameTy.getPointerTo();
     T::VdbeOpPtrTy = T::VdbeOpTy.getPointerTo();
+    T::p4unionPtrTy = T::p4unionTy.getPointerTo();
     T::AutoincInfoPtrTy = T::AutoincInfoTy.getPointerTo();
     T::TableLockTy = t::createStructTy(d, Optional<StringRef>("TableLock"));
     T::FuncDefPtrTy = T::FuncDefTy.getPointerTo();

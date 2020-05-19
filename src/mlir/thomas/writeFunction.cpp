@@ -297,6 +297,25 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 // lastOpSeen = true;
                 break;
             }
+            case OP_AggStep: {
+                auto p1 = op.p1;
+                auto firstRegFrom = op.p2;
+                auto firstRegTo = op.p3;
+                auto funcDef = op.p4.pFunc;
+                auto nArgs = op.p5;
+
+                builder.create<mlir::standalone::AggStep>
+                        (LOCB,
+                             INTEGER_ATTR(64, false, pc),
+                             INTEGER_ATTR(32, false, p1),
+                             INTEGER_ATTR(32, true, firstRegFrom),
+                             INTEGER_ATTR(32, true, firstRegTo),
+                             INTEGER_ATTR(64, false, (uint64_t)funcDef),
+                             INTEGER_ATTR(16, true, nArgs)
+                        );
+
+                break;
+            }
         }
 
         // Add the block to the blocks map (for use in branches)

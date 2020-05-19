@@ -31,6 +31,10 @@ struct MyBuilder {
         return llvm::Optional<Value>(result);
     }
 
+    CallOp insertCallOp(mlir::Location loc, mlir::Value func, mlir::ValueRange range) {
+        return rewriter.template create<CallOp>(loc, func, range);
+    }
+
     Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, mlir::Value rhs) {
         return rewriter.template create<ICmpOp>(loc, pred, lhs, rhs);
     }
@@ -95,7 +99,9 @@ struct MyBuilder {
         return getBitWidth(v.getType());
     }
 
-    Value insertAddOp(Location loc, Value lhs, int rhs) {
+    template<typename Int>
+    Value insertAddOp(Location loc, Value lhs, Int rhs) {
+        static_assert(std::is_integral<Int>::value);
         auto rightSize = getBitWidth(lhs);
         auto cst = constants(rhs, rightSize);
         return insertAddOp(loc, lhs, cst);
@@ -122,14 +128,18 @@ struct MyBuilder {
     }
 
     void insertStoreOp(Location loc, Value value, Value addr) {
+        auto valueTypeLlvm = value.getType().dyn_cast_or_null<mlir::LLVM::LLVMType>();
+        auto addrTypeLlvm = value.getType().dyn_cast_or_null<mlir::LLVM::LLVMType>();
+        if (valueTypeLlvm && valueTypeLlvm.isPointerTy() && valueTypeLlvm.getPointerElementTy() == addrTypeLlvm) {
+            llvm_unreachable("insertStoreOp: It seems that 'value' and 'addr' arguments have been mismatched.");
+        }
+
         rewriter.template create<StoreOp>(loc, value, addr);
     }
 
     void insertStoreOp(Location loc, int x, Value addr) {
-        // mlir::LLVM::LLVMType::isPointerTy()
         assert(addr.getType().cast<mlir::LLVM::LLVMType>().isPointerTy());
         auto ty = addr.getType().cast<mlir::LLVM::LLVMType>().getPointerElementTy();
-        out(ty);
         assert(ty.isIntegerTy());
         auto width = getBitWidth(ty);
 
@@ -169,7 +179,7 @@ auto getElementPtr = [&builder](mlir::Location loc, mlir::Type ty, Value base, a
 }; \
  \
 auto getElementPtrImm = [&builder, &rewriter, llvmDialect, &constants](mlir::Location loc, mlir::Type ty, Value base, auto... indexes) { \
-    llvm::SmallVector<int, 16> x { indexes... }; \
+    llvm::SmallVector<long long, 16> x { indexes... }; \
     llvm::SmallVector<Value, 16> values; \
     auto intTy = LLVMType::getIntNTy(llvmDialect, 32); \
     for(auto i : x) { \

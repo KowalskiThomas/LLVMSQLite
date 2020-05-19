@@ -38,6 +38,9 @@ ExternFuncOp f_sqlite3BtreeBeginTrans;
 ExternFuncOp f_sqlite3VtabSavepoint;
 ExternFuncOp f_sqlite3BtreeBeginStmt;
 ExternFuncOp f_out2Prerelease;
+ExternFuncOp f_sqlite3VdbeMemInit;
+ExternFuncOp f_sqlite3DbMallocRawNN;
+ExternFuncOp f_sqlite3VdbeMemSetInt64;
 
 ExternFuncOp f_debug;
 ExternFuncOp f_assert;
@@ -77,6 +80,9 @@ public:
     DECLARE_FUNCTION(sqlite3VtabSavepoint);
     DECLARE_FUNCTION(sqlite3BtreeBeginStmt);
     DECLARE_FUNCTION(out2Prerelease);
+    DECLARE_FUNCTION(sqlite3VdbeMemInit);
+    DECLARE_FUNCTION(sqlite3DbMallocRawNN);
+    DECLARE_FUNCTION(sqlite3VdbeMemSetInt64);
 
     DECLARE_FUNCTION(memCpy);
 

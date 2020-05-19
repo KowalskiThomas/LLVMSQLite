@@ -151,7 +151,7 @@ def Standalone_Null : Standalone_Op<"Null"> {
 def Standalone_AggStep : Standalone_Op<"AggStep"> {
     let summary = "TODO";
 
-    let arguments = (ins I32Attr:$firstReg, I32Attr:$toReg, I64Attr:$function, I16Attr:$nReg);
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$firstReg, I32Attr:$toReg, I64Attr:$function, I16Attr:$nReg);
 }
 
 def Standalone_AggFinal : Standalone_Op<"AggFinal"> {

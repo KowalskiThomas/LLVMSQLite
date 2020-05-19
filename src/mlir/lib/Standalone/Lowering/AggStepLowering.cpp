@@ -12,8 +12,8 @@
 
 
 namespace mlir::standalone::passes {
-    LogicalResult AggStepLowering::matchAndRewrite(AggStep txnOp, PatternRewriter &rewriter) const {
-        auto op = &txnOp;
+    LogicalResult AggStepLowering::matchAndRewrite(AggStep aggStepOp, PatternRewriter &rewriter) const {
+        auto op = &aggStepOp;
         LOWERING_PASS_HEADER
         LOWERING_NAMESPACE
 
@@ -25,23 +25,230 @@ namespace mlir::standalone::passes {
 
         auto firstBlock = rewriter.getBlock();
 
-        auto firstRegAttr = txnOp.firstRegAttr();
-        auto nRegAttr = txnOp.nRegAttr();
-        auto functionAttr = txnOp.functionAttr();
+        auto p1Attr = aggStepOp.p1Attr();
+        auto accumulatorRegAttr = aggStepOp.toRegAttr();
+        auto firstRegAttr = aggStepOp.firstRegAttr();
+        auto nRegAttr = aggStepOp.nRegAttr();
+        auto functionAttr = aggStepOp.functionAttr();
 
+        auto p1 = p1Attr.getUInt();
+        auto accumulatorReg = accumulatorRegAttr.getSInt();
         auto firstReg = firstRegAttr.getSInt();
         auto nReg = nRegAttr.getSInt();
         auto functionAddress = functionAttr.getUInt();
 
+        auto pc = aggStepOp.pcAttr().getUInt();
+        auto pOp = &vdbe->aOp[pc];
+
         auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
+        auto endBlock = curBlock->splitBlock(aggStepOp); GO_BACK_TO(curBlock);
 
 
+        auto nAddr = alloca(LOC, T::i32PtrTy);
+        store(LOC, nReg, nAddr);
+
+        auto mallocSize = nReg * sizeof(sqlite3_value *) +
+                (sizeof(((sqlite3_context*)(nullptr))[0]) + sizeof(Mem) - sizeof(sqlite3_value *));
+
+        auto pCtx = alloca(LOC, T::sqlite3_contextPtrTy.getPointerTo());
+        auto pCtxValueVoidStar = call
+                (LOC, f_sqlite3DbMallocRawNN,
+                    constants(T::sqlite3PtrTy, vdbe->db),
+                    constants(mallocSize, 64)
+                ).getValue();
+        auto pCtxValue = bitCast(LOC, pCtxValueVoidStar, T::sqlite3_contextPtrTy);
+        store(LOC, pCtxValue, pCtx);
+
+        { // if (pCtx == 0) goto no_mem
+            // TODO: Here
+        }
+
+        auto pOutAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pCtxValue, 0, 0);
+        auto pFuncAddr = getElementPtrImm(LOC, T::FuncDefPtrTy, pCtxValue, 0, 1);
+        auto pMemAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pCtxValue, 0, 2);
+        auto pVdbeAddr = getElementPtrImm(LOC, T::VdbePtrTy.getPointerTo(), pCtxValue, 0, 3);
+        auto iOpAddr = getElementPtrImm(LOC, T::i32PtrTy, pCtxValue, 0, 4);
+        auto isErrorAddr = getElementPtrImm(LOC, T::i32PtrTy, pCtxValue, 0, 5);
+        auto skipFlagAddr = getElementPtrImm(LOC, T::i8PtrTy, pCtxValue, 0, 6);
+        auto argcAddr = getElementPtrImm(LOC, T::i8PtrTy, pCtxValue, 0, 7);
+        auto argvAddrArr = getElementPtrImm(LOC, T::Arr_1_sqlite3_valuePtrTy, pCtxValue, 0, 8);
+        auto argvAddr = bitCast(LOC, argvAddrArr, T::sqlite3_valuePtrTy);
+        {
+            auto p4TypeAddr = getElementPtrImm(LOC, T::i8PtrTy, constants(T::VdbeOpPtrTy, (void*)pOp), 0, 1);
+            auto p4UnionAddr = rewriter.create<GEPOp>
+                    (LOC, T::p4unionPtrTy, constants(T::VdbeOpPtrTy, pOp), ValueRange {
+                        constants(0, 32),
+                        constants(6, 32)
+                    });
+            auto p4UnionValueAddr = getElementPtrImm(LOC, T::i8PtrTy.getPointerTo(), p4UnionAddr, 0, 0);
+
+
+            /// (Mem *) &(pCtx->argv[n]);
+            auto pOutValue = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, argvAddr, nReg);
+
+            call(LOC, f_sqlite3VdbeMemInit,
+                 pOutValue, // Of type sqlite3_value*
+                 constants(T::sqlite3PtrTy, vdbe->db), // Of type sqlite3*
+                 constants(MEM_Null, 16) // Of type u16
+            );
+
+            store(LOC, constants(T::sqlite3_valuePtrTy, (Mem*)nullptr), pMemAddr);
+            store(LOC, pOutValue, pOutAddr);
+            store(LOC, constants(T::FuncDefPtrTy, (void*)functionAddress), pFuncAddr);
+
+            assert(pc == pOp - vdbe->aOp && "pc is assumed to be pOp - vdbe->aOp");
+            store(LOC, constants(pc, 32), iOpAddr);
+            store(LOC, constants(T::VdbePtrTy, vdbe), pVdbeAddr);
+            store(LOC, 0, skipFlagAddr);
+            store(LOC, 0, isErrorAddr);
+            store(LOC, nReg, argcAddr);
+
+            /// pOp->p4type = P4_FUNCCTX;
+            store(LOC, P4_FUNCCTX, p4TypeAddr);
+            /// pOp->p4.pCtx = pCtx;
+            auto ctxAsI8Ptr = bitCast(LOC, pCtxValue, T::i8PtrTy);
+            store(LOC, ctxAsI8Ptr, p4UnionValueAddr);
+        }
+
+        // TODO: pOp->opcode = OP_AggStep1 // Later
+
+        /** Fallthrough into OP_AggStep */
+
+
+        auto iAddr = alloca(LOC, T::i32PtrTy);
+        auto pMemValue = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[accumulatorReg]);
+
+        auto pCtxPMemAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrPtrTy, pCtxValue, 0, 2);
+        auto pCtxPMemVal = load(LOC, pCtxPMemAddr);
+        auto pCtxPMemEqPMem = iCmp(LOC, Pred::ne, pCtxPMemVal, pMemValue);
+        {
+            // TODO: if pCtx->pMem != pMem
+            print(LOCL, "TODO: if pCtx->pMem != pMem");
+        }
+
+        /// pMem->n++
+        auto pMemNAddr = getElementPtrImm(LOC, T::i32PtrTy, pMemValue, 0, 4);
+        {
+            auto nValue = load(LOC, pMemNAddr);
+            auto nValuePlus1 = add(LOC, nValue, 1);
+            store(LOC, nValuePlus1, pMemNAddr);
+        }
+
+        auto funcDefAddr = load(LOC, pFuncAddr);
+        if (p1) {
+            // void (*xInverse)(sqlite3_context*,int,sqlite3_value**);
+            static auto funcType = LLVMType::getFunctionTy(
+                LLVMType::getVoidTy(llvmDialect), {
+                    T::sqlite3_contextPtrTy,
+                    T::i32Ty,
+                    T::sqlite3_valuePtrPtrTy
+                }, false);
+            auto xInverseAddr = getElementPtrImm(LOC, funcType.getPointerTo(), funcDefAddr, 0, 7);
+            auto argcValue = load(LOC, argcAddr);
+            auto argvValue = load(LOC, argvAddr);
+            // auto f = rewriter.create<LLVMFuncOp>(LOC, xInverseAddr);
+            /* rewriter.create<mlir::LLVM::CallOp>
+                    (LOC, f, ValueRange {
+                        pCtxValue,
+                        argcValue,
+                        argvValue
+                    });
+             */
+        } else {
+
+        }
+
+        auto isErrorVal = load(LOC, isErrorAddr);
+        auto isErrorNotNull = iCmp(LOC, Pred::ne, isErrorVal, 0);
+
+        curBlock = rewriter.getBlock();
+        auto blockAfterIsError = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockIsError = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+        condBranch(LOC, isErrorNotNull, blockIsError, blockAfterIsError);
+        { // if (pCtx->isError)
+            ip_start(blockIsError);
+
+            auto isErrorPositive = iCmp(LOC, Pred::sgt, isErrorVal, 0);
+            auto curBlock = rewriter.getBlock();
+            auto blockAfterIsErrorPos = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+            auto blockIsErrorPos = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+            condBranch(LOC, isErrorPositive, blockIsErrorPos, blockAfterIsErrorPos);
+
+            { // if (pCtx->isError > 0)
+                ip_start(blockIsErrorPos);
+
+                print(LOCL, "TODO: Error while computing aggregate function");
+
+                branch(LOC, blockAfterIsErrorPos);
+            } // end if (pCtx->isError > 0)
+
+            ip_start(blockAfterIsErrorPos);
+
+            auto skipFlagVal = load(LOC, skipFlagAddr);
+            auto skipFlagNotNull = iCmp(LOC, Pred::ne, skipFlagVal, 0);
+
+            curBlock = rewriter.getBlock();
+            auto blockAfterSkipFlagNN = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+            auto blockSkipFlagNN = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+            condBranch(LOC, skipFlagNotNull, blockSkipFlagNN, blockAfterSkipFlagNN);
+
+            { // if (pCtx->skipFlag)
+                ip_start(blockSkipFlagNN);
+
+                assert(pOp[-1].opcode == OP_CollSeq);
+
+                /// i = pOp[-1].p1
+                auto newIValue = pOp[-1].p1;
+                auto pOpMinus1P1 = constants(newIValue, 32);
+                store(LOC, pOpMinus1P1, iAddr);
+
+                /// if (i) sqlite3VdbeMemSetInt64(&aMem[i], 1);
+                if (newIValue) {
+                    ///
+                    call(LOC, f_sqlite3VdbeMemSetInt64,
+                            constants(T::sqlite3_valuePtrTy, &vdbe->aMem[newIValue]),
+                            constants(1, 64)
+                    );
+                }
+
+                store(LOC, 0, skipFlagAddr);
+
+                branch(LOC, blockAfterSkipFlagNN);
+            } // end if (pCtx->skipFlag)
+
+            ip_start(blockAfterSkipFlagNN);
+
+            /// sqlite3VdbeMemRelease(pCtx->pOut);
+            auto pOutValue = load(LOC, pOutAddr);
+            call(LOC, f_sqlite3VdbeMemRelease, pOutValue);
+
+            /// pCtx->pOut->flags = MEM_Null;
+            auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOutValue, 0, 1);
+            store(LOC, MEM_Null, flagsAddr);
+
+            /// pCtx->isError = 0;
+            store(LOC, 0, isErrorAddr);
+
+            { // assert rc != 0
+                // TODO: if (rc) goto abort_due_to_error
+                // TODO: the assertion
+            }
+
+            branch(LOC, blockAfterIsError);
+        } // end if (pCtx->isError)
+
+        ip_start(blockAfterIsError);
+        CALL_DEBUG
 
         branch(LOC, endBlock);
 
         ip_start(endBlock);
-        rewriter.eraseOp(txnOp);
+        rewriter.eraseOp(aggStepOp);
+
+        err("THOMASKOWALSKI");
+        parentModule.dump();
+
 
         return success();
     } // matchAndRewrite
