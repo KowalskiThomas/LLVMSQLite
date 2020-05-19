@@ -30,13 +30,11 @@ namespace mlir::standalone::passes {
         auto firstToRegAttr = txnOp.firstToRegAttr();
 
         auto firstFromReg = firstFromRegAttr.getSInt();
-        auto nReg = nFromRegAttr.getSInt();
+        auto nReg = nFromRegAttr.getSInt() + 1;
         auto firstToReg = firstToRegAttr.getSInt();
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
-
-        out("N regs" << nReg)
 
         for(size_t i = 0; i < nReg; i++) {
             auto pIn = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[firstFromReg + i]);

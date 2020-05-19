@@ -163,7 +163,7 @@ def Standalone_AggFinal : Standalone_Op<"AggFinal"> {
 def Standalone_Copy : Standalone_Op<"Copy"> {
     let summary = "";
 
-    let arguments = (ins I32Attr:$firstFromReg, I32Attr:$nFromReg, I32Attr:$firstToReg);
+    let arguments = (ins I32Attr:$firstFromReg, I32Attr:$firstToReg, I32Attr:$nFromReg);
 }
 
 
