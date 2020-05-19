@@ -33,8 +33,11 @@ namespace mlir {
             return rightSize;
         }
 
-        void printPtr(Location loc, size_t line, Value ptr, const char* msg) {
-            auto value = rewriter.create<mlir::LLVM::LoadOp>(loc, ptr);
+        void printPtr(Location loc, size_t line, Value ptr, const char* msg, bool loadPtr = true) {
+            auto& builder = rewriter;
+            auto value = loadPtr ?
+                         (mlir::Value)rewriter.create<mlir::LLVM::LoadOp>(loc, ptr) :
+                            CONSTANT_INT(0, 64);
             auto extended = rewriter.create<ZExtOp>(loc, T::i64Ty, value);
 
             rewriter.create<LLVM::CallOp>(loc, f_printPtrAndValue, ValueRange {
@@ -73,8 +76,13 @@ namespace mlir {
                        || t == T::i64PtrTy) {
                 printPtr(loc, line, v, msg);
             } else {
-                err("Can't work with type " << v.getType())
-                exit(10);
+                auto tAsLlvm = t.dyn_cast_or_null<mlir::LLVM::LLVMType>();
+                if (tAsLlvm && tAsLlvm.isPointerTy()) {
+                    printPtr(loc, line, v, msg, false);
+                } else {
+                    err("Can't work with type " << v.getType())
+                    exit(10);
+                }
             }
         }
 

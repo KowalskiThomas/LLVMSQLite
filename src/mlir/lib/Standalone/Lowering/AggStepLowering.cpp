@@ -120,11 +120,69 @@ namespace mlir::standalone::passes {
 
         auto pCtxPMemAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrPtrTy, pCtxValue, 0, 2);
         auto pCtxPMemVal = load(LOC, pCtxPMemAddr);
-        auto pCtxPMemEqPMem = iCmp(LOC, Pred::ne, pCtxPMemVal, pMemValue);
+        auto pCtxPMemNePMem = iCmp(LOC, Pred::ne, pCtxPMemVal, pMemValue);
+
+        curBlock = rewriter.getBlock();
+        auto blockAfterPMemNe = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockPMemNe = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        condBranch(LOC, pCtxPMemNePMem, blockPMemNe, blockAfterPMemNe);
         {
-            // TODO: if pCtx->pMem != pMem
-            print(LOCL, "TODO: if pCtx->pMem != pMem");
+            ip_start(blockPMemNe);
+
+            store(LOC, pMemValue, pCtxPMemAddr);
+            auto argcVal_8 = load(LOC, argcAddr);
+            auto argcVal = rewriter.create<ZExtOp>(LOC, T::i32Ty, argcVal_8);
+            auto argcValMinus1 = add(LOC, argcVal, -1);
+            auto iAddr = alloca(LOC, T::i32PtrTy);
+            store(LOC, argcValMinus1, iAddr);
+
+            curBlock = rewriter.getBlock();
+            auto blockAfterFor = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+            auto blockCond = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+            auto blockAction = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+            branch(LOC, blockCond);
+
+            { // Condition block
+                ip_start(blockCond);
+
+                // Load the current value of i
+                auto iVal = load(LOC, iAddr);
+
+                // Check if i >= 0
+                auto iGe0 = iCmp(LOC, Pred::sge, iVal, 0);
+
+                condBranch(LOC, iGe0, blockAction, blockAfterFor);
+            } // End Condition block
+            { // Action block
+                ip_start(blockAction);
+
+                // Load the current value of i
+                auto iVal = load(LOC, iAddr);
+
+                /// pCtx->argv[i] = &aMem[pOp->p2 + i]
+                // &pCtx->argv[i]
+                auto argvIAddr = getElementPtr(LOC, T::sqlite3_valuePtrPtrTy, argvAddr, iVal);
+                // &aMem[pOp->p2 + i]
+                auto p2PlusI = add(LOC, iVal, firstReg);
+                auto newArgvIVal = getElementPtr(LOC, T::sqlite3_valuePtrTy,
+                        constants(T::sqlite3_valuePtrTy, vdbe->aMem),
+                        p2PlusI
+                    );
+
+                /// i--
+                auto iValMinus1 = add(LOC, iVal, -1);
+                store(LOC, iValMinus1, iAddr);
+
+                // Branch back to condition block
+                branch(LOC, blockCond);
+            } // End Action block
+
+            ip_start(blockAfterFor);
+
+            branch(LOC, blockAfterPMemNe);
         }
+        ip_start(blockAfterPMemNe);
 
         /// pMem->n++
         auto pMemNAddr = getElementPtrImm(LOC, T::i32PtrTy, pMemValue, 0, 4);

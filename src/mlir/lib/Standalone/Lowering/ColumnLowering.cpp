@@ -46,8 +46,8 @@ namespace mlir {
                 auto curIdx = rewriter.create<AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
                 rewriter.create<StoreOp>(LOC, curIdxValue, curIdx);
 
-                print(LOCL, "starting op_column");
-                print(LOCL, curIdxValue, "OP_Column: Cursor index");
+                // print(LOCL, "starting op_column");
+                // print(LOCL, curIdxValue, "OP_Column: Cursor index");
 
                 // The address of the array of (pointers to) cursors in the VDBE
                 auto apCsr = constants(T::VdbeCursorPtrPtrTy, vdbe->apCsr);
@@ -257,7 +257,7 @@ namespace mlir {
                 { // if cacheStatus != cacheCtr
                     rewriter.setInsertionPointToStart(blockCacheStatusNeqCacheCtr);
 
-                    print(LOCL, "cacheStatus != cacheCtr");
+                    // print(LOCL, "cacheStatus != cacheCtr");
 
                     auto block = rewriter.getBlock();
                     auto blockNullRow = rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
@@ -292,7 +292,7 @@ namespace mlir {
 
                     { // if pC->nullRow
                         rewriter.setInsertionPointToStart(blockNullRow);
-                        print(LOCL, "pC->nullRow == true");
+                        // print(LOCL, "pC->nullRow == true");
                         auto currentBlock = rewriter.getBlock();
                         auto blockNotCurTypePseudo = SPLIT_BLOCK; GO_BACK_TO(currentBlock);
                         auto blockCurTypePseudo = SPLIT_BLOCK; GO_BACK_TO(currentBlock);
@@ -321,7 +321,7 @@ namespace mlir {
 
                         { // if CURTYPE_PSEUDO
                             rewriter.setInsertionPointToStart(blockCurTypePseudo);
-                            print(LOCL, "pC->eCurType == CURTYPE_PSEUDO");
+                            // print(LOCL, "pC->eCurType == CURTYPE_PSEUDO");
 
                             // pReg = &aMem[pC->seekResult];
                             auto seekResultAddress = rewriter.create<GEPOp>
@@ -375,7 +375,7 @@ namespace mlir {
                         // else (NOT CURTYPE_PSEUDO)
                         {
                             rewriter.setInsertionPointToStart(blockNotCurTypePseudo);
-                            print(LOCL, "NOT pC->eCurType == CURTYPE_PSEUDO");
+                            // print(LOCL, "NOT pC->eCurType == CURTYPE_PSEUDO");
 
                             rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange{
                                 pDest
@@ -386,7 +386,7 @@ namespace mlir {
                     } // end if pC->nullRow
                     { // else of if pC->nullRow
                         rewriter.setInsertionPointToStart(blockNotNullRow);
-                        print(LOCL, "NOT pC->nullRow");
+                        // print(LOCL, "NOT pC->nullRow");
 
                         // Get the address of the cursor from pC->uc.pCursor
                         auto pCrsrAddress = rewriter.create<GEPOp>
@@ -457,19 +457,19 @@ namespace mlir {
                     { // After condition (but still in cacheStatus != cacheCtr)
                         rewriter.setInsertionPointToStart(blockEndCacheNeStatusCacheCtr);
 
-                        print(LOCL, "After if rowNull");
+                        // print(LOCL, "After if rowNull");
 
                         //// pC->cacheStatus = p->cacheCtr;
                         auto newCacheCtr = rewriter.create<LoadOp>(LOC, cacheCtrAddr);
                         rewriter.create<StoreOp>(LOC, newCacheCtr, cacheStatusAddr);
 
-                        print(LOCL, newCacheCtr, "CacheCtr");
+                        // print(LOCL, newCacheCtr, "CacheCtr");
 
                         /// pC->iHdrOffset = getVarint32(pC->aRow, aOffset[0]);
                         auto aRow = rewriter.create<LoadOp>(LOC, pCaRowAddress);
                         generate_getVarint32(/* A = */ aRow, /* B = */ aOffset, /* Result to */ iHdrOffsetAddr);
 
-                        print(LOCL, aRow, "varInt32");
+                        // print(LOCL, aRow, "varInt32");
 
                         rewriter.create<StoreOp>(LOC, constants(0, 16), nHdrParsedAddr);
 
@@ -492,7 +492,7 @@ namespace mlir {
 
                         { // if (pC->szRow < aOffset[0])
                             rewriter.setInsertionPointToStart(blockSzRowLessThanAOffset);
-                            print(LOCL, "pC->szRow < aOffset[0]");
+                            // print(LOCL, "pC->szRow < aOffset[0]");
 
                             /// pC->aRow = (u8*)nullptr;
                             rewriter.create<StoreOp>(LOC, constants(T::i8PtrTy, (u8 *) nullptr), pCaRowAddress);
@@ -505,13 +505,13 @@ namespace mlir {
                         } // end if (pC->szRow < aOffset[0])
                         { // else of if (pC->szRow < aOffset[0])
                             rewriter.setInsertionPointToStart(blockSzRowNotLessThanAOffset);
-                            print(LOCL, "NOT pC->szRow < aOffset[0]");
+                            // print(LOCL, "NOT pC->szRow < aOffset[0]");
 
                             // zData = pC->aRow;
-                            print(LOCL, aRow, "aRowContent");
+                            // print(LOCL, aRow, "aRowContent");
                             rewriter.create<StoreOp>(LOC, aRow, zDataAddress);
 
-                            print(LOCL, "Going to ReadHeader");
+                            // print(LOCL, "Going to ReadHeader");
                             auto brOp = rewriter.create<BranchOp>(LOC, blockAfterSZRowLessThanAOffset);
                             operationToUpdateReadHeader = (Operation*)brOp;
 
@@ -545,7 +545,7 @@ namespace mlir {
                     { // if (pC->nHdrParsed <= p2) (2738)
                         rewriter.setInsertionPointToStart(blockNHdrParsedLtP2);
 
-                        print(LOCL, "pC->nHdrParsed <= p2");
+                        // print(LOCL, "pC->nHdrParsed <= p2");
 
                         auto iHdrOffset = rewriter.create<LoadOp>(LOC, iHdrOffsetAddr);
                         auto aOffset0 = rewriter.create<LoadOp>(LOC, aOffset);
@@ -565,7 +565,7 @@ namespace mlir {
                         { // if (pC->iHdrOffset < aOffset[0])
                             rewriter.setInsertionPointToStart(blockHdrOffsetLtAOffset0);
 
-                            print(LOCL, "pC->iHdrOffset < aOffset[0]");
+                            // print(LOCL, "pC->iHdrOffset < aOffset[0]");
 
                             // if (pC->aRow == 0)
                             auto aRow = rewriter.create<LoadOp>(LOC, pCaRowAddress);
@@ -583,14 +583,14 @@ namespace mlir {
 
                             { // if (pC->aRow == 0)
                                 rewriter.setInsertionPointToStart(blockRowIsNull);
-                                print(LOCL, "TODO: memset(&sMem, 0, sizeof(sMem));");
+                                // print(LOCL, "TODO: memset(&sMem, 0, sizeof(sMem));");
                                 // TODO: memset(&sMem, 0, sizeof(sMem));
                                 // TODO: Lines 144-147
                                 rewriter.create<BranchOp>(LOC, blockAfterRowIsNull);
                             } // end of if (pC->aRow == 0)
                             { // else of if (pC->aRow == 0)
                                 rewriter.setInsertionPointToStart(blockRowIsNotNull);
-                                print(LOCL, "zDataAddress = pC->aRow");
+                                // print(LOCL, "zDataAddress = pC->aRow");
                                 rewriter.create<StoreOp>(LOC, aRow, zDataAddress);
                                 rewriter.create<BranchOp>(LOC, blockAfterRowIsNull);
                             } // end of else of if (pC->aRow == 0)
@@ -1329,7 +1329,7 @@ namespace mlir {
                 } // End after cacheStatus != cacheCtr
 
                 rewriter.setInsertionPointToStart(blockColumnEnd);
-                print(LOCL, "op_column_out: ending");
+                // print(LOCL, "op_column_out: ending");
 
                 rewriter.eraseOp(colOp);
                 return success();
