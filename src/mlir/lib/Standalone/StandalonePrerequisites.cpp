@@ -50,6 +50,8 @@ LLVMFuncOp f_sqlite3VdbeMemSetInt64;
 LLVMFuncOp f_sqlite3VdbeMemFinalize;
 LLVMFuncOp f_sqlite3VdbeChangeEncoding;
 LLVMFuncOp f_sqlite3VdbeMemShallowCopy;
+LLVMFuncOp f_callXInversePtr;
+LLVMFuncOp f_callXSFuncPtr;
 
 LLVMFuncOp f_memCpy;
 
@@ -546,6 +548,59 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemShallowCopy(ModuleOp m, LLV
     GENERATE_SYMBOL(f_sqlite3VdbeMemShallowCopy, sqlite3VdbeMemShallowCopy, "sqlite3VdbeMemShallowCopy");
 }
 
+extern "C" {
+    typedef void (*XInversePtr)(sqlite3_context*, int, sqlite3_value**);
+    void callXInversePtr(XInversePtr func, sqlite3_context* context, int i, sqlite3_value** value) {
+        func(context, i, value);
+    }
+}
+
+void Prerequisites::generateReferenceTocallXInversePtr(mlir::ModuleOp m, LLVMDialect * d) {
+    static auto calleeType = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(d), {
+                    T::sqlite3_contextPtrTy,
+                    T::i32Ty,
+                    T::sqlite3_valuePtrPtrTy
+            }, false);
+
+    auto funcTy = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(d), {
+                    calleeType.getPointerTo(),
+                    T::sqlite3_contextPtrTy,
+                    T::i32Ty,
+                    T::sqlite3_valuePtrPtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_callXInversePtr, callXInversePtr, "callXInversePtr");
+}
+
+extern "C" {
+    typedef void (*XSFuncPtr)(sqlite3_context*, int, sqlite3_value**);
+    void callXSFuncPtr(XSFuncPtr func, sqlite3_context* ctx, int argc, sqlite3_value** argv) {
+        func(ctx, argc, argv);
+    }
+}
+
+void Prerequisites::generateReferenceTocallXSFuncPtr(mlir::ModuleOp m, LLVMDialect* d) {
+    static auto calleeType = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(d), {
+                    T::sqlite3_contextPtrTy,
+                    T::i32Ty,
+                    T::sqlite3_valuePtrPtrTy
+            }, false);
+
+    auto funcTy = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(d), {
+                    T::i64Ty,
+                    T::sqlite3_contextPtrTy,
+                    T::i32Ty,
+                    T::sqlite3_valuePtrPtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_callXSFuncPtr, callXSFuncPtr, "callXSFuncPtr");
+
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
@@ -583,6 +638,8 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemFinalize);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeChangeEncoding);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemShallowCopy);
+    CALL_SYMBOL_GENERATOR(callXInversePtr);
+    CALL_SYMBOL_GENERATOR(callXSFuncPtr);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

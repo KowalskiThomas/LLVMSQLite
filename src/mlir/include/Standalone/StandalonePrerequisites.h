@@ -44,6 +44,8 @@ ExternFuncOp f_sqlite3VdbeMemSetInt64;
 ExternFuncOp f_sqlite3VdbeMemFinalize;
 ExternFuncOp f_sqlite3VdbeChangeEncoding;
 ExternFuncOp f_sqlite3VdbeMemShallowCopy;
+ExternFuncOp f_callXInversePtr;
+ExternFuncOp f_callXSFuncPtr;
 
 ExternFuncOp f_debug;
 ExternFuncOp f_assert;
@@ -89,6 +91,8 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeMemFinalize);
     DECLARE_FUNCTION(sqlite3VdbeChangeEncoding);
     DECLARE_FUNCTION(sqlite3VdbeMemShallowCopy);
+    DECLARE_FUNCTION(callXInversePtr);
+    DECLARE_FUNCTION(callXSFuncPtr);
 
     DECLARE_FUNCTION(memCpy);
 

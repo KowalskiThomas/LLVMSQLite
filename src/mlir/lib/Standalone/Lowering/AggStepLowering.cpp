@@ -38,19 +38,19 @@ namespace mlir::standalone::passes {
         auto functionAddress = functionAttr.getUInt();
 
         auto pc = aggStepOp.pcAttr().getUInt();
-        auto pOp = &vdbe->aOp[pc];
+        VdbeOp* pOp = &vdbe->aOp[pc];
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(aggStepOp); GO_BACK_TO(curBlock);
 
-        auto nAddr = alloca(LOC, T::i32PtrTy);
-        store(LOC, nReg, nAddr);
+        // auto nAddr = alloca(LOC, T::i32PtrTy);
+        // store(LOC, nReg, nAddr);
 
         auto rcAddr = alloca(LOC, T::i32PtrTy);
         store(LOC, 0, rcAddr);
 
         auto mallocSize = nReg * sizeof(sqlite3_value *) +
-                (sizeof(((sqlite3_context*)(nullptr))[0]) + sizeof(Mem) - sizeof(sqlite3_value *));
+                (sizeof(sqlite3_context) + sizeof(Mem) - sizeof(sqlite3_value *));
 
         auto pCtx = alloca(LOC, T::sqlite3_contextPtrTy.getPointerTo());
         auto pCtxValueVoidStar = call
@@ -66,7 +66,7 @@ namespace mlir::standalone::passes {
         }
 
         auto pOutAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pCtxValue, 0, 0);
-        auto pFuncAddr = getElementPtrImm(LOC, T::FuncDefPtrTy, pCtxValue, 0, 1);
+        auto pFuncAddr = getElementPtrImm(LOC, T::FuncDefPtrTy.getPointerTo(), pCtxValue, 0, 1);
         auto pMemAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pCtxValue, 0, 2);
         auto pVdbeAddr = getElementPtrImm(LOC, T::VdbePtrTy.getPointerTo(), pCtxValue, 0, 3);
         auto iOpAddr = getElementPtrImm(LOC, T::i32PtrTy, pCtxValue, 0, 4);
@@ -74,9 +74,10 @@ namespace mlir::standalone::passes {
         auto skipFlagAddr = getElementPtrImm(LOC, T::i8PtrTy, pCtxValue, 0, 6);
         auto argcAddr = getElementPtrImm(LOC, T::i8PtrTy, pCtxValue, 0, 7);
         auto argvAddrArr = getElementPtrImm(LOC, T::Arr_1_sqlite3_valuePtrTy, pCtxValue, 0, 8);
-        auto argvAddr = bitCast(LOC, argvAddrArr, T::sqlite3_valuePtrTy);
+        auto argvAddr = bitCast(LOC, argvAddrArr, T::sqlite3_valuePtrPtrTy);
+
         {
-            auto p4TypeAddr = getElementPtrImm(LOC, T::i8PtrTy, constants(T::VdbeOpPtrTy, (void*)pOp), 0, 1);
+            auto p4TypeAddr = getElementPtrImm(LOC, T::i8PtrTy, constants(T::VdbeOpPtrTy, pOp), 0, 1);
             auto p4UnionAddr = rewriter.create<GEPOp>
                     (LOC, T::p4unionPtrTy, constants(T::VdbeOpPtrTy, pOp), ValueRange {
                         constants(0, 32),
@@ -86,7 +87,8 @@ namespace mlir::standalone::passes {
 
 
             /// (Mem *) &(pCtx->argv[n]);
-            auto pOutValue = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, argvAddr, nReg);
+            auto pOutValueUncasted = getElementPtrImm(LOC, T::sqlite3_valuePtrPtrTy, argvAddr, nReg);
+            auto pOutValue = bitCast(LOC, pOutValueUncasted, T::sqlite3_valuePtrTy);
 
             call(LOC, f_sqlite3VdbeMemInit,
                  pOutValue, // Of type sqlite3_value*
@@ -116,7 +118,7 @@ namespace mlir::standalone::passes {
 
         /** Fallthrough into OP_AggStep */
 
-
+        /// int i;
         auto iAddr = alloca(LOC, T::i32PtrTy);
         auto pMemValue = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[accumulatorReg]);
 
@@ -171,6 +173,8 @@ namespace mlir::standalone::passes {
                         constants(T::sqlite3_valuePtrTy, vdbe->aMem),
                         p2PlusI
                     );
+                /// pCtx->argv[i] = &aMem[pOp->p2 + i];
+                store(LOC, newArgvIVal, argvIAddr);
 
                 /// i--
                 auto iValMinus1 = add(LOC, iVal, -1);
@@ -195,28 +199,25 @@ namespace mlir::standalone::passes {
         }
 
         auto funcDefAddr = load(LOC, pFuncAddr);
-        if (p1) {
-            // void (*xInverse)(sqlite3_context*,int,sqlite3_value**);
-            // TODO: Call the function
-            static auto funcType = LLVMType::getFunctionTy(
-                LLVMType::getVoidTy(llvmDialect), {
+        static auto funcType = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(llvmDialect), {
                     T::sqlite3_contextPtrTy,
                     T::i32Ty,
                     T::sqlite3_valuePtrPtrTy
-                }, false);
+            }, false);
+        auto argcValue = load(LOC, argcAddr);
+        CALL_DEBUG
+        if (p1) {
+            assert(false);
             auto xInverseAddr = getElementPtrImm(LOC, funcType.getPointerTo(), funcDefAddr, 0, 7);
-            auto argcValue = load(LOC, argcAddr);
-            auto argvValue = load(LOC, argvAddr);
-            // auto f = rewriter.create<LLVMFuncOp>(LOC, xInverseAddr);
-            /* rewriter.create<mlir::LLVM::CallOp>
-                    (LOC, f, ValueRange {
-                        pCtxValue,
-                        argcValue,
-                        argvValue
-                    });
-             */
+            // call(LOC, f_callXInversePtr, load(LOC, xInverseAddr), pCtxValue, argcValue, argvAddr);
         } else {
-
+            CALL_DEBUG
+            auto xSFuncAddr = getElementPtrImm(LOC, funcType.getPointerTo().getPointerTo(), funcDefAddr, 0, 4);
+            auto xsFuncAddrAsI64Ptr = bitCast(LOC, xSFuncAddr, T::i64PtrTy);
+            auto xsFunc = load(LOC, xsFuncAddrAsI64Ptr);
+            auto argcValue32 = rewriter.create<ZExtOp>(LOC, T::i32Ty, argcValue);
+            call(LOC, f_callXSFuncPtr, xsFunc, pCtxValue, argcValue32, argvAddr);
         }
 
         auto isErrorVal = load(LOC, isErrorAddr);
