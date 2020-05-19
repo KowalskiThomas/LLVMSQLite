@@ -330,6 +330,19 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 break;
             }
+            case OP_Copy: {
+                auto firstRegTo = op.p1;
+                auto firstRegFrom = op.p2;
+                auto nRegs = op.p3;
+
+                builder.create<mlir::standalone::Copy>
+                        (LOCB,
+                         INTEGER_ATTR(32, true, firstRegTo),
+                         INTEGER_ATTR(32, true, firstRegFrom),
+                         INTEGER_ATTR(32, true, nRegs)
+                        );
+
+            }
         }
 
         // Add the block to the blocks map (for use in branches)
