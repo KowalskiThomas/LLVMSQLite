@@ -197,6 +197,7 @@ namespace mlir::standalone::passes {
         auto funcDefAddr = load(LOC, pFuncAddr);
         if (p1) {
             // void (*xInverse)(sqlite3_context*,int,sqlite3_value**);
+            // TODO: Call the function
             static auto funcType = LLVMType::getFunctionTy(
                 LLVMType::getVoidTy(llvmDialect), {
                     T::sqlite3_contextPtrTy,

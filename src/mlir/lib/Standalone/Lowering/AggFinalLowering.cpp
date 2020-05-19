@@ -29,9 +29,28 @@ namespace mlir::standalone::passes {
         auto nArgsAttr = txnOp.nArgsAttr();
         auto toRegAttr = txnOp.toRegAttr();
 
+        auto accumReg = toRegAttr.getSInt();
+        auto pFunc = constants(T::FuncDefPtrTy, (void*)functionAttr.getUInt());
+
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
-        auto blockAfterBtNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+        auto pMem = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[accumReg]);
+
+        auto rcAddr = alloca(LOC, T::i32PtrTy);
+        auto rcTemp = call(LOC, f_sqlite3VdbeMemFinalize, pMem, pFunc).getValue();
+        store(LOC, rcTemp, rcAddr);
+
+        { // assert rc == 0
+            auto rcIs0 = iCmp(LOC, Pred::eq, rcTemp, 0);
+            myAssert(LOCL, rcIs0);
+        } // end assert rc == 0
+
+        call(LOC, f_sqlite3VdbeChangeEncoding, pMem, constants(vdbe->db->enc, 32));
+
+        { //
+            // TODO: if (sqlite3VdbeMemTooBig(pMem)) goto too_big;
+        } //
 
         branch(LOC, endBlock);
 

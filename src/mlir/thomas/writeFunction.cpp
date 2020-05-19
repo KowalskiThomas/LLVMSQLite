@@ -316,6 +316,20 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 break;
             }
+            case OP_AggFinal: {
+                auto p1 = op.p1;
+                auto nArgs = op.p2;
+                auto funcDef = op.p4.pFunc;
+
+                builder.create<mlir::standalone::AggFinal>
+                        (LOCB,
+                            INTEGER_ATTR(32, true, p1),
+                            INTEGER_ATTR(32, false, nArgs),
+                            INTEGER_ATTR(64, false, (uint64_t)funcDef)
+                        );
+
+                break;
+            }
         }
 
         // Add the block to the blocks map (for use in branches)

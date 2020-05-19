@@ -47,6 +47,8 @@ LLVMFuncOp f_out2Prerelease;
 LLVMFuncOp f_sqlite3VdbeMemInit;
 LLVMFuncOp f_sqlite3DbMallocRawNN;
 LLVMFuncOp f_sqlite3VdbeMemSetInt64;
+LLVMFuncOp f_sqlite3VdbeMemFinalize;
+LLVMFuncOp f_sqlite3VdbeChangeEncoding;
 
 LLVMFuncOp f_memCpy;
 
@@ -512,6 +514,26 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemSetInt64(ModuleOp m, LLVMDi
     GENERATE_SYMBOL(f_sqlite3VdbeMemSetInt64, sqlite3VdbeMemSetInt64, "sqlite3VdbeMemSetInt64");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeMemFinalize(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::sqlite3_valuePtrTy,
+                T::FuncDefPtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemFinalize, sqlite3VdbeMemFinalize, "sqlite3VdbeMemFinalize");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeChangeEncoding(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::sqlite3_valuePtrTy,
+                T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeChangeEncoding, sqlite3VdbeChangeEncoding, "sqlite3VdbeChangeEncoding");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
@@ -546,6 +568,8 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemInit);
     CALL_SYMBOL_GENERATOR(sqlite3DbMallocRawNN);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemSetInt64);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemFinalize);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeChangeEncoding);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 
