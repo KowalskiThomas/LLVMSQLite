@@ -19,7 +19,6 @@ set(LIBS
 
 add_library(sqlite_jit
     sqlite_bridge.cpp
-    runJit.cpp
     writeFunction.cpp
 )
 llvm_update_compile_flags(sqlite_jit)

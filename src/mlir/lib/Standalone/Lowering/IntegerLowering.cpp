@@ -27,9 +27,20 @@ namespace mlir::standalone::passes {
 
         auto value = intOp.valueAttr().getSInt();
         auto dest = intOp.destAttr().getSInt();
+        auto pc = intOp.pcAttr().getUInt();
+
+        auto pOp = constants(T::VdbeOpPtrTy, &vdbe->aOp[pc]);
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(intOp); GO_BACK_TO(curBlock);
+
+        auto pOutValue = call(LOC, f_out2Prerelease, constants(T::VdbePtrTy, vdbe), pOp).getValue();
+
+        // Get &pOut->u.i
+        auto pOutUAddressBeforeCast = getElementPtrImm(LOC, T::doublePtrTy, pOutValue, 0, 0, 0);
+        auto pOutUAddress = bitCast(LOC, pOutUAddressBeforeCast, T::i32PtrTy);
+
+        store(LOC, value, pOutUAddress);
 
         branch(LOC, endBlock);
 

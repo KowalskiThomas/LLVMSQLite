@@ -30,12 +30,15 @@ namespace mlir::standalone::passes {
         auto dest = mrOp.destAttr().getSInt();
         auto affinities = mrOp.affinitiesAttr().getUInt();
 
-        auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(mrOp); GO_BACK_TO(curBlock);
+//        auto curBlock = rewriter.getBlock();
+//        auto endBlock = curBlock->splitBlock(mrOp); GO_BACK_TO(curBlock);
+//
+//        branch(LOC, endBlock);
+//
+//        ip_start(endBlock);
 
-        branch(LOC, endBlock);
+        print(LOCL, "TODO: Implement MakeRecord Lowering");
 
-        ip_start(endBlock);
         rewriter.eraseOp(mrOp);
 
         return success();

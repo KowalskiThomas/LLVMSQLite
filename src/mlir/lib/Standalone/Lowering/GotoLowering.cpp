@@ -8,13 +8,13 @@ namespace mlir {
     namespace standalone {
         namespace passes {
             LogicalResult
-            GotoLowering::matchAndRewrite(Goto jumpOp, PatternRewriter &rewriter) const {
-                auto op = &jumpOp;
+            GotoLowering::matchAndRewrite(Goto gotoOp, PatternRewriter &rewriter) const {
+                auto op = &gotoOp;
                 LOWERING_PASS_HEADER
 
-                rewriter.create<mlir::BranchOp>(LOC, jumpOp.dest());
+                rewriter.create<mlir::BranchOp>(LOC, gotoOp.dest());
 
-                rewriter.eraseOp(jumpOp);
+                rewriter.eraseOp(gotoOp);
                 return success();
             } // matchAndRewrite
         } // namespace passes

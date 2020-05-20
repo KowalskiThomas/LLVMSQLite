@@ -29,12 +29,15 @@ namespace mlir::standalone::passes {
         auto reg = opOp.regAttr().getSInt();
         auto nFields = opOp.nFieldsAttr().getSInt();
 
-        auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(opOp); GO_BACK_TO(curBlock);
+//        auto curBlock = rewriter.getBlock();
+//        auto endBlock = curBlock->splitBlock(opOp); GO_BACK_TO(curBlock);
+//
+//        branch(LOC, endBlock);
+//
+//        ip_start(endBlock);
 
-        branch(LOC, endBlock);
+        print(LOCL, "TODO: Implement OpenPseudo Lowering");
 
-        ip_start(endBlock);
         rewriter.eraseOp(opOp);
 
         return success();

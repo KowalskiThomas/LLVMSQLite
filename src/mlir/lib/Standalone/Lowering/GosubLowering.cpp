@@ -28,12 +28,15 @@ namespace mlir::standalone::passes {
         auto writeAddressTo = gsOp.writeAddressToAttr().getSInt();
         auto jumpTo = gsOp.jumpToAttr().getSInt();
 
-        auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(gsOp); GO_BACK_TO(curBlock);
+//        auto curBlock = rewriter.getBlock();
+//        auto endBlock = curBlock->splitBlock(gsOp); GO_BACK_TO(curBlock);
+//
+//        branch(LOC, endBlock);
+//
+//        ip_start(endBlock);
 
-        branch(LOC, endBlock);
+        print(LOCL, "TODO: Implement Gosub Lowering");
 
-        ip_start(endBlock);
         rewriter.eraseOp(gsOp);
 
         return success();

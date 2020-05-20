@@ -12,8 +12,8 @@
 
 
 namespace mlir::standalone::passes {
-    LogicalResult SorterOpenLowering::matchAndRewrite(SorterOpen soOp, PatternRewriter &rewriter) const {
-        auto op = &soOp;
+    LogicalResult CompareLowering::matchAndRewrite(Compare compOp, PatternRewriter &rewriter) const {
+        auto op = &compOp;
         LOWERING_PASS_HEADER
         LOWERING_NAMESPACE
 
@@ -25,21 +25,22 @@ namespace mlir::standalone::passes {
 
         auto firstBlock = rewriter.getBlock();
 
-        auto curIdx = soOp.curIdxAttr().getSInt();
-        auto nCol = soOp.nColAttr().getSInt();
-        auto p3 = soOp.p3Attr().getSInt();
-        auto p4 = soOp.p4Attr().getUInt();
+        auto firstLhs = compOp.firstLhsAttr().getSInt();
+        auto firstRhs = compOp.firstRhsAttr().getSInt();
+        auto nReg = compOp.nRegAttr().getSInt();
+        auto flags = compOp.flagsAttr().getUInt();
+        auto keyInfo = compOp.keyInfoAttr().getUInt();
 
         // auto curBlock = rewriter.getBlock();
-        // auto endBlock = curBlock->splitBlock(soOp); GO_BACK_TO(curBlock);
+        // auto endBlock = curBlock->splitBlock(compOp); GO_BACK_TO(curBlock);
 
         // branch(LOC, endBlock);
 
         // ip_start(endBlock);
 
-        print(LOCL, "TODO: Implement SorterOpenLowering");
+        print(LOCL, "TODO: Implement Compare Lowering");
 
-        rewriter.eraseOp(soOp);
+        rewriter.eraseOp(compOp);
 
         return success();
     } // matchAndRewrite

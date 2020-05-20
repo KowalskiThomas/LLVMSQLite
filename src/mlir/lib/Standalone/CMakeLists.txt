@@ -1,24 +1,32 @@
 set(LOWERING_FILES
-    Lowering/InitLowering.cpp
-    Lowering/GotoLowering.cpp
-    Lowering/NoopLowering.cpp
-    Lowering/HaltLowering.cpp
-    Lowering/OpenReadLowering.cpp
-    Lowering/RewindLowering.cpp
-    Lowering/ColumnLowering.cpp
-    Lowering/ResultRowLowering.cpp
-    Lowering/NextLowering.cpp
-    Lowering/TransactionLowering.cpp
     Lowering/AggFinalLowering.cpp
     Lowering/AggStepLowering.cpp
-    Lowering/NullLowering.cpp
+    Lowering/ColumnLowering.cpp
+    Lowering/CompareLowering.cpp
     Lowering/CopyLowering.cpp
-    Lowering/SorterOpenLowering.cpp
-    Lowering/IntegerLowering.cpp
     Lowering/GosubLowering.cpp
+    Lowering/GotoLowering.cpp
+    Lowering/HaltLowering.cpp
+    Lowering/IfPosLowering.cpp
+    Lowering/InitLowering.cpp
+    Lowering/IntegerLowering.cpp
+    Lowering/JumpLowering.cpp
     Lowering/MakeRecordLowering.cpp
-    Lowering/SorterInsertLowering.cpp
+    Lowering/MoveLowering.cpp
+    Lowering/NextLowering.cpp
+    Lowering/NoopLowering.cpp
+    Lowering/NullLowering.cpp
     Lowering/OpenPseudoLowering.cpp
+    Lowering/OpenReadLowering.cpp
+    Lowering/ResultRowLowering.cpp
+    Lowering/ReturnLowering.cpp
+    Lowering/RewindLowering.cpp
+    Lowering/SorterDataLowering.cpp
+    Lowering/SorterInsertLowering.cpp
+    Lowering/SorterNextLowering.cpp
+    Lowering/SorterOpenLowering.cpp
+    Lowering/SorterSortLowering.cpp
+    Lowering/TransactionLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

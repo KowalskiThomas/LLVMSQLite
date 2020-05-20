@@ -23,17 +23,20 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
-        auto firstBlock = rewriter.getBlock();
+//        auto firstBlock = rewriter.getBlock();
+//
+//        auto curIdx = siOp.curIdxAttr().getSInt();
+//        auto reg = siOp.regAttr().getSInt();
+//
+//        auto curBlock = rewriter.getBlock();
+//        auto endBlock = curBlock->splitBlock(siOp); GO_BACK_TO(curBlock);
+//
+//        branch(LOC, endBlock);
+//
+//        ip_start(endBlock);
 
-        auto curIdx = siOp.curIdxAttr().getSInt();
-        auto reg = siOp.regAttr().getSInt();
+        print(LOCL, "TODO: Implement SorterInsert Lowering");
 
-        auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(siOp); GO_BACK_TO(curBlock);
-
-        branch(LOC, endBlock);
-
-        ip_start(endBlock);
         rewriter.eraseOp(siOp);
 
         return success();

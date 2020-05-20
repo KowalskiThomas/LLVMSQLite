@@ -99,7 +99,7 @@ def Standalone_SorterOpen : Standalone_Op<"SorterOpen"> {
 }
 
 def Standalone_Integer : Standalone_Op<"Integer"> {
-    let arguments = (ins I32Attr:$value, I32Attr:$dest);
+    let arguments = (ins I64Attr:$pc, I32Attr:$value, I32Attr:$dest);
 }
 
 def Standalone_Gosub : Standalone_Op<"Gosub"> {
@@ -117,5 +117,54 @@ def Standalone_SorterInsert : Standalone_Op<"SorterInsert"> {
 def Standalone_OpenPseudo : Standalone_Op<"OpenPseudo"> {
     let arguments = (ins I32Attr:$curIdx, I32Attr:$reg, I32Attr:$nFields);
 }
+
+def Standalone_Return : Standalone_Op<"Return", [Terminator]> {
+    // let arguments = (ins I32Attr:$continueAtNextInstructionFromReg);
+
+    let successors = (successor AnySuccessor:$continueAt);
+}
+
+def Standalone_SorterSort : Standalone_Op<"SorterSort", [Terminator]> {
+    let arguments = (ins I32Attr:$curIdx);
+
+    let successors = (successor AnySuccessor:$jumpToIfEmpty, AnySuccessor:$fallthrough);
+}
+
+def Standalone_SorterData : Standalone_Op<"SorterData"> {
+    let arguments = (ins I32Attr:$curIdx, I32Attr:$reg, I32Attr:$curClearHeader);
+}
+
+def Standalone_Compare : Standalone_Op<"Compare"> {
+    let arguments = (ins I32Attr:$firstLhs, I32Attr:$firstRhs, I32Attr:$nReg, I64Attr:$keyInfo, I16Attr:$flags);
+}
+
+def Standalone_Jump : Standalone_Op<"Jump", [Terminator]> {
+    // let arguments = (ins I32Attr:$ifLess, I32Attr:$ifEqual, I32Attr:$ifGreater);
+
+    let successors = (successor AnySuccessor:$ifLess, AnySuccessor:$ifEqual, AnySuccessor:$ifGreater);
+}
+
+def Standalone_Move : Standalone_Op<"Move"> {
+    let arguments = (ins I32Attr:$firstFromReg, I32Attr:$firstToReg, I32Attr:$nReg);
+}
+
+def Standalone_IfPos : Standalone_Op<"IfPos", [Terminator]> {
+    let arguments = (ins I32Attr:$integerReg, I32Attr:$toSubtract);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
+}
+
+def Standalone_SorterNext : Standalone_Op<"SorterNext", [Terminator]> {
+    let arguments = (ins I32Attr:$curIdx, I32Attr:$hints);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
+}
+
+/*
+def Standalone_ : Standalone_Op<""> {
+    let arguments = (ins I32Attr:$curIdx, I32Attr:$reg, I32Attr:$nFields);
+}
+*/
+
 
 #endif // STANDALONE_OPS

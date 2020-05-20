@@ -33,7 +33,7 @@ namespace mlir {
         public:
             using mlir::OpRewritePattern<Goto>::OpRewritePattern;
 
-            LogicalResult matchAndRewrite(Goto op, PatternRewriter& rewriter) const override;
+            LogicalResult matchAndRewrite(Goto gotoOp, PatternRewriter& rewriter) const override;
         };
 
         class HaltLowering : public mlir::OpRewritePattern<Halt> {
@@ -95,6 +95,14 @@ namespace mlir {
         DECLARE_LOWERING(MakeRecord)
         DECLARE_LOWERING(SorterInsert)
         DECLARE_LOWERING(OpenPseudo)
+        DECLARE_LOWERING(SorterSort)
+        DECLARE_LOWERING(SorterData)
+        DECLARE_LOWERING(SorterNext)
+        DECLARE_LOWERING(Compare)
+        DECLARE_LOWERING(Jump)
+        DECLARE_LOWERING(Move)
+        DECLARE_LOWERING(IfPos)
+        DECLARE_LOWERING(Return)
 
         } // namespace passes
     } // namespace standalone
