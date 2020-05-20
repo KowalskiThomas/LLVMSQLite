@@ -59,7 +59,7 @@ namespace mlir {
 
         void printInt(Location loc, size_t line, Value v, const char* msg) {
             auto extended = rewriter.create<ZExtOp>(loc, T::i64Ty, v);
-            rewriter.create<mlir::LLVM::CallOp>(loc, f_printPtr, ValueRange {
+            rewriter.create<mlir::LLVM::CallOp>(loc, f_printInt, ValueRange {
                     rewriter.create<mlir::LLVM::PtrToIntOp>(loc, T::i64Ty, extended),
                     rewriter.create<mlir::ConstantIntOp>(loc, reinterpret_cast<const uint64_t>(msg), 64),
                     rewriter.create<mlir::ConstantIntOp>(loc, line, 32),

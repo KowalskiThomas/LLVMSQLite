@@ -16,9 +16,10 @@ include "mlir/Interfaces/SideEffects.td"
 def MemValue : TypeAlias<OpaqueType<"standalone", "MemValue", "A MemValue">>;
 def Register : TypeAlias<MemRefOf<[MemValue]>>;
 def ProgrammeCounter : TypeAlias<I64, "ProgrammeCounter">;
-def Integer : TypeAlias<I64, "Integer">;
+// def Integer : TypeAlias<I64, "Integer">;
 def Vdbe : TypeAlias<OpaqueType<"standalone", "VdbeState", "A VDBE">>;
 
+/*
 def Standalone_FooOp : Standalone_Op<"foo", [NoSideEffect]> {
     let summary = "Illustrates how to define an operation.";
     let description = [{
@@ -44,6 +45,7 @@ def Standalone_FooOp : Standalone_Op<"foo", [NoSideEffect]> {
     ];
     */
 }
+*/
 
 def Standalone_InitReg : Standalone_Op<"InitReg"> {
     let summary = "Initialises a new register";
@@ -57,6 +59,7 @@ def Standalone_InitReg : Standalone_Op<"InitReg"> {
     ];
 }
 
+/*
 def Standalone_Plus32Op : Standalone_Op<"plus32"> {
     let summary = "adds 32";
     let arguments = (ins I32:$val);
@@ -66,13 +69,16 @@ def Standalone_Plus32Op : Standalone_Op<"plus32"> {
         $val attr-dict `:` type($result)
     }];
 }
+*/
 
+/*
 def Standalone_IntegerOp : Standalone_Op<"Integer"> {
     let summary = "Puts an integer in a register";
 
     let arguments = (ins Register:$reg, I32Attr:$val);
     // let results = (outs )
 }
+*/
 
 def Standalone_OpenCursorOp : Standalone_Op<"OpenCursor"> {
     let summary = "Opens a cursor";
@@ -166,5 +172,28 @@ def Standalone_Copy : Standalone_Op<"Copy"> {
     let arguments = (ins I32Attr:$firstFromReg, I32Attr:$firstToReg, I32Attr:$nFromReg);
 }
 
+def Standalone_SorterOpen : Standalone_Op<"SorterOpen"> {
+    let arguments = (ins I32Attr:$curIdx, I32Attr:$nCol, I32Attr:$p3, I64Attr:$p4);
+}
+
+def Standalone_Integer : Standalone_Op<"Integer"> {
+    let arguments = (ins I32Attr:$value, I32Attr:$dest);
+}
+
+def Standalone_Gosub : Standalone_Op<"Gosub"> {
+    let arguments = (ins I32Attr:$writeAddressTo, I32Attr:$jumpTo);
+}
+
+def Standalone_MakeRecord : Standalone_Op<"MakeRecord"> {
+    let arguments = (ins I32Attr:$firstRegFrom, I32Attr:$nReg, I32Attr:$dest, I64Attr:$affinities);
+}
+
+def Standalone_SorterInsert : Standalone_Op<"SorterInsert"> {
+    let arguments = (ins I32Attr:$curIdx, I32Attr:$reg);
+}
+
+def Standalone_OpenPseudo : Standalone_Op<"OpenPseudo"> {
+    let arguments = (ins I32Attr:$curIdx, I32Attr:$reg, I32Attr:$nFields);
+}
 
 #endif // STANDALONE_OPS

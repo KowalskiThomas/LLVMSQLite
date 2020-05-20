@@ -13,6 +13,12 @@ set(LOWERING_FILES
     Lowering/AggStepLowering.cpp
     Lowering/NullLowering.cpp
     Lowering/CopyLowering.cpp
+    Lowering/SorterOpenLowering.cpp
+    Lowering/IntegerLowering.cpp
+    Lowering/GosubLowering.cpp
+    Lowering/MakeRecordLowering.cpp
+    Lowering/SorterInsertLowering.cpp
+    Lowering/OpenPseudoLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

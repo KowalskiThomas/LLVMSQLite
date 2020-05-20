@@ -39,6 +39,7 @@ namespace {
     }
 } // namespace
 
+/*
 mlir::LogicalResult IntegerLowering::matchAndRewrite(mlir::Operation *op, llvm::ArrayRef<mlir::Value> operands,
                                                    mlir::ConversionPatternRewriter &rewriter) const {
     auto *llvmDialect = op->getContext()->getRegisteredDialect<LLVM::LLVMDialect>();
@@ -50,7 +51,9 @@ mlir::LogicalResult IntegerLowering::matchAndRewrite(mlir::Operation *op, llvm::
     rewriter.eraseOp(op);
     return success();
 }
+*/
 
+/*
 mlir::LogicalResult OpenCursorLowering::matchAndRewrite(mlir::Operation *op, llvm::ArrayRef<mlir::Value> operands,
                                                    mlir::ConversionPatternRewriter &rewriter) const {
     auto *llvmDialect = op->getContext()->getRegisteredDialect<LLVM::LLVMDialect>();
@@ -67,4 +70,5 @@ mlir::LogicalResult OpenCursorLowering::matchAndRewrite(mlir::Operation *op, llv
     // rewriter.replaceOp(op, { result2.getResult(0) });
     return success();
 }
+*/
 } // namespace mlir::standalone::passes

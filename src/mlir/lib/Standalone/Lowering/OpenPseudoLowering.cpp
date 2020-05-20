@@ -12,8 +12,8 @@
 
 
 namespace mlir::standalone::passes {
-    LogicalResult CopyLowering::matchAndRewrite(Copy txnOp, PatternRewriter &rewriter) const {
-        auto op = &txnOp;
+    LogicalResult OpenPseudoLowering::matchAndRewrite(OpenPseudo opOp, PatternRewriter &rewriter) const {
+        auto op = &opOp;
         LOWERING_PASS_HEADER
         LOWERING_NAMESPACE
 
@@ -25,28 +25,17 @@ namespace mlir::standalone::passes {
 
         auto firstBlock = rewriter.getBlock();
 
-        auto firstFromRegAttr = txnOp.firstFromRegAttr();
-        auto nFromRegAttr = txnOp.nFromRegAttr();
-        auto firstToRegAttr = txnOp.firstToRegAttr();
-
-        auto firstFromReg = firstFromRegAttr.getSInt();
-        auto nReg = nFromRegAttr.getSInt() + 1;
-        auto firstToReg = firstToRegAttr.getSInt();
+        auto curIdx = opOp.curIdxAttr().getSInt();
+        auto reg = opOp.regAttr().getSInt();
+        auto nFields = opOp.nFieldsAttr().getSInt();
 
         auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
-
-        for(size_t i = 0; i < nReg; i++) {
-            auto pIn = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[firstFromReg + i]);
-            auto pOut = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[firstToReg + i]);
-
-            call(LOC, f_sqlite3VdbeMemShallowCopy, pOut, pIn, constants(MEM_Ephem, 32));
-        }
+        auto endBlock = curBlock->splitBlock(opOp); GO_BACK_TO(curBlock);
 
         branch(LOC, endBlock);
 
         ip_start(endBlock);
-        rewriter.eraseOp(txnOp);
+        rewriter.eraseOp(opOp);
 
         return success();
     } // matchAndRewrite

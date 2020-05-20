@@ -36,7 +36,7 @@
  * Adds code to print a pointer at JIT run-time with a given message
  */
 #define PROGRESS_PRINT_PTR(ptr, msg) { \
-    builder.create<mlir::LLVM::CallOp>(LOCB, f_printPtr, mlir::ArrayRef<mlir::Value>{ \
+    builder.create<mlir::LLVM::CallOp>(LOCB, f_printInt, mlir::ArrayRef<mlir::Value>{ \
     builder.create<mlir::LLVM::PtrToIntOp>(LOCB, T::i64Ty, ptr), \
     builder.create<mlir::ConstantIntOp>(LOCB, reinterpret_cast<const uint64_t>(msg), 64), \
     builder.create<mlir::ConstantIntOp>(LOCB, __LINE__, 32), \
@@ -52,7 +52,7 @@
     if (!val.getType().isInteger(64)) { \
         val = builder.create<mlir::LLVM::ZExtOp>(LOCB, T::i64Ty, val); \
     } \
-    builder.create<mlir::LLVM::CallOp>(LOCB, f_printPtr, mlir::ArrayRef<mlir::Value>{ \
+    builder.create<mlir::LLVM::CallOp>(LOCB, f_printInt, mlir::ArrayRef<mlir::Value>{ \
     val, \
     builder.create<mlir::ConstantIntOp>(LOCB, reinterpret_cast<const uint64_t>(msg), 64), \
     builder.create<mlir::ConstantIntOp>(LOCB, __LINE__, 32), \

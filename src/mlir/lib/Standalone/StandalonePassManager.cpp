@@ -74,6 +74,12 @@ void VdbeToLLVM::runOnOperation() {
         patterns.insert<AggStepLowering>(&getContext());
         patterns.insert<AggFinalLowering>(&getContext());
         patterns.insert<CopyLowering>(&getContext());
+        patterns.insert<SorterOpenLowering>(&getContext());
+        patterns.insert<IntegerLowering>(&getContext());
+        patterns.insert<GosubLowering>(&getContext());
+        patterns.insert<MakeRecordLowering>(&getContext());
+        patterns.insert<SorterInsertLowering>(&getContext());
+        patterns.insert<OpenPseudoLowering>(&getContext());
 
         mlir::populateStdToLLVMConversionPatterns(typeConverter, patterns);
     }

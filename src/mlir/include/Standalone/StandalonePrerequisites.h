@@ -9,7 +9,7 @@ using ModuleOp = mlir::ModuleOp;
 
 #define ExternFuncOp extern LLVMFuncOp
 ExternFuncOp f_progress;
-ExternFuncOp f_printPtr;
+ExternFuncOp f_printInt;
 ExternFuncOp f_printPtrAndValue;
 
 ExternFuncOp f_allocateCursor;

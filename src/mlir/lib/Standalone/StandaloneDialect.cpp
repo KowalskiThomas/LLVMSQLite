@@ -54,7 +54,9 @@ void StandaloneDialect::printType(Type type, DialectAsmPrinter &os) const {
     }
 }
 
+/*
 [[maybe_unused]] void print(mlir::OpAsmPrinter& p, const mlir::standalone::FooOp& op) {
     auto operation = op.operator mlir::Operation *();
     p << "FooOp " << operation->getResultTypes().front();
 }
+*/

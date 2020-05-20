@@ -14,28 +14,6 @@
 namespace mlir {
     namespace standalone {
         namespace passes {
-            /*
-        class Plus32Lowering : public mlir::OpRewritePattern<Plus32Op> {
-        public:
-            using mlir::OpRewritePattern<Plus32Op>::OpRewritePattern;
-
-            LogicalResult matchAndRewrite(Operation *op, ArrayRef<Value> operands, ConversionPatternRewriter &rewriter) const override;
-        };
-
-        class InitRegLowering : public mlir::ConversionPattern {
-        public:
-            explicit InitRegLowering(MLIRContext *context) : ConversionPattern(standalone::InitReg::getOperationName(), 1, context) {}
-
-            LogicalResult matchAndRewrite(Operation *op, ArrayRef<Value> operands, ConversionPatternRewriter &rewriter) const override;
-        };
-             */
-
-        class IntegerLowering : public mlir::ConversionPattern {
-        public:
-            explicit IntegerLowering(MLIRContext *context) : ConversionPattern(standalone::IntegerOp::getOperationName(), 1, context) {}
-
-            LogicalResult matchAndRewrite(Operation *op, ArrayRef<Value> operands, ConversionPatternRewriter &rewriter) const override;
-        };
 
         class OpenCursorLowering : public mlir::ConversionPattern {
         public:
@@ -118,6 +96,12 @@ namespace mlir {
         DECLARE_LOWERING(AggFinal)
         DECLARE_LOWERING(AggStep)
         DECLARE_LOWERING(Copy)
+        DECLARE_LOWERING(SorterOpen)
+        DECLARE_LOWERING(Integer)
+        DECLARE_LOWERING(Gosub)
+        DECLARE_LOWERING(MakeRecord)
+        DECLARE_LOWERING(SorterInsert)
+        DECLARE_LOWERING(OpenPseudo)
 
         } // namespace passes
     } // namespace standalone
