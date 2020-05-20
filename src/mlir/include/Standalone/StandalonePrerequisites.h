@@ -46,6 +46,9 @@ ExternFuncOp f_sqlite3VdbeChangeEncoding;
 ExternFuncOp f_sqlite3VdbeMemShallowCopy;
 ExternFuncOp f_callXInversePtr;
 ExternFuncOp f_callXSFuncPtr;
+ExternFuncOp f_sqlite3BtreeFakeValidCursor;
+ExternFuncOp f_sqlite3VdbeSorterWrite;
+ExternFuncOp f_sqlite3VdbeMemExpandBlob;
 
 ExternFuncOp f_debug;
 ExternFuncOp f_assert;
@@ -93,6 +96,9 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeMemShallowCopy);
     DECLARE_FUNCTION(callXInversePtr);
     DECLARE_FUNCTION(callXSFuncPtr);
+    DECLARE_FUNCTION(sqlite3BtreeFakeValidCursor);
+    DECLARE_FUNCTION(sqlite3VdbeSorterWrite);
+    DECLARE_FUNCTION(sqlite3VdbeMemExpandBlob);
 
     DECLARE_FUNCTION(memCpy);
 

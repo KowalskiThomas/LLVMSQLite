@@ -52,6 +52,9 @@ LLVMFuncOp f_sqlite3VdbeChangeEncoding;
 LLVMFuncOp f_sqlite3VdbeMemShallowCopy;
 LLVMFuncOp f_callXInversePtr;
 LLVMFuncOp f_callXSFuncPtr;
+LLVMFuncOp f_sqlite3BtreeFakeValidCursor;
+LLVMFuncOp f_sqlite3VdbeSorterWrite;
+LLVMFuncOp f_sqlite3VdbeMemExpandBlob;
 
 LLVMFuncOp f_memCpy;
 
@@ -556,6 +559,32 @@ void Prerequisites::generateReferenceTocallXSFuncPtr(mlir::ModuleOp m, LLVMDiale
 
 }
 
+void Prerequisites::generateReferenceTosqlite3BtreeFakeValidCursor(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::BtCursorPtrTy, {}, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeFakeValidCursor, sqlite3BtreeFakeValidCursor, "sqlite3BtreeFakeValidCursor");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeSorterWrite(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::VdbeCursorPtrTy,
+                T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeSorterWrite, sqlite3VdbeSorterWrite, "sqlite3VdbeSorterWrite");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeMemExpandBlob(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::i32Ty, {
+            T::sqlite3_valuePtrTy
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemExpandBlob, sqlite3VdbeMemExpandBlob, "sqlite3VdbeMemExpandBlob");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
@@ -595,6 +624,9 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemShallowCopy);
     CALL_SYMBOL_GENERATOR(callXInversePtr);
     CALL_SYMBOL_GENERATOR(callXSFuncPtr);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeFakeValidCursor);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeSorterWrite);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemExpandBlob);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 
