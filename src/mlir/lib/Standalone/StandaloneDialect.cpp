@@ -17,10 +17,6 @@
 using namespace mlir;
 using namespace mlir::standalone;
 
-//===----------------------------------------------------------------------===//
-// Standalone dialect.
-//===----------------------------------------------------------------------===//
-
 StandaloneDialect::StandaloneDialect(mlir::MLIRContext *context)
         : Dialect(getDialectNamespace(), context) {
     addOperations<
@@ -53,10 +49,3 @@ void StandaloneDialect::printType(Type type, DialectAsmPrinter &os) const {
             break;
     }
 }
-
-/*
-[[maybe_unused]] void print(mlir::OpAsmPrinter& p, const mlir::standalone::FooOp& op) {
-    auto operation = op.operator mlir::Operation *();
-    p << "FooOp " << operation->getResultTypes().front();
-}
-*/

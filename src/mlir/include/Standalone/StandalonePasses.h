@@ -15,13 +15,6 @@ namespace mlir {
     namespace standalone {
         namespace passes {
 
-        class OpenCursorLowering : public mlir::ConversionPattern {
-        public:
-            explicit OpenCursorLowering(MLIRContext* context) : ConversionPattern(standalone::OpenCursorOp::getOperationName(), 1, context) {}
-
-            LogicalResult matchAndRewrite(Operation* op, ArrayRef<Value> operands, ConversionPatternRewriter& rewriter) const override;
-        };
-
         class InitLowering : public mlir::OpRewritePattern<InitOp> {
         public:
             using OpRewritePattern<InitOp>::OpRewritePattern;
