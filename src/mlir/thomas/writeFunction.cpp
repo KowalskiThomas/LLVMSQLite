@@ -114,10 +114,9 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                     jumpTo = pc + 1;
                 }
 
-                auto param = constants(initValue, 64);
                 auto initOp = builder.create<mlir::standalone::InitOp>
                     (LOCB,
-                        param,
+                        INTEGER_ATTR(64, true, initValue),
                         entryBlock
                     );
 
@@ -127,10 +126,9 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
             }
             case OP_Noop: {
-                auto pcParam = builder.create<mlir::ConstantIntOp>(LOCB, pc, 64);
                 builder.create<mlir::standalone::Noop>
                         (LOCB,
-                            pcParam
+                            INTEGER_ATTR(64, false, pc)
                         );
                 break;
             }
@@ -184,13 +182,15 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                                                                (mlir::Value)CONSTANT_PTR(p4.pKeyInfo, 64));
                     */
                 } else {
-                    builder.create<mlir::standalone::OpenRead>(LOCB,
-                                                               constants(pc, 64),
-                                                               CONSTANT_INT(curIdx, 32),
-                                                               CONSTANT_INT(rootPage, 32),
-                                                               CONSTANT_INT(dbIdx, 32),
-                                                               CONSTANT_INT(p4.i, 32),
-                                                               builder.getIntegerAttr(builder.getIntegerType(16, false), p5));
+                    builder.create<mlir::standalone::OpenRead>
+                        (LOCB,
+                            INTEGER_ATTR(64, false, pc),
+                            INTEGER_ATTR(32, true, curIdx),
+                            INTEGER_ATTR(32, true, rootPage),
+                            INTEGER_ATTR(32, true, dbIdx),
+                            INTEGER_ATTR(32, true, p4.i),
+                            INTEGER_ATTR(16, false, p5)
+                        );
                 }
                 break;
             }
@@ -198,9 +198,11 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto curIdx = op.p1;
                 auto jumpTo = op.p2;
 
-                builder.create<mlir::standalone::Rewind>(LOCB,
-                                                         CONSTANT_INT(curIdx, 32),
-                                                         CONSTANT_INT(jumpTo, 32));
+                builder.create<mlir::standalone::Rewind>
+                    (LOCB,
+                        INTEGER_ATTR(32, true, curIdx),
+                        INTEGER_ATTR(32, true, jumpTo)
+                    );
 
                 break;
             }

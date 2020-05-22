@@ -11,6 +11,9 @@ namespace mlir {
                 LOWERING_PASS_HEADER
                 LOWERING_NAMESPACE
 
+                mlir::Value curIdx = CONSTANT_INT(orOp.curIdxAttr().getSInt(), 32);
+                mlir::Value databaseIdx = CONSTANT_INT(orOp.databaseAttr().getSInt(), 32);
+
 
                 auto pVdbe = CONSTANT_PTR(T::VdbePtrTy, vdbe);
                 // rewriter.create<IntToPtrOp>(LOC, T::VdbePtrTy, CONSTANT_INT(vdbe, 64));
@@ -19,8 +22,10 @@ namespace mlir {
                 auto _aDb = CONSTANT_PTR(T::DbPtrTy, aDb);
                 // rewriter.create<IntToPtrOp>(LOC, T::DbPtrTy, CONSTANT_INT(aDb, 64));
 
-                auto pDb = rewriter.create<GEPOp>(LOC,
-                                                  T::DbPtrTy, _aDb, mlir::ValueRange{orOp.database()});
+                auto pDb = rewriter.create<GEPOp>
+                    (LOC, T::DbPtrTy, _aDb, mlir::ValueRange{
+                        CONSTANT_INT(orOp.databaseAttr().getSInt(), 32)
+                    });
 
                 auto ppX = rewriter.create<GEPOp>(LOC,
                                                   T::BtreePtrTy.getPointerTo(), pDb,
@@ -33,8 +38,8 @@ namespace mlir {
 
                 auto wrFlag = CONSTANT_INT(0, 32);
 
-                auto p5Value = orOp.getAttrOfType<IntegerAttr>("P5").getUInt();
-                Value rootPage = orOp.rootPage();
+                auto p5Value = orOp.P5Attr().getUInt();
+                Value rootPage = CONSTANT_INT(orOp.rootPageAttr().getSInt(), 32);
                 // If P5 says that P2 is a register (and not an integer)
                 if (p5Value & OPFLAG_P2ISREG) {
                     out("Writing special case for OPFLAG_P2ISREG");
@@ -65,14 +70,14 @@ namespace mlir {
 
                 // WE ASSUME THAT WE KNOW WE HAVE pOp->p4type == P4_INT32
                 // TODO: Add the other case
-                auto nField = orOp.P4();
+                auto nField = CONSTANT_INT(orOp.P4Attr().getSInt(), 32);
 
                 auto pCur = rewriter.create<CallOp>
-                        (LOC, f_allocateCursor,ValueRange{
+                        (LOC, f_allocateCursor, mlir::ValueRange{
                             pVdbe,
-                            orOp.curIdx(),
+                            curIdx,
                             nField,
-                            orOp.database(),
+                            databaseIdx,
                             CONSTANT_INT(CURTYPE_BTREE, 8)
                         }).getResult(0);
 
@@ -119,7 +124,7 @@ namespace mlir {
 
                 auto rc = rewriter.create<CallOp>
                         (LOC, f_sqlite3BtreeCursor, ValueRange{
-                            pX, orOp.rootPage(), wrFlag, pKeyInfo, pCur_uc_pCursor
+                            pX, rootPage, wrFlag, pKeyInfo, pCur_uc_pCursor
                         }).getResult(0);
 
                 PROGRESS_PRINT_INT(TO_I64(rc), "Value returned by sqlite3_BtreeCursor : ")

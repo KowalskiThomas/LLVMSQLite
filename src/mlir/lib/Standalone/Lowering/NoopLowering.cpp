@@ -9,9 +9,10 @@ namespace mlir {
             NoopLowering::matchAndRewrite(Noop noopOp, PatternRewriter& rewriter) const {
                 auto op = &noopOp;
                 LOWERING_PASS_HEADER
+                auto& builder = rewriter;
 
                 {
-                    auto operand = noopOp.pc();
+                    auto operand = CONSTANT_INT(noopOp.pcAttr().getUInt(), 64);
                     // Macro needs a variable named "builder" so we give it one
                     auto& builder = rewriter;
                     PROGRESS_PRINT_INT_REWRITER(operand, "<- Noop at line");

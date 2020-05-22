@@ -12,7 +12,7 @@ def Vdbe : TypeAlias<OpaqueType<"standalone", "VdbeState", "A VDBE">>;
 def Standalone_InitOp : Standalone_Op<"Init", [Terminator]> {
     let summary = "Jumps to $jump_to if not 0. Updates the Once value so that all Once opcodes will run again.";
 
-    let arguments = (ins I64:$jump_to);
+    let arguments = (ins I64Attr:$jump_to);
 
     let successors = (successor AnySuccessor:$jumpTo);
 }
@@ -20,7 +20,7 @@ def Standalone_InitOp : Standalone_Op<"Init", [Terminator]> {
 def Standalone_Noop : Standalone_Op<"Noop"> {
     let summary = "Does nothing";
 
-    let arguments = (ins I64:$pc);
+    let arguments = (ins I64Attr:$pc);
 }
 
 def Standalone_Goto : Standalone_TerminatorOp<"Goto", [Terminator]> {
@@ -36,13 +36,13 @@ def Standalone_Halt : Standalone_TerminatorOp<"Halt"> {
 def Standalone_OpenRead : Standalone_Op<"OpenRead"> {
     let summary = "Opens a cursor and whatnot";
 
-    let arguments = (ins I64:$counter, I32:$curIdx, I64:$rootPage, I32:$database, I32:$P4, I16Attr:$P5);
+    let arguments = (ins I64Attr:$counter, I32Attr:$curIdx, I64Attr:$rootPage, I32Attr:$database, I32Attr:$P4, I16Attr:$P5);
 }
 
 def Standalone_Rewind : Standalone_Op<"Rewind"> {
     let summary = "Rewinds a cursor";
 
-    let arguments = (ins I32:$curIdx, I32:$jumpTo);
+    let arguments = (ins I32Attr:$curIdx, I32Attr:$jumpTo);
 }
 
 def Standalone_Column : Standalone_Op<"Column"> {

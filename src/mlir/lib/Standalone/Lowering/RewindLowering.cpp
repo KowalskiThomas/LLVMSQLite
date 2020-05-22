@@ -11,13 +11,15 @@ namespace mlir {
                 LOWERING_PASS_HEADER
                 LOWERING_NAMESPACE
 
+                auto curIdx = CONSTANT_INT(rewindOp.curIdxAttr().getSInt(), 32);
+
                 auto firstBlock = rewriter.getBlock();
 
                 /// pC = p->apCsr[pOp->p1];
                 // The address of the array of (pointers to) cursors in the VDBE
                 auto apCsr = CONSTANT_PTR(T::VdbeCursorPtrPtrTy, vdbe->apCsr);
                 // The address of this particular pointer-to-cursor
-                auto pCAddr = rewriter.create<mlir::LLVM::GEPOp>(LOC, T::VdbeCursorPtrPtrTy, apCsr, ValueRange{ rewindOp.curIdx() });
+                auto pCAddr = rewriter.create<mlir::LLVM::GEPOp>(LOC, T::VdbeCursorPtrPtrTy, apCsr, ValueRange{ curIdx });
                 // The address of the cursor
                 auto pC = rewriter.create<LoadOp>(LOC, pCAddr);
                 // A variable to store results from functions
