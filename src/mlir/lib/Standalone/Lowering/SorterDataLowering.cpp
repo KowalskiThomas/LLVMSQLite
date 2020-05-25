@@ -29,14 +29,37 @@ namespace mlir::standalone::passes {
         auto reg = sdOp.regAttr().getSInt();
         auto curClearHeader = sdOp.curClearHeaderAttr().getSInt();
 
-        // auto curBlock = rewriter.getBlock();
-        // auto endBlock = curBlock->splitBlock(sdOp); GO_BACK_TO(curBlock);
+        auto curBlock = rewriter.getBlock();
+        auto endBlock = curBlock->splitBlock(sdOp); GO_BACK_TO(curBlock);
 
-        // branch(LOC, endBlock);
+        /// pOut = &aMem[pOp->p2];
+        auto pOut = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[reg]);
+        /// pC = p->apCsr[pOp->p1];
+        auto pC = constants(T::VdbeCursorPtrTy, &vdbe->apCsr[curIdx]);
+        // TODO
+        /// assert(isSorter(pC));
 
-        // ip_start(endBlock);
+        /// rc = sqlite3VdbeSorterRowkey(pC, pOut);
+        auto rc = call(LOC, f_sqlite3VdbeSorterRowkey, pC, pOut).getValue();
 
-        print(LOCL, "TODO: Implement SorterData Lowering");
+        // TODO
+        /// assert(rc != SQLITE_OK || (pOut->flags & MEM_Blob));
+
+        // TODO
+        /// assert(pOp->p1 >= 0 && pOp->p1 < p->nCursor);
+
+        { // if (rc) goto abort_due_to_error;
+            auto rcIsNull = iCmp(LOC, Pred::eq, rc, 0);
+            myAssert(LOCL, rcIsNull);
+        }
+
+        /// p->apCsr[pOp->p3]->cacheStatus = CACHE_STALE;
+        auto cacheStatusAddr = constants(T::i32PtrTy, &vdbe->apCsr[curClearHeader]->cacheStatus);
+        store(LOC, CACHE_STALE, cacheStatusAddr);
+
+        branch(LOC, endBlock);
+
+        ip_start(endBlock);
 
         rewriter.eraseOp(sdOp);
 

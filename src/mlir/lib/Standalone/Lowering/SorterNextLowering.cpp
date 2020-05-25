@@ -30,14 +30,62 @@ namespace mlir::standalone::passes {
 
         auto jumpTo = snOp.jumpTo();
         auto fallthrough = snOp.fallthrough();
-        // auto curBlock = rewriter.getBlock();
-        // auto endBlock = curBlock->splitBlock(snOp); GO_BACK_TO(curBlock);
+        auto curBlock = rewriter.getBlock();
+        auto endBlock = curBlock->splitBlock(snOp); GO_BACK_TO(curBlock);
 
-        // branch(LOC, endBlock);
+        /// pC = p->apCsr[pOp->p1];
+        auto pCValue = vdbe->apCsr[curIdx];
+        auto pC = constants(T::VdbeCursorPtrTy, pCValue);
 
-        // ip_start(endBlock);
+        /// TODO assert(isSorter(pC));
 
-        print(LOCL, "TODO: Implement SorterNext Lowering");
+        /// rc = sqlite3VdbeSorterNext(db, pC);
+        auto db = constants(T::sqlite3PtrTy, vdbe->db);
+        auto rc = call(LOC, f_sqlite3VdbeSorterNext, db, pC).getValue();
+
+        /// goto next_tail;
+        auto cacheStatusAddr = constants(T::i32PtrTy, &pCValue->cacheStatus);
+        store(LOC, CACHE_STALE, cacheStatusAddr);
+
+        curBlock = rewriter.getBlock();
+        auto branchAfterRcIsOk = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto branchRcIsOk = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+        auto rcIsOk = iCmp(LOC, Pred::eq, rc, 0);
+        condBranch(LOC, rcIsOk, branchRcIsOk, branchAfterRcIsOk);
+
+        auto nullRowAddr = constants(T::i8PtrTy, &pCValue->nullRow);
+
+        { // if rc == SQLITE_OK
+            ip_start(branchRcIsOk);
+
+            store(LOC, 0, nullRowAddr);
+
+            auto aCounterAddr = constants(T::i32PtrTy, &vdbe->aCounter[hints]);
+            auto counterVal = load(LOC, aCounterAddr);
+            auto counterValPlus1 = add(LOC, counterVal, 1);
+            store(LOC, counterValPlus1, aCounterAddr);
+
+            // TODO goto jump_to_p2_and_check_for_interrupt;
+
+            branch(LOC, branchAfterRcIsOk);
+        } // end if rc == SQLITE_OK
+
+        ip_start(branchRcIsOk);
+
+        { // if (rc != SQLITE_DONE) goto abort_due_to_error;
+            auto rcNeDone = iCmp(LOC, Pred::ne, rc, SQLITE_DONE);
+
+            // TODO: rc = SQLITE_OK;
+
+            // pC->nullRow = 1;
+            store(LOC, 1, nullRowAddr);
+
+        } // end if (rc != SQLITE_DONE) goto abort_due_to_error;
+
+        branch(LOC, endBlock);
+
+        ip_start(endBlock);
 
         rewriter.eraseOp(snOp);
 

@@ -55,6 +55,9 @@ LLVMFuncOp f_callXSFuncPtr;
 LLVMFuncOp f_sqlite3BtreeFakeValidCursor;
 LLVMFuncOp f_sqlite3VdbeSorterWrite;
 LLVMFuncOp f_sqlite3VdbeMemExpandBlob;
+LLVMFuncOp f_sqlite3VdbeSorterRowkey;
+LLVMFuncOp f_sqlite3VdbeSorterNext;
+LLVMFuncOp f_sqlite3MemCompare;
 
 LLVMFuncOp f_memCpy;
 
@@ -585,6 +588,37 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemExpandBlob(ModuleOp m, LLVM
     GENERATE_SYMBOL(f_sqlite3VdbeMemExpandBlob, sqlite3VdbeMemExpandBlob, "sqlite3VdbeMemExpandBlob");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeSorterRowkey(mlir::ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::VdbeCursorPtrTy,
+                T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeSorterRowkey, sqlite3VdbeSorterRowkey, "sqlite3VdbeSorterRowkey");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeSorterNext(mlir::ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::sqlite3PtrTy,
+                T::VdbeCursorPtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeSorterNext, sqlite3VdbeSorterNext, "sqlite3VdbeSorterNext");
+}
+
+void Prerequisites::generateReferenceTosqlite3MemCompare(mlir::ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::sqlite3_valuePtrTy,
+                T::sqlite3_valuePtrTy,
+                T::CollSeqPtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3MemCompare, sqlite3MemCompare, "sqlite3MemCompare");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
@@ -627,6 +661,9 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3BtreeFakeValidCursor);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeSorterWrite);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemExpandBlob);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeSorterRowkey);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeSorterNext);
+    CALL_SYMBOL_GENERATOR(sqlite3MemCompare);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

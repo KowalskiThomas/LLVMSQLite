@@ -455,17 +455,57 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
             }
             case OP_SorterData: {
+                auto curIdx = op.p1;
+                auto regTo = op.p2;
+                auto p3 = op.p3;
 
+                auto op = builder.create<mlir::standalone::SorterData>
+                    (LOCB,
+                        INTEGER_ATTR(32, true, curIdx),
+                        INTEGER_ATTR(32, true, regTo),
+                        INTEGER_ATTR(32, true, p3)
+                    );
 
                 break;
             }
             case OP_SorterNext: {
+                auto p1 = op.p1;
+                auto p5 = op.p5;
+                auto jumpToAddr = op.p2;
 
+                auto jumpToBlock = blocks.find(jumpToAddr) != blocks.end() ? blocks[jumpToAddr] : entryBlock;
+                auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;
+
+                auto op = builder.create<mlir::standalone::SorterNext>
+                    (LOCB,
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(16, false, p5),
+                        jumpToBlock,
+                        fallthroughBlock
+                    );
+
+                if (jumpToBlock == entryBlock)
+                    operations_to_update[jumpToAddr].emplace_back(op, 0);
+                if (fallthroughBlock == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op, 1);
 
                 break;
             }
             case OP_Compare: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+                auto p4 = (uint64_t)op.p4.p;
+                auto p5 = op.p5;
 
+                builder.create<mlir::standalone::Compare>
+                    (LOCB,
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(32, true, p3),
+                        INTEGER_ATTR(64, false, p4),
+                        INTEGER_ATTR(32, true, p5)
+                    );
 
                 break;
             }

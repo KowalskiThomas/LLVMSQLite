@@ -49,6 +49,8 @@ ExternFuncOp f_callXSFuncPtr;
 ExternFuncOp f_sqlite3BtreeFakeValidCursor;
 ExternFuncOp f_sqlite3VdbeSorterWrite;
 ExternFuncOp f_sqlite3VdbeMemExpandBlob;
+ExternFuncOp f_sqlite3VdbeSorterRowkey;
+ExternFuncOp f_sqlite3VdbeSorterNext;
 
 ExternFuncOp f_debug;
 ExternFuncOp f_assert;
@@ -99,6 +101,9 @@ public:
     DECLARE_FUNCTION(sqlite3BtreeFakeValidCursor);
     DECLARE_FUNCTION(sqlite3VdbeSorterWrite);
     DECLARE_FUNCTION(sqlite3VdbeMemExpandBlob);
+    DECLARE_FUNCTION(sqlite3VdbeSorterRowkey);
+    DECLARE_FUNCTION(sqlite3VdbeSorterNext);
+    DECLARE_FUNCTION(sqlite3MemCompare);
 
     DECLARE_FUNCTION(memCpy);
 
