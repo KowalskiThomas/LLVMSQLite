@@ -39,13 +39,11 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(mrOp); GO_BACK_TO(curBlock);
 
-        /// nData = 0
-        auto nData = alloca(LOC, T::i64PtrTy);
-        /// nHdr = 0
-        auto nHdr = alloca(LOC, T::i32PtrTy);
-        /// nZero = 0
-        auto Zero = alloca(LOC, T::i64PtrTy);
-        /// i64 nZero
+        /// i64 nData = 0
+        auto nDataAddr = alloca(LOC, T::i64PtrTy);
+        /// i32 nHdr = 0
+        auto nHdrAddr = alloca(LOC, T::i32PtrTy);
+        /// i64 nZero = 0
         auto nZeroAddr = alloca(LOC, T::i64PtrTy);
 
         auto nField = firstFromReg;
@@ -156,7 +154,7 @@ namespace mlir::standalone::passes {
                 ip_start(blockAfterZero);
 
                 /// nHdr++
-                PlusPlus(LOC, nHdr);
+                PlusPlus(LOC, nHdrAddr);
 
                 branch(LOC, blockAfter);
             } // end if rec is NULL
@@ -200,7 +198,7 @@ namespace mlir::standalone::passes {
 
                 ip_start(blockAfterINegative);
 
-                PlusPlus(LOC, nHdr);
+                PlusPlus(LOC, nHdrAddr);
 
                 auto uuVal = load(LOC, uu);
                 auto uuSize1 = iCmp(LOC, Pred::slt, uuVal, 127);
@@ -235,7 +233,7 @@ namespace mlir::standalone::passes {
                 { // if (uu <= 32767)
                     ip_start(blockSize2);
 
-                    addInPlace(LOC, nData, 2);
+                    addInPlace(LOC, nDataAddr, 2);
                     store(LOC, 2, uTempAddress);
 
                     branch(LOC, blockAfterSize);
@@ -247,7 +245,7 @@ namespace mlir::standalone::passes {
                 { // if (uu <= 8388607)
                     ip_start(blockSize3);
 
-                    addInPlace(LOC, nData, 3);
+                    addInPlace(LOC, nDataAddr, 3);
                     store(LOC, 3, uTempAddress);
 
                     branch(LOC, blockAfterSize);
@@ -259,7 +257,7 @@ namespace mlir::standalone::passes {
                 { // if (uu <= 2147483647)
                     ip_start(blockSize4);
 
-                    addInPlace(LOC, nData, 4);
+                    addInPlace(LOC, nDataAddr, 4);
                     store(LOC, 4, uTempAddress);
 
                     branch(LOC, blockAfterSize);
@@ -271,7 +269,7 @@ namespace mlir::standalone::passes {
                 { // if (uu <= 140737488355327LL)
                     ip_start(blockSize5);
 
-                    addInPlace(LOC, nData, 6);
+                    addInPlace(LOC, nDataAddr, 6);
                     store(LOC, 5, uTempAddress);
 
                     branch(LOC, blockAfterSize);
@@ -279,7 +277,7 @@ namespace mlir::standalone::passes {
                 { // else of if (uu <= 140737488355327LL)
                     ip_start(blockNotSize5);
 
-                    addInPlace(LOC, nData, 8);
+                    addInPlace(LOC, nDataAddr, 8);
 
                     auto curBlock = rewriter.getBlock();
                     auto blockNotRecIntReal = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -320,8 +318,8 @@ namespace mlir::standalone::passes {
             { // if rec is Real
                 ip_start(blockRecReal);
 
-                PlusPlus(LOC, nHdr);
-                addInPlace(LOC, nData, 8);
+                PlusPlus(LOC, nHdrAddr);
+                addInPlace(LOC, nDataAddr, 8);
                 store(LOC, 7, uTempAddress);
 
                 branch(LOC, blockAfter);
@@ -372,7 +370,7 @@ namespace mlir::standalone::passes {
                     auto blockNDataNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     auto blockNDataNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
-                    auto nDataNotNull = iCmp(LOC, Pred::ne, load(LOC, nData), 0);
+                    auto nDataNotNull = iCmp(LOC, Pred::ne, load(LOC, nDataAddr), 0);
                     condBranch(LOC, nDataNotNull, blockNDataNotNull, blockNDataNull);
                     { // if (nData)
                         ip_start(blockNDataNotNull);
@@ -405,13 +403,13 @@ namespace mlir::standalone::passes {
                 /// nData += len;
                 auto lenValue = load(LOC, lenAddr);
                 auto len64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, lenValue);
-                addInPlace(LOC, nData, (Value)len64);
+                addInPlace(LOC, nDataAddr, (Value)len64);
 
                 /// nHdr += sqlite3VarintLen(serial_type);
                 auto serialTypeValue = load(LOC, serialTypeAddr);
                 auto serialTypeValue64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, serialTypeValue);
                 auto callResult = call(LOC, f_sqlite3VarintLen, serialTypeValue64).getValue();
-                addInPlace(LOC, nHdr, callResult);
+                addInPlace(LOC, nHdrAddr, callResult);
 
                 /// pRec->uTemp = serial_type;
                 store(LOC, serialTypeValue, uTempAddress);
@@ -428,6 +426,50 @@ namespace mlir::standalone::passes {
         } while (true);
 
         // Line 3160 (and on)
+
+        auto nHdrValue = load(LOC, nHdrAddr);
+        auto nHdrValue64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, nHdrValue);
+        auto nHdrLt126 = iCmp(LOC, Pred::slt, nHdrValue, 126);
+        curBlock = rewriter.getBlock();
+        auto blockAfterNHdrLt126 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockNotNHdrLt126 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockNHdrLt126 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+        condBranch(LOC, nHdrLt126, blockNHdrLt126, blockNotNHdrLt126);
+        { // if (nHdr <= 126)
+            ip_start(blockNHdrLt126);
+            /// nHdr += 1;
+            addInPlace(LOC, nHdrAddr, 1);
+            branch(LOC, blockAfterNHdrLt126);
+        } // end if (nHdr <= 126)
+        { // else of if (nHdr <= 126)
+            ip_start(blockNotNHdrLt126);
+
+            /// nVarint = sqlite3VarintLen(nHdr);
+            auto nVarint = call(LOC, f_sqlite3VarintLen, nHdrValue64).getValue();
+
+            /// nHdr += nVarint;
+            addInPlace(LOC, nHdrAddr, nVarint);
+
+            /// if (nVarint < sqlite3VarintLen(nHdr)) nHdr++;
+            curBlock = rewriter.getBlock();
+            auto blockVarintLtNHdr = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+            auto varintLen = call(LOC, f_sqlite3VarintLen, nHdrValue64).getValue();
+            auto nVarintLt = iCmp(LOC, Pred::slt, nVarint, varintLen);
+            condBranch(LOC, nVarintLt, blockVarintLtNHdr, blockAfterNHdrLt126);
+            { // if (nVarint < sqlite3VarintLen(nHdr))
+                ip_start(blockVarintLtNHdr);
+                /// nHdr++
+                addInPlace(LOC, nHdrAddr, 1);
+                branch(LOC, blockAfterNHdrLt126);
+            } // end if (nVarint < sqlite3VarintLen(nHdr))
+            // (Replaced) branch(LOC, blockAfterNHdrLt126);
+        } // end else of (nHdr <= 126)
+
+        ip_start(blockAfterNHdrLt126);
+
+        auto nHdr64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, load(LOC, nHdrAddr));
+        auto nByte = add(LOC, nHdr64, load(LOC, nDataAddr));
 
         branch(LOC, endBlock);
 
