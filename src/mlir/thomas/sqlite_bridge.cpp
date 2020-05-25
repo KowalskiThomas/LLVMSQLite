@@ -53,7 +53,7 @@ struct VdbeRunner {
 
         vdbeDialect->setVdbe(p);
 
-        Prerequisites::runPrerequisites(theModule, llvmDialect);
+        runPrerequisites(theModule, llvmDialect);
     }
 
     void prepareFunction() {

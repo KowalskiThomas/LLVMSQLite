@@ -1,15 +1,15 @@
 #include <llvm/Support/DynamicLibrary.h>
-#include <Standalone/Utils.h>
-#include "mlir/IR/Types.h"
-#include "mlir/IR/TypeSupport.h"
 #include "mlir/IR/Dialect.h"
-
 #include "mlir/Target/LLVMIR.h"
 
 #include "Standalone/StandalonePassManager.h"
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
+
+#ifdef ExternFuncOp
+#undef ExternFuncOp
+#endif
 
 using LLVMDialect = mlir::LLVM::LLVMDialect;
 using LLVMFuncOp = mlir::LLVM::LLVMFuncOp;
@@ -63,6 +63,66 @@ LLVMFuncOp f_memCpy;
 
 LLVMFuncOp f_debug;
 LLVMFuncOp f_assert;
+
+#define DECLARE_FUNCTION(name) static void generateReferenceTo##name(mlir::ModuleOp, LLVMDialect*);
+
+struct Prerequisites {
+    using LLVMDialect = mlir::LLVM::LLVMDialect;
+
+public:
+    DECLARE_FUNCTION(AllocateCursor);
+    DECLARE_FUNCTION(Sqlite3BtreeCursor);
+    DECLARE_FUNCTION(Sqlite3BtreeCursorHintFlags);
+    DECLARE_FUNCTION(sqlite3VdbeSorterRewind);
+    DECLARE_FUNCTION(sqlite3BtreeFirst);
+    DECLARE_FUNCTION(sqlite3VdbeCursorMoveto);
+    DECLARE_FUNCTION(sqlite3VdbeMemSetNull);
+    DECLARE_FUNCTION(sqlite3BtreePayloadSize);
+    DECLARE_FUNCTION(sqlite3BtreePayloadFetch);
+    DECLARE_FUNCTION(sqlite3GetVarint32);
+    DECLARE_FUNCTION(sqlite3VdbeOneByteSerialTypeLen);
+    DECLARE_FUNCTION(sqlite3VdbeSerialTypeLen);
+    DECLARE_FUNCTION(sqlite3VdbeMemRelease);
+    DECLARE_FUNCTION(sqlite3VdbeSerialGet);
+    DECLARE_FUNCTION(sqlite3VdbeMemGrow);
+    DECLARE_FUNCTION(sqlite3VdbeMemFromBtree);
+    DECLARE_FUNCTION(sqlite3VdbeCheckFk);
+    DECLARE_FUNCTION(sqlite3VdbeCloseStatement);
+    DECLARE_FUNCTION(sqlite3VdbeMemMakeWriteable);
+    DECLARE_FUNCTION(sqlite3VdbeMemNulTerminate);
+    DECLARE_FUNCTION(sqlite3BtreeNext);
+    DECLARE_FUNCTION(sqlite3VdbeHalt);
+    DECLARE_FUNCTION(sqlite3BtreeBeginTrans);
+    DECLARE_FUNCTION(sqlite3VtabSavepoint);
+    DECLARE_FUNCTION(sqlite3BtreeBeginStmt);
+    DECLARE_FUNCTION(out2Prerelease);
+    DECLARE_FUNCTION(sqlite3VdbeMemInit);
+    DECLARE_FUNCTION(sqlite3DbMallocRawNN);
+    DECLARE_FUNCTION(sqlite3VdbeMemSetInt64);
+    DECLARE_FUNCTION(sqlite3VdbeMemFinalize);
+    DECLARE_FUNCTION(sqlite3VdbeChangeEncoding);
+    DECLARE_FUNCTION(sqlite3VdbeMemShallowCopy);
+    DECLARE_FUNCTION(callXInversePtr);
+    DECLARE_FUNCTION(callXSFuncPtr);
+    DECLARE_FUNCTION(sqlite3BtreeFakeValidCursor);
+    DECLARE_FUNCTION(sqlite3VdbeSorterWrite);
+    DECLARE_FUNCTION(sqlite3VdbeMemExpandBlob);
+    DECLARE_FUNCTION(sqlite3VdbeSorterRowkey);
+    DECLARE_FUNCTION(sqlite3VdbeSorterNext);
+    DECLARE_FUNCTION(sqlite3MemCompare);
+
+    DECLARE_FUNCTION(memCpy);
+
+    DECLARE_FUNCTION(Debug);
+    DECLARE_FUNCTION(Assert);
+
+    DECLARE_FUNCTION(Progress);
+
+
+    static void runPrerequisites(ModuleOp, LLVMDialect*);
+};
+
+#undef DECLARE_FUNCTION
 
 #define GENERATE_SYMBOL(ref_name, f, symbol_name) \
     auto builder = mlir::OpBuilder(m); \
@@ -669,6 +729,10 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
 
     CALL_SYMBOL_GENERATOR(Debug);
     CALL_SYMBOL_GENERATOR(Assert);
+}
+
+void runPrerequisites(ModuleOp m, LLVMDialect* d) {
+    Prerequisites::runPrerequisites(m, d);
 }
 
 #undef CALL_SYMBOL_GENERATOR
