@@ -135,7 +135,7 @@ def Standalone_SorterData : Standalone_Op<"SorterData"> {
 }
 
 def Standalone_Compare : Standalone_Op<"Compare"> {
-    let arguments = (ins I32Attr:$firstLhs, I32Attr:$firstRhs, I32Attr:$nReg, I64Attr:$keyInfo, I16Attr:$flags);
+    let arguments = (ins I64Attr:$pc, I32Attr:$firstLhs, I32Attr:$firstRhs, I32Attr:$nReg, I64Attr:$keyInfo, I16Attr:$flags);
 }
 
 def Standalone_Jump : Standalone_Op<"Jump", [Terminator]> {

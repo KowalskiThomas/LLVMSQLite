@@ -206,13 +206,11 @@ namespace mlir::standalone::passes {
                     T::sqlite3_valuePtrPtrTy
             }, false);
         auto argcValue = load(LOC, argcAddr);
-        CALL_DEBUG
         if (p1) {
             assert(false);
             auto xInverseAddr = getElementPtrImm(LOC, funcType.getPointerTo(), funcDefAddr, 0, 7);
             // call(LOC, f_callXInversePtr, load(LOC, xInverseAddr), pCtxValue, argcValue, argvAddr);
         } else {
-            CALL_DEBUG
             auto xSFuncAddr = getElementPtrImm(LOC, funcType.getPointerTo().getPointerTo(), funcDefAddr, 0, 4);
             auto xsFuncAddrAsI64Ptr = bitCast(LOC, xSFuncAddr, T::i64PtrTy);
             auto xsFunc = load(LOC, xsFuncAddrAsI64Ptr);

@@ -26,7 +26,7 @@ namespace mlir::standalone::passes {
         auto firstBlock = rewriter.getBlock();
 
         auto curIdx = snOp.curIdxAttr().getSInt();
-        auto hints = snOp.hintsAttr().getSInt();
+        auto hints = snOp.hintsAttr().getUInt();
 
         auto jumpTo = snOp.jumpTo();
         auto fallthrough = snOp.fallthrough();
@@ -47,17 +47,16 @@ namespace mlir::standalone::passes {
         auto cacheStatusAddr = constants(T::i32PtrTy, &pCValue->cacheStatus);
         store(LOC, CACHE_STALE, cacheStatusAddr);
 
-        curBlock = rewriter.getBlock();
-        auto branchAfterRcIsOk = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-        auto branchRcIsOk = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-
-        auto rcIsOk = iCmp(LOC, Pred::eq, rc, 0);
-        condBranch(LOC, rcIsOk, branchRcIsOk, branchAfterRcIsOk);
-
         auto nullRowAddr = constants(T::i8PtrTy, &pCValue->nullRow);
 
+        curBlock = rewriter.getBlock();
+        auto blockAfterRcIsOk = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockRcIsOk = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+        auto rcIsOk = iCmp(LOC, Pred::eq, rc, SQLITE_OK);
+        condBranch(LOC, rcIsOk, blockRcIsOk, blockAfterRcIsOk);
         { // if rc == SQLITE_OK
-            ip_start(branchRcIsOk);
+            ip_start(blockRcIsOk);
 
             store(LOC, 0, nullRowAddr);
 
@@ -68,10 +67,10 @@ namespace mlir::standalone::passes {
 
             // TODO goto jump_to_p2_and_check_for_interrupt;
 
-            branch(LOC, branchAfterRcIsOk);
+            branch(LOC, blockAfterRcIsOk);
         } // end if rc == SQLITE_OK
 
-        ip_start(branchRcIsOk);
+        ip_start(blockAfterRcIsOk);
 
         { // if (rc != SQLITE_DONE) goto abort_due_to_error;
             auto rcNeDone = iCmp(LOC, Pred::ne, rc, SQLITE_DONE);

@@ -19,6 +19,7 @@ using MLIRContext = mlir::MLIRContext;
 using LLVMDialect = mlir::LLVM::LLVMDialect;
 using ModuleOp = mlir::ModuleOp;
 using FuncOp = mlir::FuncOp;
+using Block = mlir::Block;
 
 void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& func) {
     auto ctx = &mlirContext;
@@ -46,11 +47,12 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     // We store the last instruction's block to this end.
     mlir::Block* lastBlock = entryBlock;
 
+    vdbeCtx->iCompare = builder.create<mlir::LLVM::AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
     auto pcAddr = constants(T::i32PtrTy, (int*)&vdbe->pc);
     auto pcValue = builder.create<LoadOp>(LOCB, pcAddr);
 
-    mlir::Block* blockJump;
-    mlir::Block* blockAfterJump;
+    Block* targetBlock = nullptr;
+    Block* blockAfterJump = nullptr;
     for(auto targetPc = 0; targetPc < vdbe->nOp; targetPc++) {
         auto curBlock = builder.getBlock();
         // Only certain codes can be jumped back to. This saves a lot of branching.
@@ -64,20 +66,17 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
             continue;
         }
 
+        targetBlock = blocks.find(targetOpCode) != blocks.end() ? blocks[targetOpCode] : entryBlock;
+
         blockAfterJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
         auto pcValueIsTarget = builder.create<ICmpOp>
                 (LOCB, ICmpPredicate::eq,
                  pcValue, constants(targetPc, 32)
                 );
 
-        auto brOp = builder.create<CondBrOp>(LOCB, pcValueIsTarget, blockJump, blockAfterJump);
-        operations_to_update[targetPc].emplace_back(brOp, 0);
-
-        // { // If pC == targetPC
-        //     builder.setInsertionPointToStart(blockJump);
-        //
-        //     auto brOp = builder.create<mlir::BranchOp>(LOCB, entryBlock);
-        // } // End If pC != 0
+        auto brOp = builder.create<CondBrOp>(LOCB, pcValueIsTarget, targetBlock, blockAfterJump);
+        if (targetBlock == entryBlock)
+            operations_to_update[targetPc].emplace_back(brOp, 0);
 
         builder.setInsertionPointToStart(blockAfterJump);
         lastBlock = blockAfterJump;
@@ -498,13 +497,16 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p4 = (uint64_t)op.p4.p;
                 auto p5 = op.p5;
 
+                out("test" << (p5 & OPFLAG_PERMUTE))
+
                 builder.create<mlir::standalone::Compare>
                     (LOCB,
+                        INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
                         INTEGER_ATTR(32, true, p2),
                         INTEGER_ATTR(32, true, p3),
                         INTEGER_ATTR(64, false, p4),
-                        INTEGER_ATTR(32, true, p5)
+                        INTEGER_ATTR(16, true, p5)
                     );
 
                 break;

@@ -20,4 +20,7 @@ struct VdbeContext {
     llvm::SmallVector<Mem*, 128> regInstances;
     std::unordered_map<size_t, mlir::Block*> blocks;
     std::unordered_map<size_t, mlir::BranchOp> outBranches;
+
+    // The last result of OP_Compare
+    mlir::LLVM::AllocaOp iCompare;
 };
