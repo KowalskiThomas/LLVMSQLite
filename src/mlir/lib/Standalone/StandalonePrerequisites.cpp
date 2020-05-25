@@ -59,6 +59,8 @@ LLVMFuncOp f_sqlite3VdbeSorterRowkey;
 LLVMFuncOp f_sqlite3VdbeSorterNext;
 LLVMFuncOp f_sqlite3MemCompare;
 LLVMFuncOp f_sqlite3VdbeSorterInit;
+LLVMFuncOp f_applyAffinity;
+LLVMFuncOp f_sqlite3VarintLen;
 
 LLVMFuncOp f_memCpy;
 
@@ -112,6 +114,8 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeSorterNext);
     DECLARE_FUNCTION(sqlite3MemCompare);
     DECLARE_FUNCTION(sqlite3VdbeSorterInit);
+    DECLARE_FUNCTION(applyAffinity);
+    DECLARE_FUNCTION(sqlite3VarintLen);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -692,6 +696,30 @@ void Prerequisites::generateReferenceTosqlite3VdbeSorterInit(mlir::ModuleOp m, L
     GENERATE_SYMBOL(f_sqlite3VdbeSorterInit, sqlite3VdbeSorterInit, "sqlite3VdbeSorterInit");
 }
 
+extern "C" {
+    void applyAffinity(Mem *pRec, char affinity, u8 enc);
+}
+void Prerequisites::generateReferenceToapplyAffinity(mlir::ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(d), {
+                T::sqlite3_valuePtrTy,
+                T::i8Ty,
+                T::i8Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_applyAffinity, applyAffinity, "applyAffinity");
+}
+
+void Prerequisites::generateReferenceTosqlite3VarintLen(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::i64Ty
+            }, false);
+
+
+    GENERATE_SYMBOL(f_sqlite3VarintLen, sqlite3VarintLen, "sqlite3VarintLen");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
@@ -738,6 +766,8 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeSorterNext);
     CALL_SYMBOL_GENERATOR(sqlite3MemCompare);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeSorterInit);
+    CALL_SYMBOL_GENERATOR(applyAffinity);
+    CALL_SYMBOL_GENERATOR(sqlite3VarintLen);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

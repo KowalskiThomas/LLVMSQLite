@@ -29,10 +29,10 @@ namespace std {
  * @tparam T should be some kind of OpBuilder (possibly a PatternRewriter)
  * @tparam U the MLIR Context in which the builder / rewriter is used
  */
-template<typename T>
 struct ConstantManager {
 protected:
     using MLIRContext = mlir::MLIRContext;
+    using OpBuilder = mlir::OpBuilder;
 
     // std::unordered_map but shorter
     template<typename K, typename V>
@@ -45,13 +45,13 @@ protected:
     umap<mlir::Type, umap<void*, mlir::Value>> pointers;
 
     /// The rewriter / builder
-    T& rewriter;
+    OpBuilder& rewriter;
 
     // The MLIRContext
     MLIRContext* ctx;
 
 public:
-    ConstantManager(T& rewriter, MLIRContext* ctx)
+    ConstantManager(OpBuilder& rewriter, MLIRContext* ctx)
         : rewriter(rewriter), ctx(ctx)
     {
     }

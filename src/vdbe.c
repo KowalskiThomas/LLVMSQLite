@@ -372,7 +372,7 @@ static void applyNumericAffinity(Mem *pRec, int bTryForInt) {
 ** SQLITE_AFF_NONE:
 **    No-op.  pRec is unchanged.
 */
-static void applyAffinity(
+void applyAffinity(
         Mem *pRec,          /* The value to apply affinity to */
         char affinity,      /* The affinity to be applied */
         u8 enc              /* Use this text encoding */

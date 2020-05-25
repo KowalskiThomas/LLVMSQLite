@@ -2,16 +2,16 @@
 #include "Standalone/ConstantManager.h"
 
 
-template<typename Rewriter>
 struct GetVarint32Operator {
     using MLIRContext = mlir::MLIRContext;
     using Value = mlir::Value;
+    using OpBuilder = mlir::OpBuilder;
 
-    Rewriter& rewriter;
+    OpBuilder& rewriter;
     MLIRContext* ctx;
-    ConstantManager<Rewriter>& constants;
+    ConstantManager& constants;
 
-    GetVarint32Operator(Rewriter& rewriter, ConstantManager<Rewriter>& constants, MLIRContext* ctx)
+    GetVarint32Operator(OpBuilder& rewriter, ConstantManager& constants, MLIRContext* ctx)
             : rewriter(rewriter), ctx(ctx), constants(constants)
     {
     }

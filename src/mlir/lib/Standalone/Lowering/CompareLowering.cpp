@@ -45,10 +45,6 @@ namespace mlir::standalone::passes {
         auto aPermuteInitValue = (int*)(nullptr);
         auto aPermuteAddr = alloca(LOC, T::i32PtrTy);
 
-        CALL_DEBUG
-        CALL_DEBUG
-        CALL_DEBUG
-
         if ((flags & OPFLAG_PERMUTE) == 0) {
             store(LOC, 0, aPermuteAddr);
             aPermuteInitValue = nullptr;
@@ -122,8 +118,6 @@ namespace mlir::standalone::passes {
                     out("not writing a lot o fstuff")
                 }
 
-                CALL_DEBUG
-                CALL_DEBUG
                 if (bRev) {
                     auto iCompareValue = load(LOC, vdbeCtx->iCompare);
                     auto negICompare = rewriter.create<SRemOp>(LOC, constants(0, 32), iCompareValue);
@@ -143,7 +137,6 @@ namespace mlir::standalone::passes {
 
         ip_start(blockAfterFor);
 
-        CALL_DEBUG
         print(LOCL, "In block after for");
 
         branch(LOC, endBlock);

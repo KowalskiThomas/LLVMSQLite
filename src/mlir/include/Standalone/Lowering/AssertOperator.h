@@ -2,16 +2,16 @@
 #include "Standalone/ConstantManager.h"
 #include "Standalone/StandalonePrerequisites.h"
 
-template<class Rewriter>
 struct MyAssertOperator {
+    using OpBuilder = mlir::OpBuilder;
     USING_OPS
 
-    Rewriter& rewriter;
-    ConstantManager<Rewriter>& constants;
+    OpBuilder& rewriter;
+    ConstantManager& constants;
     MLIRContext* ctx;
     const char* fileName;
 
-    MyAssertOperator(Rewriter& rewriter, ConstantManager<Rewriter>& constants, MLIRContext* ctx, const char* fileName)
+    MyAssertOperator(OpBuilder& rewriter, ConstantManager& constants, MLIRContext* ctx, const char* fileName)
             : rewriter(rewriter), constants(constants), ctx(ctx), fileName(fileName)
     {
     }

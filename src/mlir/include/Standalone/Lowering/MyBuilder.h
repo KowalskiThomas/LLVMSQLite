@@ -2,16 +2,16 @@
 
 #include <src/mlir/include/Standalone/TypeDefinitions.h>
 
-template<typename Rewriter>
 struct MyBuilder {
+    using OpBuilder = mlir::OpBuilder;
     USING_OPS
 
     MLIRContext* ctx;
     LLVMDialect* llvmDialect;
-    ConstantManager<Rewriter>& constants;
-    Rewriter& rewriter;
+    ConstantManager& constants;
+    OpBuilder& rewriter;
 
-    MyBuilder(MLIRContext* ctx, ConstantManager<Rewriter>& constants, Rewriter& rewriter)
+    MyBuilder(MLIRContext* ctx, ConstantManager& constants, OpBuilder& rewriter)
             : ctx(ctx), constants(constants), rewriter(rewriter),
               llvmDialect(ctx->getRegisteredDialect<LLVMDialect>())
     {
@@ -26,14 +26,14 @@ struct MyBuilder {
             rewriter.template create<CallOp>(loc, func, range);
             return llvm::None;
         }
-        auto callOp = rewriter.template create<CallOp>(loc, func, range);
+        auto callOp = rewriter.create<CallOp>(loc, func, range);
         auto result = callOp.getResult(0);
         return llvm::Optional<Value>(result);
     }
 
-    CallOp insertCallOp(mlir::Location loc, mlir::Value func, mlir::ValueRange range) {
+    /*CallOp insertCallOp(mlir::Location loc, mlir::Value func, mlir::ValueRange range) {
         return rewriter.template create<CallOp>(loc, func, range);
-    }
+    }*/
 
     Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, mlir::Value rhs) {
         return rewriter.template create<ICmpOp>(loc, pred, lhs, rhs);
@@ -90,6 +90,9 @@ struct MyBuilder {
                 rightSize = size;
                 break;
             }
+
+        if (rightSize == 0)
+            x.dump();
 
         assert(rightSize > 0);
         return rightSize;
@@ -193,8 +196,17 @@ auto load = [&builder](mlir::Location loc, mlir::Value addr) { \
     return builder.insertLoad(loc, addr); \
 }; \
  \
+auto store = [&builder](mlir::Location loc, auto value, mlir::Value addr) { \
+    builder.insertStoreOp(loc, value, addr); \
+}; \
+ \
 auto add = [&builder](mlir::Location loc, mlir::Value val, auto x) { \
     return builder.insertAddOp(loc, val, x); \
+}; \
+auto addInPlace = [&builder, &load, &add, &store](mlir::Location loc, mlir::LLVM::AllocaOp addr, auto x) { \
+    auto val = load(loc, addr); \
+    auto result = add(loc, val, x); \
+    store(loc, result, addr); \
 }; \
  \
 auto bitOr = [&builder](mlir::Location loc, mlir::Value val, auto x) { \
@@ -203,10 +215,6 @@ auto bitOr = [&builder](mlir::Location loc, mlir::Value val, auto x) { \
  \
 auto bitAnd = [&builder](mlir::Location loc, mlir::Value val, auto x) { \
     return builder.insertAndOp(loc, val, x); \
-}; \
- \
-auto store = [&builder](mlir::Location loc, auto value, mlir::Value addr) { \
-    builder.insertStoreOp(loc, value, addr); \
 }; \
 \
 auto ptrToInt = [&builder](mlir::Location loc, mlir::Value value) { \
