@@ -34,7 +34,7 @@ namespace mlir::standalone::passes {
         auto endBlock = curBlock->splitBlock(snOp); GO_BACK_TO(curBlock);
 
         /// pC = p->apCsr[pOp->p1];
-        auto pCValue = vdbe->apCsr[curIdx];
+        auto pCValue = &vdbe->apCsr[curIdx];
         auto pC = constants(T::VdbeCursorPtrTy, pCValue);
 
         /// TODO assert(isSorter(pC));
@@ -44,10 +44,10 @@ namespace mlir::standalone::passes {
         auto rc = call(LOC, f_sqlite3VdbeSorterNext, db, pC).getValue();
 
         /// goto next_tail;
-        auto cacheStatusAddr = constants(T::i32PtrTy, &pCValue->cacheStatus);
+        auto cacheStatusAddr = getElementPtrImm(LOC, T::i32PtrTy, pC, 0, 9);
         store(LOC, CACHE_STALE, cacheStatusAddr);
 
-        auto nullRowAddr = constants(T::i8PtrTy, &pCValue->nullRow);
+        auto nullRowAddr = getElementPtrImm(LOC, T::i8PtrTy, pC, 0, 2);
 
         curBlock = rewriter.getBlock();
         auto blockAfterRcIsOk = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -65,7 +65,7 @@ namespace mlir::standalone::passes {
             auto counterValPlus1 = add(LOC, counterVal, 1);
             store(LOC, counterValPlus1, aCounterAddr);
 
-            // TODO goto jump_to_p2_and_check_for_interrupt;
+            print(LOCL, "TODO: goto jump_to_p2_and_check_for_interrupt");
 
             branch(LOC, blockAfterRcIsOk);
         } // end if rc == SQLITE_OK

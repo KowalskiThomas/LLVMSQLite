@@ -31,13 +31,14 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(siOp); GO_BACK_TO(curBlock);
 
-        auto pC = constants(T::VdbeCursorPtrTy, vdbe->apCsr[curIdx]);
-
+        auto pCValueAddr = constants(T::VdbeCursorPtrPtrTy, &vdbe->apCsr[curIdx]);
         auto pIn = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[reg]);
 
+        auto pC = load(LOC, pCValueAddr);
+
         mlir::Value rcTemp;
+        auto rc = alloca(LOC, T::i32PtrTy);
         {
-            auto rc = alloca(LOC, T::i32PtrTy);
             auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn, 0, 1);
             auto flagsValue = load(LOC, flagsAddr);
             auto flagsAndMemZero = bitAnd(LOC, flagsValue, MEM_Zero);
@@ -58,7 +59,7 @@ namespace mlir::standalone::passes {
                 store(LOC, rcTemp, rc);
 
                 branch(LOC, blockAfter);
-            }
+            } // end if pIn->flags & MEM_Zero
 
             ip_start(blockAfter);
             rcTemp = load(LOC, rc);

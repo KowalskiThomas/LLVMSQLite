@@ -135,6 +135,7 @@ namespace mlir {
 
                 // TODO: if (res) goto jump_to_p2;
                 PROGRESS_PRINT_INT(resValue, "Value of res");
+                PROGRESS("TODO: if (res) goto jump_to_p2")
 
                 rewriter.eraseOp(rewindOp);
                 return success();

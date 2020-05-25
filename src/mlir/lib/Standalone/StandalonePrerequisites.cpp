@@ -58,6 +58,7 @@ LLVMFuncOp f_sqlite3VdbeMemExpandBlob;
 LLVMFuncOp f_sqlite3VdbeSorterRowkey;
 LLVMFuncOp f_sqlite3VdbeSorterNext;
 LLVMFuncOp f_sqlite3MemCompare;
+LLVMFuncOp f_sqlite3VdbeSorterInit;
 
 LLVMFuncOp f_memCpy;
 
@@ -110,6 +111,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeSorterRowkey);
     DECLARE_FUNCTION(sqlite3VdbeSorterNext);
     DECLARE_FUNCTION(sqlite3MemCompare);
+    DECLARE_FUNCTION(sqlite3VdbeSorterInit);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -679,6 +681,17 @@ void Prerequisites::generateReferenceTosqlite3MemCompare(mlir::ModuleOp m, LLVMD
     GENERATE_SYMBOL(f_sqlite3MemCompare, sqlite3MemCompare, "sqlite3MemCompare");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeSorterInit(mlir::ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::sqlite3PtrTy,
+                T::i32Ty,
+                T::VdbeCursorPtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeSorterInit, sqlite3VdbeSorterInit, "sqlite3VdbeSorterInit");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
@@ -724,6 +737,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeSorterRowkey);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeSorterNext);
     CALL_SYMBOL_GENERATOR(sqlite3MemCompare);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeSorterInit);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

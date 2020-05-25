@@ -10,6 +10,7 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
+ExternFuncOp f_sqlite3VdbeSorterInit;
 
 namespace mlir::standalone::passes {
     LogicalResult SorterOpenLowering::matchAndRewrite(SorterOpen soOp, PatternRewriter &rewriter) const {
@@ -30,14 +31,38 @@ namespace mlir::standalone::passes {
         auto p3 = soOp.p3Attr().getSInt();
         auto p4 = soOp.p4Attr().getUInt();
 
-        // auto curBlock = rewriter.getBlock();
-        // auto endBlock = curBlock->splitBlock(soOp); GO_BACK_TO(curBlock);
+        auto curBlock = rewriter.getBlock();
+        auto endBlock = curBlock->splitBlock(soOp); GO_BACK_TO(curBlock);
 
-        // branch(LOC, endBlock);
+        auto pCx = call(LOC, f_allocateCursor,
+                constants(T::VdbePtrTy, vdbe),
+                constants(curIdx, 32),
+                constants(nCol, 32),
+                constants(-1, 32),
+                constants(CURTYPE_SORTER, 8)).getValue();
 
-        // ip_start(endBlock);
+        { // if (pCx == 0) goto no_mem
+            auto pCxInt = ptrToInt(LOC, pCx);
+            auto pCxNotNull = iCmp(LOC, Pred::ne, pCxInt, 0);
+            myAssert(LOCL, pCxNotNull);
+        } // end if (pCx == 0) goto no_mem
 
-        print(LOCL, "TODO: Implement SorterOpenLowering");
+        auto keyInfoAddr = getElementPtrImm(LOC, T::KeyInfoPtrTy.getPointerTo(), pCx, 0, 13);
+        store(LOC, constants(T::KeyInfoPtrTy, (void*)p4), keyInfoAddr);
+
+        auto rc = call(LOC, f_sqlite3VdbeSorterInit,
+                constants(T::sqlite3PtrTy, vdbe->db),
+                constants(p3, 32),
+                pCx).getValue();
+
+        { // if (rc) goto abort_due_to_error
+            auto rcNull = iCmp(LOC, Pred::eq, rc, 0);
+            myAssert(LOCL, rcNull);
+        } // end if (rc) goto abort_due_to_error
+        
+        branch(LOC, endBlock);
+
+        ip_start(endBlock);
 
         rewriter.eraseOp(soOp);
 

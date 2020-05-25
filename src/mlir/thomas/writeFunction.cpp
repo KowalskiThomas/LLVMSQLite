@@ -497,8 +497,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p4 = (uint64_t)op.p4.p;
                 auto p5 = op.p5;
 
-                out("test" << (p5 & OPFLAG_PERMUTE))
-
                 builder.create<mlir::standalone::Compare>
                     (LOCB,
                         INTEGER_ATTR(64, false, pc),
@@ -512,7 +510,27 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
             }
             case OP_Jump: {
+                auto addrLess = op.p1;
+                auto addrEq = op.p2;
+                auto addrGreater = op.p3;
 
+                Block* blockLess = blocks.count(addrLess) == 0 ? entryBlock : blocks[addrLess];
+                Block* blockEq = blocks.count(addrEq) == 0 ? entryBlock : blocks[addrEq];
+                Block* blockGreater = blocks.count(addrGreater) == 0 ? entryBlock : blocks[addrGreater];
+
+                auto op = builder.create<mlir::standalone::Jump>
+                    (LOCB,
+                        blockLess,
+                        blockEq,
+                        blockGreater
+                    );
+
+                if (blockLess == entryBlock)
+                    operations_to_update[addrLess].emplace_back(op.getOperation(), 0);
+                if (blockEq == entryBlock)
+                    operations_to_update[addrEq].emplace_back(op.getOperation(), 1);
+                if (blockGreater == entryBlock)
+                    operations_to_update[addrGreater].emplace_back(op.getOperation(), 2);
 
                 break;
             }
