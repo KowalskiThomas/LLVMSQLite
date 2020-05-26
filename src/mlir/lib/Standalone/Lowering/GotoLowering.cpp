@@ -12,6 +12,8 @@ namespace mlir {
                 auto op = &gotoOp;
                 LOWERING_PASS_HEADER
 
+                PROGRESS("-- GoTo");
+
                 rewriter.create<mlir::BranchOp>(LOC, gotoOp.dest());
 
                 rewriter.eraseOp(gotoOp);

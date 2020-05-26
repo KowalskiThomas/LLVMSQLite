@@ -8,10 +8,11 @@ namespace mlir {
             LogicalResult
             InitLowering::matchAndRewrite(InitOp initOp, PatternRewriter &rewriter) const {
                 auto op = &initOp;
-                initOp.dump();
                 ModuleOp parentModule2 = op->getParentOfType<ModuleOp>();
                 int i = 2;
                 LOWERING_PASS_HEADER
+
+                PROGRESS("-- Init");
 
                 auto jumpToAttr = initOp.jumpTo();
 

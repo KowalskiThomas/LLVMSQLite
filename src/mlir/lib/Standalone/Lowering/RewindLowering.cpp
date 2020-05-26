@@ -16,6 +16,8 @@ namespace mlir {
                 auto jumpTo = rewindOp.jumpToIfEmpty();
                 auto fallthrough = rewindOp.fallthrough();
 
+                PROGRESS("-- Rewind");
+
                 auto firstBlock = rewriter.getBlock();
 
                 /// pC = p->apCsr[pOp->p1];
@@ -65,7 +67,7 @@ namespace mlir {
                     auto ip = rewriter.saveInsertionPoint();
                     rewriter.setInsertionPointToStart(blockSorter);
 
-                    PROGRESS("OP_Rewind: Cursor is a sorter");
+                    // PROGRESS("OP_Rewind: Cursor is a sorter");
                     // Call sqlite3VdbeSorterRewind
                     auto tempRc = rewriter.create<CallOp>(LOC, f_sqlite3VdbeSorterRewind, ValueRange{ pC, res }).getResult(0);
                     // Store its result in rc
@@ -80,7 +82,7 @@ namespace mlir {
                     // not isSorter branch
                     rewriter.setInsertionPointToStart(blockNotSorter);
 
-                    PROGRESS("OP_Rewind: Cursor is not a sorter");
+                    // PROGRESS("OP_Rewind: Cursor is not a sorter");
                     // Get the address of the cursor from pC->uc.pCursor
                     auto pCrsrAddress = rewriter.create<GEPOp>
                             (LOC, T::VdbeCursorPtrPtrTy, pC, ValueRange{

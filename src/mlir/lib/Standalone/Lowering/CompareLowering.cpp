@@ -24,6 +24,8 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
+        print(LOCL, "-- Compare");
+
         auto firstBlock = rewriter.getBlock();
 
         // First LHS = p1
@@ -112,10 +114,7 @@ namespace mlir::standalone::passes {
                         branch(LOC, blockAfterNull);
                     } // end (aMem[p1 + idx].flags & MEM_Null) || (aMem[p2 + idx].flags & MEM_Null)
 
-                    out("in possibly null")
                     ip_start(blockAfterNull);
-                } else {
-                    out("not writing a lot o fstuff")
                 }
 
                 if (bRev) {

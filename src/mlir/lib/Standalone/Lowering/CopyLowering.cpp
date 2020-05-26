@@ -23,6 +23,8 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
+        print(LOCL, "-- Copy");
+
         auto firstBlock = rewriter.getBlock();
 
         auto firstFromRegAttr = txnOp.firstFromRegAttr();

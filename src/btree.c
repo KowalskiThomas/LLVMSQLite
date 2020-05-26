@@ -4543,6 +4543,12 @@ int sqlite3BtreeCursorIsValid(BtCursor *pCur){
   return pCur && pCur->eState==CURSOR_VALID;
 }
 #endif /* NDEBUG */
+
+// TODO: Remove that
+int sqlite3BtreeCursorIsValid(BtCursor *pCur){
+    return pCur && pCur->eState==CURSOR_VALID;
+}
+
 int sqlite3BtreeCursorIsValidNN(BtCursor *pCur){
   assert( pCur!=0 );
   return pCur->eState==CURSOR_VALID;

@@ -23,6 +23,8 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
+        print(LOCL, "-- SorterInsert");
+
         auto firstBlock = rewriter.getBlock();
 
         auto curIdx = siOp.curIdxAttr().getSInt();

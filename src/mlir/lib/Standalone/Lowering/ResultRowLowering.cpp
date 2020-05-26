@@ -3,6 +3,7 @@
 #include "Standalone/TypeDefinitions.h"
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
+#include "Standalone/Lowering/Printer.h"
 
 #undef alloca
 
@@ -15,8 +16,10 @@ namespace mlir::standalone::passes {
 
         ConstantManager constants(rewriter, ctx);
         MyBuilder builder(ctx, constants, rewriter);
-
+        Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
+
+        print(LOCL, "-- ResultRow");
 
         auto i = alloca(LOC, T::i32PtrTy);
 
@@ -112,7 +115,6 @@ namespace mlir::standalone::passes {
         rewriter.create<LLVM::ReturnOp>(LOC, constants(SQLITE_ROW, 32));
 
         rewriter.eraseOp(rrOp);
-        parentModule.dump();
         return success();
     } // matchAndRewrite
 

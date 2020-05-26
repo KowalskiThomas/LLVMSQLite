@@ -23,6 +23,8 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
+        print(LOCL, "-- IfPos");
+
         auto firstBlock = rewriter.getBlock();
 
         auto destReg = ifOp.integerRegAttr().getSInt();

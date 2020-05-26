@@ -23,6 +23,8 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
+        print(LOCL, "-- AggStep");
+
         auto firstBlock = rewriter.getBlock();
 
         auto p1Attr = aggStepOp.p1Attr();

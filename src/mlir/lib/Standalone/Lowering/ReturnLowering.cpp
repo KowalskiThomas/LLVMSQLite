@@ -23,6 +23,8 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
+        print(LOCL, "-- Return");
+
         auto firstBlock = rewriter.getBlock();
         // auto goBackTo = retOp.continueAt();
         auto goBackToAddr = retOp.continueAtNextInstructionFromRegAttr().getSInt();

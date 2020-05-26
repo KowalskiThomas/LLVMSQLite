@@ -64,6 +64,7 @@ LLVMFuncOp f_sqlite3VarintLen;
 LLVMFuncOp f_sqlite3VdbeMemClearAndResize;
 LLVMFuncOp f_sqlite3PutVarint;
 LLVMFuncOp f_sqlite3VdbeSerialPut;
+LLVMFuncOp f_sqlite3BtreeCursorIsValid;
 
 LLVMFuncOp f_memCpy;
 
@@ -122,6 +123,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeMemClearAndResize);
     DECLARE_FUNCTION(sqlite3PutVarint);
     DECLARE_FUNCTION(sqlite3VdbeSerialPut);
+    DECLARE_FUNCTION(sqlite3BtreeCursorIsValid);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -175,7 +177,7 @@ void my_assert(bool x, size_t line, const char* fileName) {
     if (!x) {
         llvm::outs() << "Assert false on " << fileName << ":" << line << "\n";
         llvm::outs().flush();
-        llvm::outs() << "Assert evaluated to false!";
+        llvm::outs() << "Assert evaluated to false!\n";
         llvm_unreachable("Assert evaluated to false");
     }
 }
@@ -758,6 +760,19 @@ void Prerequisites::generateReferenceTosqlite3VdbeSerialPut(ModuleOp m, LLVMDial
     GENERATE_SYMBOL(f_sqlite3VdbeSerialPut, sqlite3VdbeSerialPut, "sqlite3VdbeSerialPut");
 }
 
+extern "C" {
+    int sqlite3BtreeCursorIsValid(BtCursor*);
+}
+
+void Prerequisites::generateReferenceTosqlite3BtreeCursorIsValid(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::i32Ty, {
+            T::BtCursorPtrTy
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeCursorIsValid, sqlite3BtreeCursorIsValid, "sqlite3BtreeCursorIsValid");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
@@ -809,6 +824,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemClearAndResize);
     CALL_SYMBOL_GENERATOR(sqlite3PutVarint);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeSerialPut);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeCursorIsValid);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

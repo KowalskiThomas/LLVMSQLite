@@ -32,6 +32,8 @@ namespace mlir::standalone::passes {
         auto accumReg = toRegAttr.getSInt();
         auto pFunc = constants(T::FuncDefPtrTy, (void*)functionAttr.getUInt());
 
+        print(LOCL, "-- AggFinal");
+
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
 

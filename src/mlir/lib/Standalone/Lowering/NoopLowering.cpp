@@ -11,6 +11,8 @@ namespace mlir {
                 LOWERING_PASS_HEADER
                 auto& builder = rewriter;
 
+                PROGRESS("-- NoOp");
+
                 {
                     auto operand = CONSTANT_INT(noopOp.pcAttr().getUInt(), 64);
                     // Macro needs a variable named "builder" so we give it one

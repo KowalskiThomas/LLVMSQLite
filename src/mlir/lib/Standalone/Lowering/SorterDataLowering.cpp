@@ -23,6 +23,8 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
+        print(LOCL, "-- SorterData");
+
         auto firstBlock = rewriter.getBlock();
 
         auto curIdx = sdOp.curIdxAttr().getSInt();
@@ -52,7 +54,7 @@ namespace mlir::standalone::passes {
         { // if (rc) goto abort_due_to_error;
             auto rcIsNull = iCmp(LOC, Pred::eq, rc, 0);
             myAssert(LOCL, rcIsNull);
-        }
+        } // end if (rc) goto abort_due_to_error;
 
         /// p->apCsr[pOp->p3]->cacheStatus = CACHE_STALE;
         auto otherCursorPointerValueAddress = constants(T::VdbeCursorPtrTy.getPointerTo(), &vdbe->apCsr[curClearHeader]);

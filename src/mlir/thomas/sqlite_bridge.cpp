@@ -59,8 +59,8 @@ struct VdbeRunner {
     void prepareFunction() {
         ::prepareFunction(context, llvmDialect, theModule);
 
-        llvm::errs() << "-- Original module";
-        theModule.dump();
+        // llvm::errs() << "-- Original module";
+        // theModule.dump();
 
         mlir::PassManager pm(ctx);
         pm.addPass(std::make_unique<VdbeToLLVM>());

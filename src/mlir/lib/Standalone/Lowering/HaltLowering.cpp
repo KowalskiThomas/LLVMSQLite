@@ -9,6 +9,7 @@ namespace mlir {
                 auto op = &haltOp;
                 LOWERING_PASS_HEADER
 
+                PROGRESS("-- Halt")
                 // TODO: This is not complete at all (in comparison with the vdbe.c implementation)
 
                 PROGRESS("Halting execution");

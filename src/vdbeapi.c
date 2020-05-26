@@ -696,7 +696,7 @@ static int sqlite3Step(Vdbe *p){
     db->nVdbeExec++;
     // THOMAS SWITCH HERE azeaze
     printf("Calling sqlite3VdbeExec\n");
-    rc = sqlite3VdbeExec(p);
+    rc = sqlite3VdbeExec2(p);
 
     printf("Finished execution of sqlite3VdbeExec. Return code: %d Dumping memory.\n", rc);
     for(int i = 0; i < p->nMem; i++) {

@@ -28,6 +28,8 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
+        print(LOCL, "-- MakeRecord");
+
         auto firstBlock = rewriter.getBlock();
 
         // firstFromReg = P1
@@ -234,7 +236,44 @@ namespace mlir::standalone::passes {
                 condBranch(LOC, uuSize1, blockSize1, blockNotSize1);
                 { // if (uu <= 127)
                     ip_start(blockSize1);
-                    print(LOCL, "TODO: 3099-..");
+
+                    auto curBlock = rewriter.getBlock();
+                    auto blockAfterCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                    auto blockNotCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                    auto blockCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+                    /// if ((i & 1) == i && file_format >= 4)
+                    auto iAnd1 = bitAnd(LOC, i, 1);
+                    auto iAnd1Is1 = iCmp(LOC, Pred::eq, iAnd1, 1);
+                    auto fileFormatGe4 = iCmp(LOC, Pred::sge, file_format, 4);
+                    auto condCondition = bitAnd(LOC, iAnd1Is1, fileFormatGe4);
+
+                    condBranch(LOC, condCondition, blockCondition, blockNotCondition);
+                    { // if ((i & 1) == i && file_format >= 4)
+                        ip_start(blockCondition);
+
+                        /// pRec->uTemp = 8 + (u32) uu;
+                        auto val = load(LOC, uu);
+                        val = rewriter.create<TruncOp>(LOC, T::i32Ty, val);
+                        val = add(LOC, val, 8);
+                        store(LOC, val, uTempAddress);
+
+                        branch(LOC, blockAfterCondition);
+                    } // end if ((i & 1) == i && file_format >= 4)
+                    { // else of if ((i & 1) == i && file_format >= 4)
+                        ip_start(blockNotCondition);
+
+                        /// nData++
+                        PlusPlus(LOC, nDataAddr);
+
+                        /// pRec->uTemp = 1
+                        store(LOC, 1, uTempAddress);
+
+                        branch(LOC, blockAfterCondition);
+                    } // end else of if ((i & 1) == i && file_format >= 4)
+
+                    ip_start(blockAfterCondition);
+
                     branch(LOC, blockAfterSize);
                 } // end if (uu <= 127)
                 { // else of if (uu <= 127)
@@ -523,11 +562,7 @@ namespace mlir::standalone::passes {
             { // if (nByte + nZero > db->aLimit[SQLITE_LIMIT_LENGTH])
                 ip_start(blockMoreThanLimitLength);
 
-                out("LIMIT: " << vdbe->db->aLimit[SQLITE_LIMIT_LENGTH]);
-                print(LOCL, "Too Big");
-                print(LOCL, nBytePlusNZero, "size");
-                print(LOCL, nByte, "nbyte");
-                print(LOCL, nZeroValue, "nzero");
+                print(LOCL, "Error: too_big");
                 myAssert(LOCL, constants(0, 1));
 
                 branch(LOC, blockAfterMoreThanLimitLength);

@@ -11,6 +11,8 @@ namespace mlir {
                 LOWERING_PASS_HEADER
                 LOWERING_NAMESPACE
 
+                PROGRESS("-- OpenRead")
+
                 mlir::Value curIdx = CONSTANT_INT(orOp.curIdxAttr().getSInt(), 32);
                 mlir::Value databaseIdx = CONSTANT_INT(orOp.databaseAttr().getSInt(), 32);
 
