@@ -12,6 +12,9 @@
 
 ExternFuncOp f_applyAffinity;
 ExternFuncOp f_sqlite3VarintLen;
+ExternFuncOp f_sqlite3VdbeMemClearAndResize;
+ExternFuncOp f_sqlite3PutVarint;
+ExternFuncOp f_sqlite3VdbeSerialPut;
 
 namespace mlir::standalone::passes {
     LogicalResult MakeRecordLowering::matchAndRewrite(MakeRecord mrOp, PatternRewriter &rewriter) const {
@@ -41,10 +44,18 @@ namespace mlir::standalone::passes {
 
         /// i64 nData = 0
         auto nDataAddr = alloca(LOC, T::i64PtrTy);
+        store(LOC, 0, nDataAddr);
+
         /// i32 nHdr = 0
         auto nHdrAddr = alloca(LOC, T::i32PtrTy);
+        store(LOC, 0, nHdrAddr);
+
         /// i64 nZero = 0
         auto nZeroAddr = alloca(LOC, T::i64PtrTy);
+        store(LOC, 0, nZeroAddr);
+
+        /// u8* zPayload
+        auto zPayloadAddr = alloca(LOC, T::i8PtrPtrTy);
 
         auto nField = firstFromReg;
         auto pData0Value = &vdbe->aMem[nField];
@@ -57,7 +68,8 @@ namespace mlir::standalone::passes {
         auto zAffinity = constants(T::i8PtrTy, affinities);
 
         /// pOut = &aMem[pOp->p3];
-        auto pOut = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[dest]);
+        auto pOutInitialValue = &vdbe->aMem[dest];
+        auto pOut = constants(T::sqlite3_valuePtrTy, pOutInitialValue);
 
         if (affinities) {
             auto pRecValue = pData0Value;
@@ -127,7 +139,6 @@ namespace mlir::standalone::passes {
             condBranch(LOC, recNull, blockRecNull, blockNotRecNull);
             { // if rec is NULL
                 ip_start(blockRecNull);
-
 
                 auto curBlock = rewriter.getBlock();
                 auto blockAfterZero = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -427,6 +438,8 @@ namespace mlir::standalone::passes {
 
         // Line 3160 (and on)
 
+        auto zAddress = getElementPtrImm(LOC, T::i8PtrTy, pOut, 0, 5);
+
         auto nHdrValue = load(LOC, nHdrAddr);
         auto nHdrValue64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, nHdrValue);
         auto nHdrLt126 = iCmp(LOC, Pred::slt, nHdrValue, 126);
@@ -468,8 +481,166 @@ namespace mlir::standalone::passes {
 
         ip_start(blockAfterNHdrLt126);
 
+        /// nByte = nHdr + nData;
         auto nHdr64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, load(LOC, nHdrAddr));
         auto nByte = add(LOC, nHdr64, load(LOC, nDataAddr));
+
+        /// if (nByte + nZero <= pOut->szMalloc)
+        // auto szMallocAddr = getElementPtrImm(LOC, T::i32PtrTy, pOut, 0, 7);
+        auto szMallocAddr = constants(T::i32PtrTy, &pOutInitialValue->szMalloc);
+        auto szMalloc = load(LOC, szMallocAddr);
+        auto szMalloc64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, szMalloc);
+        auto nZeroValue = load(LOC, nZeroAddr);
+        auto nBytePlusNZero = add(LOC, nByte, nZeroValue);
+        auto lengthLtMallocSize = iCmp(LOC, Pred::sle, nBytePlusNZero, (Value)szMalloc64);
+
+        curBlock = rewriter.getBlock();
+        auto blockAfterLengthLtMallocSize = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockNotLengthLtMallocSize = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockLengthLtMallocSize = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+        condBranch(LOC, lengthLtMallocSize, blockLengthLtMallocSize, blockNotLengthLtMallocSize);
+        { // if (nByte + nZero <= pOut->szMalloc)
+            ip_start(blockLengthLtMallocSize);
+
+            /// pOut->z = pOut->zMalloc;
+            auto zMallocAddress = getElementPtrImm(LOC, T::i8PtrTy, pOut, 0, 6);
+            auto zMalloc = load(LOC, zMallocAddress);
+            store(LOC, zMalloc, zAddress);
+
+            branch(LOC, blockAfterLengthLtMallocSize);
+        } // end if (nByte + nZero <= pOut->szMalloc)
+        { // else of if (nByte + nZero <= pOut->szMalloc)
+            ip_start(blockNotLengthLtMallocSize);
+
+            auto curBlock = rewriter.getBlock();
+            auto blockAfterMoreThanLimitLength = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+            auto blockMoreThanLimitLength = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+            auto condMoreThanLimitLength = iCmp(LOC, Pred::sgt, nBytePlusNZero, vdbe->db->aLimit[SQLITE_LIMIT_LENGTH]);
+
+            condBranch(LOC, condMoreThanLimitLength, blockMoreThanLimitLength, blockAfterMoreThanLimitLength);
+            { // if (nByte + nZero > db->aLimit[SQLITE_LIMIT_LENGTH])
+                ip_start(blockMoreThanLimitLength);
+
+                out("LIMIT: " << vdbe->db->aLimit[SQLITE_LIMIT_LENGTH]);
+                print(LOCL, "Too Big");
+                print(LOCL, nBytePlusNZero, "size");
+                print(LOCL, nByte, "nbyte");
+                print(LOCL, nZeroValue, "nzero");
+                myAssert(LOCL, constants(0, 1));
+
+                branch(LOC, blockAfterMoreThanLimitLength);
+             } // end if (nByte + nZero > db->aLimit[SQLITE_LIMIT_LENGTH])
+
+            ip_start(blockAfterMoreThanLimitLength);
+
+            /// if (sqlite3VdbeMemClearAndResize(pOut, (int) nByte))
+            curBlock = rewriter.getBlock();
+            auto blockAfterClearAndResize = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+            auto blockClearAndResize = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+            auto nByte32 = rewriter.create<TruncOp>(LOC, T::i32Ty, nByte);
+            auto callResult = call(LOC, f_sqlite3VdbeMemClearAndResize, pOut, nByte32).getValue();
+            auto condClearAndResize = iCmp(LOC, Pred::ne, callResult, 0);
+
+            condBranch(LOC, condClearAndResize, blockClearAndResize, blockAfterClearAndResize);
+            { // if (sqlite3VdbeMemClearAndResize(pOut, (int) nByte))
+                ip_start(blockClearAndResize);
+
+                print(LOCL, "sqlite3VdbeMemClearAndResize returned not null");
+                myAssert(LOCL, constants(0, 1));
+
+                branch(LOC, blockAfterClearAndResize);
+             } // end if (sqlite3VdbeMemClearAndResize(pOut, (int) nByte))
+
+            ip_start(blockAfterClearAndResize);
+
+            branch(LOC, blockAfterLengthLtMallocSize);
+        } // end else of if (nByte + nZero <= pOut->szMalloc)
+
+        ip_start(blockAfterLengthLtMallocSize);
+
+        /// pOut->n = (int) nByte;
+        auto nAddr = getElementPtrImm(LOC, T::i32PtrTy, pOut, 0, 4);
+        auto nByte32 = rewriter.create<TruncOp>(LOC, T::i32Ty, nByte);
+        store(LOC, (Value)nByte32, nAddr);
+
+        /// pOut->flags = MEM_Blob;
+        auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
+        store(LOC, MEM_Blob, flagsAddr);
+
+        /// if (nZero)
+        curBlock = rewriter.getBlock();
+        auto blockAfterNZeroNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockNZeroNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+        nZeroValue = load(LOC, nZeroAddr);
+        auto condNZeroNotNull = iCmp(LOC, Pred::ne, nZeroValue, 0);
+
+        condBranch(LOC, condNZeroNotNull, blockNZeroNotNull, blockAfterNZeroNotNull);
+        { // if (nZero)
+            ip_start(blockNZeroNotNull);
+
+            /// pOut->u.nZero = nZero;
+            auto unionValueAddress = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0, 0);
+            auto nZeroAddr = bitCast(LOC, unionValueAddress, T::i32PtrTy);
+            auto nZeroValue32 = rewriter.create<TruncOp>(LOC, T::i32Ty, nZeroValue);
+            store(LOC, (Value)nZeroValue32, nZeroAddr);
+
+            /// pOut->flags |= MEM_Zero;
+            auto flagsValue = load(LOC, flagsAddr);
+            auto flagsOrZero = bitOr(LOC, flagsValue, MEM_Zero);
+            store(LOC, flagsOrZero, flagsAddr);
+
+            branch(LOC, blockAfterNZeroNotNull);
+         } // end if (nZero)
+
+        ip_start(blockAfterNZeroNotNull);
+
+        /// zHdr = (u8 *) pOut->z;
+        auto zHdrAddr = alloca(LOC, T::i8PtrPtrTy);
+        auto zHdrValue = load(LOC, zAddress);
+        store(LOC, zHdrValue, zHdrAddr);
+
+        /// zPayload = zHdr + nHdr; <=> zPayload = &zHdr[nHdr]
+        nHdrValue = load(LOC, nHdrAddr);
+        nHdrValue64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, nHdrValue);
+        {
+            // Put that in a restricted scope to not have access to them later
+            auto zPayloadValue = getElementPtr(LOC, T::i8PtrTy, zHdrValue, nHdrValue);
+            // auto zPayloadValue = load(LOC, zPayloadValueAddr);
+            store(LOC, zPayloadValue, zPayloadAddr);
+        }
+
+        /// zHdr += putVarint32(zHdr, nHdr) <=> zHdr = &zHdr[putVarInt(...)]
+        print(LOCL, "TODO: Replace function call with macro expansion");
+        auto putVarIntResult = call(LOC, f_sqlite3PutVarint, zHdrValue, nHdrValue64).getValue();
+        zHdrValue = getElementPtr(LOC, T::i8PtrTy, zHdrValue, putVarIntResult);
+        store(LOC, zHdrValue, zHdrAddr);
+
+        /// pRec = pData0
+        pRecValue = pData0Value;
+        Value zPayloadValue = load(LOC, zPayloadAddr);
+        do {
+            /// serial_type = pRec->uTemp;
+            auto pRec = constants(T::sqlite3_valuePtrTy, pRecValue);
+            auto uTempAddress = getElementPtrImm(LOC, T::i32PtrTy, pRec, 0, 8);
+            auto serialType = load(LOC, uTempAddress);
+            auto serialType64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, serialType);
+
+            /// zHdr += putVarint32(zHdr, serial_type);
+            print(LOCL, "TODO: Replace function call with macro expansion");
+            auto putVarIntResult = call(LOC, f_sqlite3PutVarint, zHdrValue, serialType64).getValue();
+            zHdrValue = getElementPtr(LOC, T::i8PtrTy, zHdrValue, putVarIntResult);
+            store(LOC, zHdrValue, zHdrAddr);
+
+            /// zPayload += sqlite3VdbeSerialPut(zPayload, pRec, serial_type);
+            auto serialPutResult = call(LOC, f_sqlite3VdbeSerialPut, zPayloadValue, pRec, serialType).getValue();
+            // auto serialPutResult = constants(0, 32);
+            zPayloadValue = getElementPtr(LOC, T::i8PtrTy, zPayloadValue, serialPutResult);
+
+        } while ((++pRecValue) <= pLastValue);
 
         branch(LOC, endBlock);
 
