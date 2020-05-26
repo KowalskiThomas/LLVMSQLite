@@ -148,19 +148,19 @@ uint32_t add(uint32_t a, uint32_t b) {
 }
 
 uint64_t printProgress(void *s, uint32_t line, const char* fileName) {
-    llvm::outs() << "[" << fileName << " " << line << "] Msg: " << (char *) s << /* " (" << (uint64_t) (s) << ")" << */ "\n";
+    llvm::outs() << "[" << fileName << ":" << line << "] Msg: " << (char *) s << /* " (" << (uint64_t) (s) << ")" << */ "\n";
     llvm::outs().flush();
     return 0;
 }
 
 uint64_t printInt(void *ptr, void *s, uint32_t line, const char* fileName) {
-    llvm::outs() << "[" << fileName << " " << line << "] Int: " << (char *) s << " " << (int64_t) (ptr) << " " << "\n";
+    llvm::outs() << "[" << fileName << ":" << line << "] Int: " << (char *) s << " " << (int64_t) (ptr) << " " << "\n";
     llvm::outs().flush();
     return 0;
 }
 
 uint64_t printPtrAndValue(void* ptr, void* value, void* msg, uint32_t line, const char* fileName) {
-    llvm::outs() << "[" << fileName << " " << line << "] Ptr: " << (const char*)msg
+    llvm::outs() << "[" << fileName << ":" << line << "] Ptr: " << (const char*)msg
                  << "Value = " << (uint64_t)value << " Ptr = " << (uint64_t)ptr << ", " << "\n";
     llvm::outs().flush();
     return 0;

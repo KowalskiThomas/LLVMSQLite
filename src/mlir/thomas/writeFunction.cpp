@@ -47,9 +47,18 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     // We store the last instruction's block to this end.
     mlir::Block* lastBlock = entryBlock;
 
+    print(LOCL, "Entered JITted function");
+
+    auto jumpsBlock = entryBlock->splitBlock(entryBlock->end());
+    vdbeCtx->jumpsBlock = jumpsBlock;
+    builder.setInsertionPointToEnd(entryBlock);
+    builder.create<mlir::BranchOp>(LOC, jumpsBlock);
+    builder.setInsertionPointToStart(jumpsBlock);
+
     vdbeCtx->iCompare = builder.create<mlir::LLVM::AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
     auto pcAddr = constants(T::i32PtrTy, (int*)&vdbe->pc);
     auto pcValue = builder.create<LoadOp>(LOCB, pcAddr);
+    print(LOCL, pcValue, "Current PC");
 
     Block* targetBlock = nullptr;
     Block* blockAfterJump = nullptr;
@@ -61,9 +70,10 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
             && targetOpCode != OP_Return
             && !(targetPc > 0 && (
                   vdbe->aOp[targetPc - 1].opcode == OP_ResultRow
-                 || vdbe->aOp[targetPc - 1].opcode == OP_Goto))
+                 || vdbe->aOp[targetPc - 1].opcode == OP_Goto
+                 || vdbe->aOp[targetPc - 1].opcode == OP_Gosub))
             ) {
-            continue;
+            // TODO: Put that back: continue;
         }
 
         targetBlock = blocks.find(targetOpCode) != blocks.end() ? blocks[targetOpCode] : entryBlock;
@@ -366,12 +376,19 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto writeAddressTo = op.p1;
                 auto jumpTo = op.p2;
 
-                rewriter.create<mlir::standalone::Gosub>
+                Block* blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
+
+                auto op = rewriter.create<mlir::standalone::Gosub>
                     (LOCB,
+                        INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, writeAddressTo),
-                        INTEGER_ATTR(32, true, jumpTo)
+                        blockJumpTo
                      );
 
+                if (blockJumpTo == entryBlock)
+                    operations_to_update[jumpTo].emplace_back(op.getOperation(), 0);
+
+                newWriteBranchOut = false;
                 break;
             }
             case OP_MakeRecord: {
@@ -535,25 +552,57 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
             }
             case OP_Move: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
 
+                rewriter.create<mlir::standalone::Move>
+                    (LOCB,
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(32, true, p2),
+                         INTEGER_ATTR(32, true, p3)
+                    );
 
                 break;
             }
             case OP_IfPos: {
+                auto p1 = op.p1;
+                auto p3 = op.p3;
 
+                auto jumpToAddr = op.p2;
+                Block* blockTarget = blocks.count(jumpToAddr) == 0 ? entryBlock : blocks[jumpToAddr];
+                Block* blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
 
+                auto op = rewriter.create<mlir::standalone::IfPos>
+                    (LOCB,
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p3),
+                        blockTarget,
+                        blockFallthrough
+                    );
+
+                if (blockTarget == entryBlock)
+                    operations_to_update[jumpToAddr].emplace_back(op.getOperation(), 0);
+                if (blockFallthrough == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op.getOperation(), 1);
+
+                newWriteBranchOut = false;
                 break;
             }
             case OP_Return: {
-                auto returnToAddr = op.p1;
+                auto returnToAddrReg = op.p1;
 
-                auto returnTo = blocks.count(returnToAddr) == 0 ? entryBlock : blocks[returnToAddr];
+                // auto returnTo = blocks.count(returnToAddr) == 0 ? entryBlock : blocks[returnToAddr];
 
-                auto op = rewriter.create<mlir::standalone::Return>(LOCB, returnTo);
+                auto op = rewriter.create<mlir::standalone::Return>
+                    (LOCB,
+                        INTEGER_ATTR(32, true, returnToAddrReg)
+                    );
 
-                if (blocks.count(returnToAddr) == 0)
-                    operations_to_update[returnToAddr].emplace_back(op, 0);
+                // if (blocks.count(returnToAddr) == 0)
+                //     operations_to_update[returnToAddr].emplace_back(op, 0);
 
+                newWriteBranchOut = false;
                 break;
             }
         }

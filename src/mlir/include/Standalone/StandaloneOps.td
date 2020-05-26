@@ -102,8 +102,10 @@ def Standalone_Integer : Standalone_Op<"Integer"> {
     let arguments = (ins I64Attr:$pc, I32Attr:$value, I32Attr:$dest);
 }
 
-def Standalone_Gosub : Standalone_Op<"Gosub"> {
-    let arguments = (ins I32Attr:$writeAddressTo, I32Attr:$jumpTo);
+def Standalone_Gosub : Standalone_Op<"Gosub", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$writeAddressTo);
+
+    let successors = (successor AnySuccessor:$jumpTo);
 }
 
 def Standalone_MakeRecord : Standalone_Op<"MakeRecord"> {
@@ -119,9 +121,9 @@ def Standalone_OpenPseudo : Standalone_Op<"OpenPseudo"> {
 }
 
 def Standalone_Return : Standalone_Op<"Return", [Terminator]> {
-    // let arguments = (ins I32Attr:$continueAtNextInstructionFromReg);
+    let arguments = (ins I32Attr:$continueAtNextInstructionFromReg);
 
-    let successors = (successor AnySuccessor:$continueAt);
+    // let successors = (successor AnySuccessor:$continueAt);
 }
 
 def Standalone_SorterSort : Standalone_Op<"SorterSort", [Terminator]> {

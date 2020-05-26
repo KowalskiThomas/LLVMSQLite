@@ -25,20 +25,44 @@ namespace mlir::standalone::passes {
 
         auto firstBlock = rewriter.getBlock();
 
-        auto destReg = ifOp.integerRegAttr().getInt();
+        auto destReg = ifOp.integerRegAttr().getSInt();
         auto toSubtract = ifOp.toSubtractAttr().getSInt();
 
         auto jumpTo = ifOp.jumpTo();
         auto fallThrough = ifOp.fallthrough();
 
-        // auto curBlock = rewriter.getBlock();
-        // auto endBlock = curBlock->splitBlock(ifOp); GO_BACK_TO(curBlock);
+        auto curBlock = rewriter.getBlock();
+        auto endBlock = curBlock->splitBlock(ifOp); GO_BACK_TO(curBlock);
 
-        // branch(LOC, endBlock);
+        auto pIn = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[destReg]);
+        auto unionAddress = getElementPtrImm(LOC, T::doublePtrTy, pIn, 0, 0, 0);
+        auto intAddress = bitCast(LOC, unionAddress, T::i32PtrTy);
+        auto value = load(LOC, intAddress);
 
-        // ip_start(endBlock);
+        curBlock = rewriter.getBlock();
+        auto blockAfterValuePositive = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockValuePositive = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
-        print(LOCL, "TODO: Implement IfPos Lowering");
+        auto condValuePositive = iCmp(LOC, Pred::sgt, value, 0);
+
+        condBranch(LOC, condValuePositive, blockValuePositive, blockAfterValuePositive);
+        { // if (pIn1->u.i > 0)
+            ip_start(blockValuePositive);
+
+            /// pIn1->u.i -= pOp->p3;
+            auto newValue = rewriter.create<SRemOp>(LOC, value, constants(toSubtract, 32));
+            store(LOC, (Value)newValue, intAddress);
+            print(LOCL, value, "IfPos: Number is > 0");
+
+            branch(LOC, blockAfterValuePositive);
+         } // end if (pIn1->u.i > 0)
+
+        ip_start(blockAfterValuePositive);
+
+        branch(LOC, endBlock);
+        ip_start(endBlock);
+
+        condBranch(LOC, condValuePositive, jumpTo, fallThrough);
 
         rewriter.eraseOp(ifOp);
 

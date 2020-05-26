@@ -26,17 +26,31 @@ namespace mlir::standalone::passes {
         auto firstBlock = rewriter.getBlock();
 
         auto writeAddressTo = gsOp.writeAddressToAttr().getSInt();
-        auto jumpTo = gsOp.jumpToAttr().getSInt();
+        auto pc = gsOp.pcAttr().getUInt();
+        auto jumpToBlock = gsOp.jumpTo();
 
-//        auto curBlock = rewriter.getBlock();
-//        auto endBlock = curBlock->splitBlock(gsOp); GO_BACK_TO(curBlock);
-//
-//        branch(LOC, endBlock);
-//
-//        ip_start(endBlock);
+        auto curBlock = rewriter.getBlock();
+        auto endBlock = curBlock->splitBlock(gsOp); GO_BACK_TO(curBlock);
 
-        print(LOCL, "TODO: Implement Gosub Lowering");
+        /// pIn1 = &aMem[pOp->p1];
+        auto pIn1 = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[writeAddressTo]);
 
+        /// pIn1->flags = MEM_Int;
+        auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn1, 0, 1);
+        store(LOC, MEM_Int, flagsAddr);
+
+        /// pIn1->u.i = (int) (pOp - aOp);
+        auto unionValueAddress = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0, 0);
+        auto intValueAddress = bitCast(LOC, unionValueAddress, T::i32PtrTy);
+        auto diff = constants(pc, 32);
+        store(LOC, diff, intValueAddress);
+
+        branch(LOC, endBlock);
+
+        ip_start(endBlock);
+
+        print(LOCL, constants(vdbe->aOp[pc].p2, 32) ,"GoSub: Jumping to ");
+        branch(LOC, jumpToBlock);
         rewriter.eraseOp(gsOp);
 
         return success();

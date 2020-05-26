@@ -24,18 +24,30 @@ namespace mlir::standalone::passes {
         myOperators
 
         auto firstBlock = rewriter.getBlock();
+        // auto goBackTo = retOp.continueAt();
+        auto goBackToAddr = retOp.continueAtNextInstructionFromRegAttr().getSInt();
 
-        auto goBackTo = retOp.continueAt();
+        /// pOp = &aOp[pIn1->u.i];
+        // Get &pIn1
+        auto regAddr = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[goBackToAddr]);
+        // Get &pIn1->u.d
+        auto unionValueAddr = getElementPtrImm(LOC, T::doublePtrTy, regAddr, 0, 0, 0);
+        // Get &pIn1->u.i
+        auto targetAddr = bitCast(LOC, unionValueAddr, T::i32PtrTy);
+        // Load pIn->u.i
+        auto target = load(LOC, targetAddr);
+        // Add 1
+        target = add(LOC, target, 1);
+        // Get &vdbe->pc
+        auto pCAddr = constants(T::i32PtrTy, &vdbe->pc);
+        // Store target in &vdbe->pc
+        store(LOC, target, pCAddr);
 
-        // auto curBlock = rewriter.getBlock();
-        // auto endBlock = curBlock->splitBlock(retOp); GO_BACK_TO(curBlock);
+        // Debug
+        print(LOCL, target, "Return: Returning to");
 
-        // branch(LOC, endBlock);
-
-        // ip_start(endBlock);
-
-        print(LOCL, "TODO: Implement Return Lowering");
-
+        // Branch to jumpsBlock
+        branch(LOC, vdbeCtx->jumpsBlock);
         rewriter.eraseOp(retOp);
 
         return success();

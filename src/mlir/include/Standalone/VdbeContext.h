@@ -23,4 +23,7 @@ struct VdbeContext {
 
     // The last result of OP_Compare
     mlir::LLVM::AllocaOp iCompare;
+
+    // The block with all the PC jumps
+    mlir::Block* jumpsBlock;
 };

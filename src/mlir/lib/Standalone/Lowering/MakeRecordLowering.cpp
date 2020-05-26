@@ -637,7 +637,6 @@ namespace mlir::standalone::passes {
 
             /// zPayload += sqlite3VdbeSerialPut(zPayload, pRec, serial_type);
             auto serialPutResult = call(LOC, f_sqlite3VdbeSerialPut, zPayloadValue, pRec, serialType).getValue();
-            // auto serialPutResult = constants(0, 32);
             zPayloadValue = getElementPtr(LOC, T::i8PtrTy, zPayloadValue, serialPutResult);
 
         } while ((++pRecValue) <= pLastValue);
@@ -645,7 +644,6 @@ namespace mlir::standalone::passes {
         branch(LOC, endBlock);
 
         ip_start(endBlock);
-        print(LOCL, "end of makerecord");
         rewriter.eraseOp(mrOp);
 
         return success();
