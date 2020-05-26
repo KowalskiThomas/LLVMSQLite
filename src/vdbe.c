@@ -249,7 +249,6 @@ VdbeCursor *allocateCursor(
         int iDb,              /* Database the cursor belongs to, or -1 */
         u8 eCurType           /* Type of the new cursor */
 ) {
-    printf("Allocating cursor\n");
     /* Find the memory cell that will be used to store the blob of memory
   ** required for this VdbeCursor structure. It is convenient to use a
   ** vdbe memory cell to manage the memory allocation required for a

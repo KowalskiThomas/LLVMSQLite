@@ -35,7 +35,8 @@ namespace mlir::standalone::passes {
         /// pOut = &aMem[pOp->p2];
         auto pOut = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[reg]);
         /// pC = p->apCsr[pOp->p1];
-        auto pC = constants(T::VdbeCursorPtrTy, &vdbe->apCsr[curIdx]);
+        auto pCValueAddr = constants(T::VdbeCursorPtrTy.getPointerTo(), &vdbe->apCsr[curIdx]);
+        auto pC = load(LOC, pCValueAddr);
         // TODO
         /// assert(isSorter(pC));
 
@@ -54,7 +55,9 @@ namespace mlir::standalone::passes {
         }
 
         /// p->apCsr[pOp->p3]->cacheStatus = CACHE_STALE;
-        auto cacheStatusAddr = constants(T::i32PtrTy, &vdbe->apCsr[curClearHeader]->cacheStatus);
+        auto otherCursorPointerValueAddress = constants(T::VdbeCursorPtrTy.getPointerTo(), &vdbe->apCsr[curClearHeader]);
+        auto otherCursorPointer = load(LOC, otherCursorPointerValueAddress);
+        auto cacheStatusAddr = getElementPtrImm(LOC, T::i32PtrTy, otherCursorPointer, 0, 9);
         store(LOC, CACHE_STALE, cacheStatusAddr);
 
         branch(LOC, endBlock);

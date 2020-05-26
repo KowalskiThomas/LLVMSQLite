@@ -49,7 +49,7 @@ namespace mlir::standalone::passes {
 
         ip_start(endBlock);
 
-        print(LOCL, constants(vdbe->aOp[pc].p2, 32) ,"GoSub: Jumping to ");
+        print(LOCL, constants(vdbe->aOp[pc].p2, 32) ,"GoSub: Jumping to");
         branch(LOC, jumpToBlock);
         rewriter.eraseOp(gsOp);
 

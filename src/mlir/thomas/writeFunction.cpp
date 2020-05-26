@@ -58,7 +58,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     vdbeCtx->iCompare = builder.create<mlir::LLVM::AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
     auto pcAddr = constants(T::i32PtrTy, (int*)&vdbe->pc);
     auto pcValue = builder.create<LoadOp>(LOCB, pcAddr);
-    print(LOCL, pcValue, "Current PC");
+    print(LOCL, pcValue, "Current PC:");
 
     Block* targetBlock = nullptr;
     Block* blockAfterJump = nullptr;
@@ -203,16 +203,27 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 }
                 break;
             }
+            case OP_SorterSort:
             case OP_Rewind: {
                 auto curIdx = op.p1;
                 auto jumpTo = op.p2;
 
-                builder.create<mlir::standalone::Rewind>
+                Block* blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
+                Block* blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
+
+                auto op = builder.create<mlir::standalone::Rewind>
                     (LOCB,
                         INTEGER_ATTR(32, true, curIdx),
-                        INTEGER_ATTR(32, true, jumpTo)
+                        blockJumpTo,
+                        blockFallthrough
                     );
 
+                if (blockJumpTo == entryBlock)
+                    operations_to_update[jumpTo].emplace_back(op.getOperation(), 0);
+                if (blockFallthrough == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op.getOperation(), 1);
+
+                newWriteBranchOut = false;
                 break;
             }
             case OP_Column: {
@@ -449,6 +460,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 break;
             }
+            /*
             case OP_SorterSort: {
                 auto curIdx = op.p1;
 
@@ -470,6 +482,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 newWriteBranchOut = false;
                 break;
             }
+            */
             case OP_SorterData: {
                 auto curIdx = op.p1;
                 auto regTo = op.p2;
@@ -505,6 +518,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 if (fallthroughBlock == entryBlock)
                     operations_to_update[pc + 1].emplace_back(op, 1);
 
+                newWriteBranchOut = false;
                 break;
             }
             case OP_Compare: {
@@ -549,6 +563,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 if (blockGreater == entryBlock)
                     operations_to_update[addrGreater].emplace_back(op.getOperation(), 2);
 
+                newWriteBranchOut = false;
                 break;
             }
             case OP_Move: {

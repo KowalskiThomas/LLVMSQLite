@@ -614,7 +614,7 @@ namespace mlir::standalone::passes {
         }
 
         /// zHdr += putVarint32(zHdr, nHdr) <=> zHdr = &zHdr[putVarInt(...)]
-        print(LOCL, "TODO: Replace function call with macro expansion");
+        // TODO: print(LOCL, "TODO: Replace function call with macro expansion");
         auto putVarIntResult = call(LOC, f_sqlite3PutVarint, zHdrValue, nHdrValue64).getValue();
         zHdrValue = getElementPtr(LOC, T::i8PtrTy, zHdrValue, putVarIntResult);
         store(LOC, zHdrValue, zHdrAddr);
@@ -630,7 +630,7 @@ namespace mlir::standalone::passes {
             auto serialType64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, serialType);
 
             /// zHdr += putVarint32(zHdr, serial_type);
-            print(LOCL, "TODO: Replace function call with macro expansion");
+            // TODO print(LOCL, "TODO: Replace function call with macro expansion");
             auto putVarIntResult = call(LOC, f_sqlite3PutVarint, zHdrValue, serialType64).getValue();
             zHdrValue = getElementPtr(LOC, T::i8PtrTy, zHdrValue, putVarIntResult);
             store(LOC, zHdrValue, zHdrAddr);

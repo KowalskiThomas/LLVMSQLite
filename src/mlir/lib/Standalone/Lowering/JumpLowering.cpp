@@ -29,14 +29,18 @@ namespace mlir::standalone::passes {
         auto ifLess = jmpOp.ifLess();
         auto ifGreater = jmpOp.ifGreater();
 
-        // auto curBlock = rewriter.getBlock();
-        // auto endBlock = curBlock->splitBlock(jmpOp); GO_BACK_TO(curBlock);
+        auto curBlock = rewriter.getBlock();
+        auto endBlock = curBlock->splitBlock(jmpOp); GO_BACK_TO(curBlock);
 
-        // branch(LOC, endBlock);
+        auto iCompareAddr = vdbeCtx->iCompare;
+        auto iCompare = load(LOC, iCompareAddr);
 
-        // ip_start(endBlock);
+        auto iCompareNegative = iCmp(LOC, Pred::slt, iCompare, 0);
+        condBranch(LOC, iCompareNegative, ifLess, endBlock);
 
-        print(LOCL, "TODO: Implement Jump Lowering");
+        ip_start(endBlock);
+        auto iComparePositive = iCmp(LOC, Pred::sgt, iCompare, 0);
+        condBranch(LOC, iComparePositive, ifGreater, ifEq);
 
         rewriter.eraseOp(jmpOp);
 

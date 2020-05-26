@@ -34,8 +34,9 @@ namespace mlir::standalone::passes {
         auto endBlock = curBlock->splitBlock(snOp); GO_BACK_TO(curBlock);
 
         /// pC = p->apCsr[pOp->p1];
-        auto pCValue = &vdbe->apCsr[curIdx];
-        auto pC = constants(T::VdbeCursorPtrTy, pCValue);
+        auto pCValueAddrCpp = &vdbe->apCsr[curIdx];
+        auto pCValueAddr = constants(T::VdbeCursorPtrTy.getPointerTo(), pCValueAddrCpp);
+        auto pC = load(LOC, pCValueAddr);
 
         /// TODO assert(isSorter(pC));
 
@@ -65,9 +66,9 @@ namespace mlir::standalone::passes {
             auto counterValPlus1 = add(LOC, counterVal, 1);
             store(LOC, counterValPlus1, aCounterAddr);
 
-            print(LOCL, "TODO: goto jump_to_p2_and_check_for_interrupt");
-
-            branch(LOC, blockAfterRcIsOk);
+            branch(LOC, jumpTo);
+            // print(LOCL, "goto jump_to_p2_and_check_for_interrupt");
+            // branch(LOC, blockAfterRcIsOk);
         } // end if rc == SQLITE_OK
 
         ip_start(blockAfterRcIsOk);
@@ -87,6 +88,8 @@ namespace mlir::standalone::passes {
         ip_start(endBlock);
 
         rewriter.eraseOp(snOp);
+
+        branch(LOC, fallthrough);
 
         return success();
     } // matchAndRewrite

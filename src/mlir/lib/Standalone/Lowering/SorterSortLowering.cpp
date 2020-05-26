@@ -11,6 +11,8 @@
 #include "Standalone/TypeDefinitions.h"
 
 
+#define INTEGER_ATTR(width, signed, value) rewriter.getIntegerAttr(rewriter.getIntegerType(width, signed), value)
+
 namespace mlir::standalone::passes {
     LogicalResult SorterSortLowering::matchAndRewrite(SorterSort ssOp, PatternRewriter &rewriter) const {
         auto op = &ssOp;
@@ -23,6 +25,8 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
+        assert(false && "SorterSortLowering should not be called!");
+
         auto firstBlock = rewriter.getBlock();
 
         auto curIdx = ssOp.curIdxAttr().getSInt();
@@ -30,17 +34,22 @@ namespace mlir::standalone::passes {
         auto jumpToIfEmpty = ssOp.jumpToIfEmpty();
         auto fallthrough = ssOp.fallthrough();
 
-        // auto curBlock = rewriter.getBlock();
-        // auto endBlock = curBlock->splitBlock(ssOp); GO_BACK_TO(curBlock);
+        auto curBlock = rewriter.getBlock();
+        auto endBlock = curBlock->splitBlock(ssOp); GO_BACK_TO(curBlock);
 
         // branch(LOC, endBlock);
 
         // ip_start(endBlock);
 
-        print(LOCL, "TODO: Implement SorterSort Lowering");
-        branch(LOC, fallthrough);
+        // branch(LOC, fallthrough);
 
-        rewriter.eraseOp(ssOp);
+        rewriter.create<mlir::standalone::Rewind>
+            (LOC,
+                 INTEGER_ATTR(32, true, curIdx),
+                 jumpToIfEmpty,
+                 fallthrough
+             );
+        // rewriter.eraseOp(ssOp);
 
         return success();
     } // matchAndRewrite

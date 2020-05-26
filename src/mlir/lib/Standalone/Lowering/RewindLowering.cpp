@@ -13,6 +13,9 @@ namespace mlir {
 
                 auto curIdx = CONSTANT_INT(rewindOp.curIdxAttr().getSInt(), 32);
 
+                auto jumpTo = rewindOp.jumpToIfEmpty();
+                auto fallthrough = rewindOp.fallthrough();
+
                 auto firstBlock = rewriter.getBlock();
 
                 /// pC = p->apCsr[pOp->p1];
@@ -133,9 +136,11 @@ namespace mlir {
                         });
                 rewriter.create<StoreOp>(LOC, resAsI8, pNullRow);
 
-                // TODO: if (res) goto jump_to_p2;
-                PROGRESS_PRINT_INT(resValue, "Value of res");
-                PROGRESS("TODO: if (res) goto jump_to_p2")
+                auto condResNotNull = rewriter.create<ICmpOp>
+                    (LOC, Pred::ne,
+                        resValue, CONSTANT_INT(0, 32)
+                    );
+                rewriter.create<CondBranchOp>(LOC, condResNotNull, jumpTo, fallthrough);
 
                 rewriter.eraseOp(rewindOp);
                 return success();

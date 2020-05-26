@@ -39,10 +39,12 @@ def Standalone_OpenRead : Standalone_Op<"OpenRead"> {
     let arguments = (ins I64Attr:$counter, I32Attr:$curIdx, I64Attr:$rootPage, I32Attr:$database, I32Attr:$P4, I16Attr:$P5);
 }
 
-def Standalone_Rewind : Standalone_Op<"Rewind"> {
+def Standalone_Rewind : Standalone_Op<"Rewind", [Terminator]> {
     let summary = "Rewinds a cursor";
 
-    let arguments = (ins I32Attr:$curIdx, I32Attr:$jumpTo);
+    let arguments = (ins I32Attr:$curIdx);
+
+    let successors = (successor AnySuccessor:$jumpToIfEmpty, AnySuccessor:$fallthrough);
 }
 
 def Standalone_Column : Standalone_Op<"Column"> {

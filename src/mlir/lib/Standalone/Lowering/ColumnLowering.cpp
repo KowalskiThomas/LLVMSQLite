@@ -42,6 +42,8 @@ namespace mlir {
                 auto extractToValue = constants(extractToAttr.getSInt(), 32);
                 auto defaultValueValue = constants(defaultValueAttr.getUInt(), 64);
                 auto flagsValue = constants(flagsAttr.getUInt(), 16);
+                auto pc = colOp.counterAttr().getSInt();
+                auto pOp = &vdbe->aOp[pc];
 
                 auto curIdx = rewriter.create<AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
                 rewriter.create<StoreOp>(LOC, curIdxValue, curIdx);
@@ -931,18 +933,47 @@ namespace mlir {
                         { // if (pC->nHdrParsed <= p2)
                             rewriter.setInsertionPointToStart(blockNHdrParsedLtP2_2);
 
-                            // TODO: Lines 200-205
-                            print(LOCL, "TODO: Lines 200-205");
-                            /*
-                            if (pOp->p4type == P4_MEM) {
-                                sqlite3VdbeMemShallowCopy(pDest, pOp->p4.pMem, MEM_Static);
-                            } else {
-                                sqlite3VdbeMemSetNull(pDest);
-                            }
-                            goto op_column_out;
-                            */
+                            auto p4TypeAddr = rewriter.create<GEPOp>
+                                    (LOC, T::i8PtrTy, constants(T::VdbeOpPtrTy, pOp), ValueRange {
+                                constants(0, 32),
+                                constants(1, 32)
+                            });
+                            auto p4Type = rewriter.create<LoadOp>(LOC, p4TypeAddr);
+                            auto p4IsMem = rewriter.create<ICmpOp>
+                                (LOC, Pred::eq,
+                                    p4Type, constants(P4_MEM, 8)
+                                );
 
-                            rewriter.create<BranchOp>(LOC, blockAfterNHdrParsedLtP2);
+                            curBlock = rewriter.getBlock();
+                            auto blockP4IsMem = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                            auto blockP4IsNotMem = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+
+                            rewriter.create<CondBrOp>(LOC, p4IsMem, blockP4IsMem, blockP4IsNotMem);
+                            { // if (pOp->p4type == P4_MEM)
+                                rewriter.setInsertionPointToStart(blockP4IsMem);
+
+                                /// sqlite3VdbeMemShallowCopy(pDest, pOp->p4.pMem, MEM_Static);
+                                rewriter.create<mlir::LLVM::CallOp>(LOC, f_sqlite3VdbeMemShallowCopy, ValueRange {
+                                    pDest,
+                                    constants(T::sqlite3_valuePtrTy, (sqlite3_value*)defaultValueAttr.getUInt()),
+                                    constants(MEM_Static)
+                                });
+
+                                /// goto op_column_out;
+                                rewriter.create<mlir::BranchOp>(LOC, blockColumnEnd);
+                            } // end if (pOp->p4type == P4_MEM)
+                            { // else of if (pOp->p4type == P4_MEM)
+                                rewriter.setInsertionPointToStart(blockP4IsNotMem);
+
+                                /// sqlite3VdbeMemSetNull(pDest);
+                                rewriter.create<mlir::LLVM::CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange {
+                                    pDest
+                                });
+
+                                /// goto op_column_out;
+                                rewriter.create<mlir::BranchOp>(LOC, blockColumnEnd);
+                            } // end else of if (pOp->p4type == P4_MEM)
+                            /// (Replaced by goto out) rewriter.create<BranchOp>(LOC, blockAfterNHdrParsedLtP2);
                         } // end if (pC->nHdrParsed <= p2)
                     } // end if (pC->nHdrParsed <= p2)
                     { // else of if (pC->nHdrParsed <= p2)
