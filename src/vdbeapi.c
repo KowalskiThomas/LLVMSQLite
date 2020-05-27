@@ -698,6 +698,7 @@ static int sqlite3Step(Vdbe *p){
     printf("Calling sqlite3VdbeExec\n");
     rc = sqlite3VdbeExec(p);
 
+    /*
     printf("Finished execution of sqlite3VdbeExec. Return code: %d Dumping memory.\n", rc);
     for(int i = 0; i < p->nMem; i++) {
         Mem* mem = &p->aMem[i];
@@ -724,6 +725,7 @@ static int sqlite3Step(Vdbe *p){
           printf("  [Undefined]\n");
       }
     }
+     */
 
   db->nVdbeExec--;
   }

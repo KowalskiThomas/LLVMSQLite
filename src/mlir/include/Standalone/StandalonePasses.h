@@ -103,6 +103,7 @@ namespace mlir {
         DECLARE_LOWERING(Move)
         DECLARE_LOWERING(IfPos)
         DECLARE_LOWERING(Return)
+        DECLARE_LOWERING(Arithmetic)
 
         } // namespace passes
     } // namespace standalone

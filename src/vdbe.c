@@ -466,7 +466,8 @@ static u16 SQLITE_NOINLINE computeNumericType(Mem *pMem) {
 ** Unlike applyNumericAffinity(), this routine does not modify pMem->flags.
 ** But it does set pMem->u.r and pMem->u.i appropriately.
 */
-static u16 numericType(Mem *pMem) {
+// TODO: This was static
+/* static */ u16 numericType(Mem *pMem) {
     if (pMem->flags & (MEM_Int | MEM_Real | MEM_IntReal)) {
         testcase(pMem->flags & MEM_Int);
         testcase(pMem->flags & MEM_Real);
@@ -657,7 +658,7 @@ Mem *out2Prerelease(Vdbe *p, VdbeOp *pOp) {
 }
 
 // TODO: Remove that
-#define ASSERT(x) if (!(x)) { (*(int*)0) = 0; }
+#define ASSERT(x) if (!(x)) { (*(volatile int*)0) = 0; }
 
 int64_t maxVdbeSteps = -1;
 
@@ -1740,7 +1741,7 @@ int sqlite3VdbeExec2(
                 sqlite3VdbeMemSetNull(pOut);
                 break;
             }
-
+// coucou
 /* Opcode: CollSeq P1 * * P4
 **
 ** P4 is a pointer to a CollSeq object. If the next call to a user function

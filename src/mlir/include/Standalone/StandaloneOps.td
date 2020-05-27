@@ -164,6 +164,10 @@ def Standalone_SorterNext : Standalone_Op<"SorterNext", [Terminator]> {
     let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
 }
 
+def Standalone_Arithmetic : Standalone_Op<"Arithmetic"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$P1, I32Attr:$P2, I32Attr:$resultReg);
+}
+
 /*
 def Standalone_ : Standalone_Op<""> {
     let arguments = (ins I32Attr:$curIdx, I32Attr:$reg, I32Attr:$nFields);

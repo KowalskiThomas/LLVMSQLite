@@ -39,8 +39,6 @@ namespace mlir::standalone::passes {
         auto advancerValue = advancerAttr.getUInt();
         auto p5Value = p5Attr.getUInt();
 
-        out("Next cursor index " << curIdxValue);
-
         auto pCAddr = constants(T::VdbeCursorPtrPtrTy, &vdbe->apCsr[curIdxValue]);
         auto pCValue = load(LOC, pCAddr);
 

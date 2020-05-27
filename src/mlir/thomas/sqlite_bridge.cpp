@@ -66,12 +66,12 @@ struct VdbeRunner {
         pm.addPass(std::make_unique<VdbeToLLVM>());
         pm.run(theModule);
 
-        llvm::errs() << "\n\n-- Intermediate module";
-        theModule.dump();
+        // llvm::errs() << "\n\n-- Intermediate module";
+        // theModule.dump();
 
-        llvm::errs() << "\n\n--LLVM IR-Translated module";
+        // llvm::errs() << "\n\n--LLVM IR-Translated module";
         auto mod = mlir::translateModuleToLLVMIR(theModule);
-        mod->dump();
+        // mod->dump();
         llvm::errs() << "\n\n";
     }
 

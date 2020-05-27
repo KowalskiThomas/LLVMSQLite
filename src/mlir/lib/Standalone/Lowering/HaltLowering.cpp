@@ -22,6 +22,7 @@ namespace mlir {
                     rewriter.create<mlir::ReturnOp>(LOC, (mlir::Value)CONSTANT_INT(SQLITE_DONE, 32));
                 }
 
+// je suis le commentaire de MATHILDE LA PLUS BELLE DE LA TERRE
                 rewriter.eraseOp(haltOp);
                 return success();
             } // matchAndRewrite

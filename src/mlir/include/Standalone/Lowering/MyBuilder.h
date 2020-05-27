@@ -1,6 +1,8 @@
 #pragma once
 
-#include <src/mlir/include/Standalone/TypeDefinitions.h>
+#include "Standalone/ConstantManager.h"
+#include "Standalone/Utils.h"
+#include "Standalone/TypeDefinitions.h"
 
 struct MyBuilder {
     using OpBuilder = mlir::OpBuilder;
@@ -17,90 +19,38 @@ struct MyBuilder {
     {
     }
 
-    AllocaOp insertAllocaOp(mlir::Location loc, mlir::Type ty) {
-        return rewriter.template create<mlir::LLVM::AllocaOp>(loc, ty, constants(1, 32), 0);
-    }
+    AllocaOp insertAllocaOp(mlir::Location loc, mlir::Type ty);
 
-    llvm::Optional<Value> insertCallOp(mlir::Location loc, LLVMFuncOp func, mlir::ValueRange range) {
-        if (func.getNumFuncResults() == 0) {
-            rewriter.template create<CallOp>(loc, func, range);
-            return llvm::None;
-        }
-        auto callOp = rewriter.create<CallOp>(loc, func, range);
-        auto result = callOp.getResult(0);
-        return llvm::Optional<Value>(result);
-    }
+    llvm::Optional<Value> insertCallOp(mlir::Location loc, LLVMFuncOp func, mlir::ValueRange range);
 
-    /*CallOp insertCallOp(mlir::Location loc, mlir::Value func, mlir::ValueRange range) {
-        return rewriter.template create<CallOp>(loc, func, range);
-    }*/
+    Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, mlir::Value rhs);
 
-    Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, mlir::Value rhs) {
-        return rewriter.template create<ICmpOp>(loc, pred, lhs, rhs);
-    }
+    Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, int rhs);
 
-    Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, int rhs) {
-        auto cst = constants(rhs, getBitWidth(lhs));
-        return rewriter.template create<ICmpOp>(loc, pred, lhs, cst);
-    }
+    void insertBranchOp(mlir::Location loc, mlir::Block* b);
 
-    void insertBranchOp(mlir::Location loc, mlir::Block* b) {
-        rewriter.template create<BranchOp>(loc, b);
-    }
-
-    void insertCondBranchOp(Location loc, Value cond, Block* bTrue, Block* bFalse) {
-        rewriter.template create<CondBrOp>(loc, cond, bTrue, bFalse);
-    }
+    void insertCondBranchOp(Location loc, Value cond, Block* bTrue, Block* bFalse);
 
     template<typename... V>
     Value insertGEPOp(Location loc, mlir::Type ty, Value base, V... indexes) {
-        return rewriter.template create<GEPOp>(loc, ty, base, ValueRange{ indexes... });
+        return rewriter.create<GEPOp>(loc, ty, base, ValueRange{ indexes... });
     }
 
-    Value insertGEPOp(Location loc, mlir::Type ty, Value base, ValueRange indexes) {
-        return rewriter.template create<GEPOp>(loc, ty, base, indexes);
-    }
+    Value insertGEPOp(Location loc, mlir::Type ty, Value base, ValueRange indexes);
 
-    Value insertLoad(Location loc, Value addr) {
-        return rewriter.template create<LoadOp>(loc, addr);
-    }
+    Value insertLoad(Location loc, Value addr);
 
-    Value insertAddOp(Location loc, Value lhs, Value rhs) {
-        return rewriter.template create<AddOp>(loc, lhs, rhs);
-    }
+    Value insertAddOp(Location loc, Value lhs, Value rhs);
 
-    Value insertPtrToIntOp(Location loc, Value ptr) {
-        return rewriter.template create<PtrToIntOp>(loc, T::i64Ty, ptr);
-    }
+    Value insertPtrToIntOp(Location loc, Value ptr);
 
-    Value insertIntToPtrOp(Location loc, Type ty, Value i) {
-        return rewriter.template create<IntToPtrOp>(loc, ty, i);
-    }
+    Value insertIntToPtrOp(Location loc, Type ty, Value i);
 
-    Value insertBitcastOp(Location loc, Value x, Type ty) {
-        return rewriter.template create<BitcastOp>(loc, ty, x);
-    }
+    Value insertBitCastOp(Location loc, Value x, Type ty);
 
-    size_t getBitWidth(Type x) const {
-        static std::vector<size_t> possibleSizes { 1, 8, 16, 32, 64 };
-        auto rightSize = 0llu;
-        for(auto size : possibleSizes)
-            if (x.isInteger(size)
-                || x == LLVMType::getIntNTy(llvmDialect, size) ) {
-                rightSize = size;
-                break;
-            }
+    size_t getBitWidth(Type x) const;
 
-        if (rightSize == 0)
-            x.dump();
-
-        assert(rightSize > 0);
-        return rightSize;
-    }
-
-    size_t getBitWidth(Value v) const {
-        return getBitWidth(v.getType());
-    }
+    size_t getBitWidth(Value v) const;
 
     template<typename Int>
     Value insertAddOp(Location loc, Value lhs, Int rhs) {
@@ -110,45 +60,39 @@ struct MyBuilder {
         return insertAddOp(loc, lhs, cst);
     }
 
-    Value insertOrOp(Location loc, Value lhs, Value rhs) {
-        return rewriter.template create<OrOp>(loc, lhs, rhs);
-    }
+    Value insertOrOp(Location loc, Value lhs, Value rhs);
 
-    Value insertOrOp(Location loc, Value lhs, int rhs) {
-        auto rightSize = getBitWidth(lhs);
-        auto cst = constants(rhs, rightSize);
-        return insertOrOp(loc, lhs, cst);
-    }
+    Value insertOrOp(Location loc, Value lhs, int rhs);
 
-    Value insertAndOp(Location loc, Value lhs, Value rhs) {
-        return rewriter.template create<AndOp>(loc, lhs, rhs);
-    }
+    Value insertAndOp(Location loc, Value lhs, Value rhs);
 
-    Value insertAndOp(Location loc, Value lhs, int rhs) {
-        auto rightSize = getBitWidth(lhs);
-        auto cst = constants(rhs, rightSize);
-        return insertAndOp(loc, lhs, cst);
-    }
+    Value insertAndOp(Location loc, Value lhs, int rhs);
 
-    void insertStoreOp(Location loc, Value value, Value addr) {
-        auto valueTypeLlvm = value.getType().dyn_cast_or_null<mlir::LLVM::LLVMType>();
-        auto addrTypeLlvm = value.getType().dyn_cast_or_null<mlir::LLVM::LLVMType>();
-        if (valueTypeLlvm && valueTypeLlvm.isPointerTy() && valueTypeLlvm.getPointerElementTy() == addrTypeLlvm) {
-            llvm_unreachable("insertStoreOp: It seems that 'value' and 'addr' arguments have been mismatched.");
-        }
+    void insertStoreOp(Location loc, Value value, Value addr);
 
-        rewriter.template create<StoreOp>(loc, value, addr);
-    }
+    void insertStoreOp(Location loc, int x, Value addr);
 
-    void insertStoreOp(Location loc, int x, Value addr) {
-        assert(addr.getType().cast<mlir::LLVM::LLVMType>().isPointerTy());
-        auto ty = addr.getType().cast<mlir::LLVM::LLVMType>().getPointerElementTy();
-        assert(ty.isIntegerTy());
-        auto width = getBitWidth(ty);
+    Value insertSDivOp(Location loc, Value divided, Value by);
 
-        auto cst = constants(x, width);
-        insertStoreOp(loc, cst, addr);
-    }
+    Value insertMulOp(Location loc, Value a, Value b);
+
+    Value insertRemOp(Location loc, Value a, Value b);
+
+    Value insertFDivOp(Location loc, Value divided, Value by);
+
+    Value insertFRemOp(Location loc, Value a, Value b);
+
+    Value insertFAddOp(Location loc, Value a, Value b);
+
+    Value insertFMulOp(Location loc, Value a, Value b);
+
+    Value insertZExtOp(Location loc, Value a, Type targetType);
+
+    Value insertZExtOp(Location loc, Value x, size_t targetWidth);
+
+    Value insertTruncOp(Location loc, Value x, Type targetType);
+
+    Value insertTruncOp(Location loc, Value x, size_t targetWidth);
 };
 
 #undef alloca
@@ -222,5 +166,32 @@ auto ptrToInt = [&builder](mlir::Location loc, mlir::Value value) { \
 }; \
 \
 auto bitCast = [&builder](mlir::Location loc, mlir::Value value, mlir::Type ty) {\
-    return builder.insertBitcastOp(loc, value, ty);\
+    return builder.insertBitCastOp(loc, value, ty);\
+}; \
+auto sDiv = [&](Location loc, auto a, auto b) { \
+    return builder.insertSDivOp(loc, a, b); \
+}; \
+auto mul = [&](Location loc, auto a, auto b) { \
+    return builder.insertMulOp(loc, a, b); \
+}; \
+auto rem = [&](Location loc, auto a, auto b) { \
+    return builder.insertRemOp(loc, a, b); \
+}; \
+auto fAdd = [&](Location loc, auto a, auto b) { \
+    return builder.insertFAddOp(loc, a, b); \
+}; \
+auto fRem = [&](Location loc, auto a, auto b) { \
+    return builder.insertFRemOp(loc, a, b); \
+}; \
+auto fMul = [&](Location loc, auto a, auto b) { \
+    return builder.insertFMulOp(loc, a, b); \
+}; \
+auto fDiv = [&](Location loc, auto a, auto b) { \
+    return builder.insertFDivOp(loc, a, b); \
+}; \
+auto zExt = [&](Location loc, auto a, auto b) { \
+    return builder.insertZExtOp(loc, a, b); \
+}; \
+auto trunc = [&](Location loc, auto a, auto b) { \
+    return builder.insertTruncOp(loc, a, b); \
 }; \

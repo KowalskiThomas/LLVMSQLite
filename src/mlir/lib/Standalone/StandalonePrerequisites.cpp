@@ -67,6 +67,12 @@ LLVMFuncOp f_sqlite3VdbeSerialPut;
 LLVMFuncOp f_sqlite3BtreeCursorIsValid;
 LLVMFuncOp f_sqlite3VdbeExec2;
 LLVMFuncOp f_sqlite3VdbeMemMove;
+LLVMFuncOp f_numericType;
+LLVMFuncOp f_sqlite3AddInt64;
+LLVMFuncOp f_sqlite3SubInt64;
+LLVMFuncOp f_sqlite3MulInt64;
+LLVMFuncOp f_sqlite3VdbeRealValue;
+LLVMFuncOp f_sqlite3IsNaN;
 
 LLVMFuncOp f_memCpy;
 
@@ -128,6 +134,12 @@ public:
     DECLARE_FUNCTION(sqlite3BtreeCursorIsValid);
     DECLARE_FUNCTION(sqlite3VdbeExec2);
     DECLARE_FUNCTION(sqlite3VdbeMemMove);
+    DECLARE_FUNCTION(numericType);
+    DECLARE_FUNCTION(sqlite3AddInt64);
+    DECLARE_FUNCTION(sqlite3SubInt64);
+    DECLARE_FUNCTION(sqlite3MulInt64);
+    DECLARE_FUNCTION(sqlite3VdbeRealValue);
+    DECLARE_FUNCTION(sqlite3IsNaN);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -796,6 +808,67 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemMove(ModuleOp m, LLVMDialec
     GENERATE_SYMBOL(f_sqlite3VdbeMemMove, sqlite3VdbeMemMove, "sqlite3VdbeMemMove");
 }
 
+extern "C" {
+u16 numericType(Mem *pMem);
+}
+
+void Prerequisites::generateReferenceTonumericType(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i16Ty, {
+                T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_numericType, numericType, "numericType");
+}
+
+void Prerequisites::generateReferenceTosqlite3AddInt64(mlir::ModuleOp m, LLVMDialect * d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::i32PtrTy,
+                T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3AddInt64, sqlite3AddInt64, "sqlite3AddInt64");
+}
+
+void Prerequisites::generateReferenceTosqlite3SubInt64(mlir::ModuleOp m, LLVMDialect * d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                    T::i32PtrTy,
+                    T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3SubInt64, sqlite3SubInt64, "sqlite3SubInt64");
+}
+
+void Prerequisites::generateReferenceTosqlite3MulInt64(mlir::ModuleOp m, LLVMDialect * d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                    T::i32PtrTy,
+                    T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3MulInt64, sqlite3MulInt64, "sqlite3MulInt64");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeRealValue(mlir::ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::doubleTy, {
+                T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeRealValue, sqlite3VdbeRealValue, "sqlite3VdbeRealValue");
+}
+
+void Prerequisites::generateReferenceTosqlite3IsNaN(mlir::ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::doubleTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3IsNaN, sqlite3IsNaN, "sqlite3IsNaN");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
@@ -850,6 +923,12 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3BtreeCursorIsValid);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeExec2);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemMove);
+    CALL_SYMBOL_GENERATOR(numericType);
+    CALL_SYMBOL_GENERATOR(sqlite3AddInt64);
+    CALL_SYMBOL_GENERATOR(sqlite3SubInt64);
+    CALL_SYMBOL_GENERATOR(sqlite3MulInt64);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeRealValue);
+    CALL_SYMBOL_GENERATOR(sqlite3IsNaN);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

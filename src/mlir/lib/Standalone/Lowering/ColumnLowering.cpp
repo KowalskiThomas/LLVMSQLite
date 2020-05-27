@@ -51,6 +51,17 @@ namespace mlir {
 
                 PROGRESS_PRINT_INT(constants(pc, 32), "-- Column");
 
+/*                // TODO: Use our own implementation
+                print(LOCL, "Calling into default implementation");
+                rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
+                rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+                rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange{
+                        constants(T::VdbePtrTy, vdbe)
+                });
+                rewriter.eraseOp(*op);
+                return success();*/
+
+
                 auto curIdx = rewriter.create<AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
                 rewriter.create<StoreOp>(LOC, curIdxValue, curIdx);
 
@@ -564,7 +575,6 @@ namespace mlir {
                     auto blockNHdrParsedNotLtP2 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     auto blockAfterNHdrParsedLtP2 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
-                    print(LOCL, "tout va bien");
                     rewriter.create<CondBrOp>(LOC, nHdrParsedLtP2,
                                               blockNHdrParsedLtP2,
                                               blockNHdrParsedNotLtP2
