@@ -410,6 +410,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 rewriter.create<mlir::standalone::MakeRecord>
                     (LOCB,
+                     INTEGER_ATTR(64, false, pc),
                      INTEGER_ATTR(32, true, firstRegFrom),
                      INTEGER_ATTR(32, true, nReg),
                      INTEGER_ATTR(32, true, dest),

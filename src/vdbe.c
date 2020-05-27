@@ -656,6 +656,10 @@ Mem *out2Prerelease(Vdbe *p, VdbeOp *pOp) {
     }
 }
 
+// TODO: Remove that
+#define ASSERT(x) if (!(x)) { (*(int*)0) = 0; }
+
+int64_t maxVdbeSteps = -1;
 
 /*
 ** Execute as much of a VDBE program as we can.
@@ -689,10 +693,13 @@ int sqlite3VdbeExec2(
 #ifdef VDBE_PROFILE
     u64 start;                 /* CPU clock count at start of opcode */
 #endif
+    size_t vdbeSteps = 0;
+
     /*** INSERT STACK UNION HERE ***/
 
     assert(p->magic == VDBE_MAGIC_RUN);  /* sqlite3_step() verifies this */
-    sqlite3VdbeEnter(p);
+    if (maxVdbeSteps == -1)
+        sqlite3VdbeEnter(p);
 #ifndef SQLITE_OMIT_PROGRESS_CALLBACK
     if (db->xProgress) {
         u32 iPrior = p->aCounter[SQLITE_STMTSTATUS_VM_STEP];
@@ -2638,7 +2645,7 @@ case OP_Offset: {          /* out3 */
 
                 assert(pOp->p1 >= 0 && pOp->p1 < p->nCursor);
                 pC = p->apCsr[pOp->p1];
-                assert(pC != 0);
+                ASSERT(pC != 0);
                 p2 = pOp->p2;
                     printf("OP_Column\n");
                 /* If the cursor cache is stale (meaning it is not currently point at
@@ -2648,13 +2655,16 @@ case OP_Offset: {          /* out3 */
                 if (rc) goto abort_due_to_error;
 
                 assert(pOp->p3 > 0 && pOp->p3 <= (p->nMem + 1 - p->nCursor));
+                if (p->pc > 22)
+                    printf("hello\n");
+
                 pDest = &aMem[pOp->p3];
                 memAboutToChange(p, pDest);
                 assert(pC != 0);
                 assert(p2 < pC->nField);
                 aOffset = pC->aOffset;
                 printf("OFFSETS: ");
-                for(auto kk = 0; kk < pC->nField; kk++)
+                for(size_t kk = 0; kk < pC->nField; kk++)
                     printf("%d ", aOffset[kk]);
                 printf("\n");
                 assert(pC->eCurType != CURTYPE_VTAB);
@@ -7973,6 +7983,10 @@ case OP_ReleaseReg: {
     }
 #endif  /* SQLITE_DEBUG */
 #endif  /* NDEBUG */
+        assert(maxVdbeSteps == -1 || vdbeSteps < maxVdbeSteps);
+        vdbeSteps += 1;
+        if (vdbeSteps == maxVdbeSteps)
+            goto vdbe_return;
     }  /* The end of the for(;;) loop the loops through opcodes */
 
     /* If we reach this point, it means that execution is finished with
@@ -8011,7 +8025,8 @@ case OP_ReleaseReg: {
     }
 #endif
     p->aCounter[SQLITE_STMTSTATUS_VM_STEP] += (int) nVmStep;
-    sqlite3VdbeLeave(p);
+    if (maxVdbeSteps == -1)
+        sqlite3VdbeLeave(p);
     assert(rc != SQLITE_OK || nExtraDelete == 0
            || sqlite3_strlike("DELETE%", p->zSql, 0) != 0
     );

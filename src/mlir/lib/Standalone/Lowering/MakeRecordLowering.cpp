@@ -28,7 +28,9 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
-        print(LOCL, "-- MakeRecord");
+        auto printA = [&](mlir::Location loc, size_t line, auto& addr, const char* label) {
+            print(loc, line, load(loc, addr), label);
+        };
 
         auto firstBlock = rewriter.getBlock();
 
@@ -40,6 +42,10 @@ namespace mlir::standalone::passes {
         auto dest = mrOp.destAttr().getSInt();
         // affinities = P4
         auto affinities = (char*)(mrOp.affinitiesAttr().getUInt());
+        // pc = vdbe->pc = Programme counter
+        auto pc = mrOp.pcAttr().getUInt();
+
+        print(LOCL, "-- MakeRecord");
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(mrOp); GO_BACK_TO(curBlock);
@@ -59,21 +65,33 @@ namespace mlir::standalone::passes {
         /// u8* zPayload
         auto zPayloadAddr = alloca(LOC, T::i8PtrPtrTy);
 
+        /// nField = pOp->p1;
         auto nField = firstFromReg;
+
+        /// zAffinity = pOp->p4.z;
+        auto zAffinity = constants(T::i8PtrTy, affinities);
+
+        /// pData0 = &aMem[nField];
         auto pData0Value = &vdbe->aMem[nField];
         auto pData0 = constants(T::sqlite3_valuePtrTy, pData0Value);
+
+        /// nField = pOp->p2;
         nField = nReg;
+
+        /// pLast = &pData0[nField - 1];
         auto pLastValue = &pData0Value[nField - 1];
         auto pLast = constants(T::sqlite3_valuePtrTy, pLastValue);
-        auto file_format = constants(vdbe->minWriteFileFormat, 32);
 
-        auto zAffinity = constants(T::i8PtrTy, affinities);
+        /// file_format = p->minWriteFileFormat;
+        auto file_format = constants(vdbe->minWriteFileFormat, 32);
 
         /// pOut = &aMem[pOp->p3];
         auto pOutInitialValue = &vdbe->aMem[dest];
         auto pOut = constants(T::sqlite3_valuePtrTy, pOutInitialValue);
 
+        /// if (zAffinity)
         if (affinities) {
+            print(LOCL, "Applying affinities");
             auto pRecValue = pData0Value;
             do {
                 auto pRec = constants(T::sqlite3_valuePtrTy, pRecValue);
@@ -133,10 +151,10 @@ namespace mlir::standalone::passes {
             auto blockAfter = SPLIT_BLOCK; GO_BACK_TO(curBlock);
             auto blockElseType = SPLIT_BLOCK; GO_BACK_TO(curBlock);
             auto blockRecReal = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-            auto blockRecInt = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-            auto blockRecNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-            auto blockNotRecNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
             auto blockNotRecInt = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+            auto blockRecInt = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+            auto blockNotRecNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+            auto blockRecNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
             condBranch(LOC, recNull, blockRecNull, blockNotRecNull);
             { // if rec is NULL
@@ -148,10 +166,12 @@ namespace mlir::standalone::passes {
                 auto blockZero = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                 auto recIsZero = iCmp(LOC, Pred::ne, bitAnd(LOC, recFlagsValue, MEM_Zero), 0);
+                print(LOCL, recIsZero, "RecIsZero");
                 condBranch(LOC, recIsZero, blockZero, blockNotZero);
                 { // if (pRec->flags & MEM_Zero)
                     ip_start(blockZero);
 
+                    /// pRec->uTemp = 10;
                     store(LOC, 10, uTempAddress);
 
                     branch(LOC, blockAfterZero);
@@ -159,6 +179,7 @@ namespace mlir::standalone::passes {
                 { // else of if (pRec->flags & MEM_Zero)
                     ip_start(blockNotZero);
 
+                    /// pRec->uTemp = 0;
                     store(LOC, 0, uTempAddress);
 
                     branch(LOC, blockAfterZero);
@@ -167,7 +188,9 @@ namespace mlir::standalone::passes {
                 ip_start(blockAfterZero);
 
                 /// nHdr++
+                print(LOCL, load(LOC, nHdrAddr), "nHdr");
                 PlusPlus(LOC, nHdrAddr);
+                print(LOCL, load(LOC, nHdrAddr), "nHdr++");
 
                 branch(LOC, blockAfter);
             } // end if rec is NULL
@@ -178,8 +201,10 @@ namespace mlir::standalone::passes {
             { // if rec is Int
                 ip_start(blockRecInt);
 
+                print(LOCL, "Is Int");
                 /// i64 i = pRec->u.i;
                 auto i = load(LOC, constants(T::i64PtrTy, &pRecValue->u));
+                print(LOCL, i, "Integer is");
 
                 auto uu = alloca(LOC, T::i64PtrTy);
 
@@ -193,9 +218,10 @@ namespace mlir::standalone::passes {
                 condBranch(LOC, iNegative, blockINegative, blockNotINegative);
                 { // if (i < 0)
                     ip_start(blockINegative);
-
+print(LOCL, "is negative");
                     /// uu = ~i;
                     // We have ~X = X ^ 11..1
+                    static_assert(~(uint64_t)(0) + 1 < ~(uint64_t)(0), "I was wrong");
                     auto notI = rewriter.create<mlir::LLVM::XOrOp>(LOC, i, constants(~(uint64_t)(0), 64));
                     store(LOC, (Value)notI, uu);
 
@@ -204,6 +230,7 @@ namespace mlir::standalone::passes {
                 { // else of if (i < 0)
                     ip_start(blockNotINegative);
 
+print(LOCL, "is not negative");
                     store(LOC, i, uu);
 
                     branch(LOC, blockAfterINegative);
@@ -213,6 +240,7 @@ namespace mlir::standalone::passes {
 
                 PlusPlus(LOC, nHdrAddr);
 
+printA(LOCL, uu, "uu:");
                 auto uuVal = load(LOC, uu);
                 auto uuSize1 = iCmp(LOC, Pred::slt, uuVal, 127);
                 auto uuSize2 = iCmp(LOC, Pred::slt, uuVal, 32767);
@@ -237,6 +265,7 @@ namespace mlir::standalone::passes {
                 { // if (uu <= 127)
                     ip_start(blockSize1);
 
+print(LOCL, "Size 1");
                     auto curBlock = rewriter.getBlock();
                     auto blockAfterCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     auto blockNotCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -252,6 +281,7 @@ namespace mlir::standalone::passes {
                     { // if ((i & 1) == i && file_format >= 4)
                         ip_start(blockCondition);
 
+print(LOCL, "First branch");
                         /// pRec->uTemp = 8 + (u32) uu;
                         auto val = load(LOC, uu);
                         val = rewriter.create<TruncOp>(LOC, T::i32Ty, val);
@@ -263,12 +293,13 @@ namespace mlir::standalone::passes {
                     { // else of if ((i & 1) == i && file_format >= 4)
                         ip_start(blockNotCondition);
 
+print(LOCL, "Other branch");
                         /// nData++
                         PlusPlus(LOC, nDataAddr);
 
                         /// pRec->uTemp = 1
                         store(LOC, 1, uTempAddress);
-
+printA(LOCL, uTempAddress, "uTemp");
                         branch(LOC, blockAfterCondition);
                     } // end else of if ((i & 1) == i && file_format >= 4)
 
@@ -469,9 +500,9 @@ namespace mlir::standalone::passes {
 
             ip_start(blockAfter);
 
-            pRecValue--;
             if (pRecValue == pData0Value)
                 break;
+            pRecValue--;
 
         } while (true);
 

@@ -10,6 +10,7 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
+ExternFuncOp f_sqlite3VdbeMemMove;
 
 namespace mlir::standalone::passes {
     LogicalResult MoveLowering::matchAndRewrite(Move mvOp, PatternRewriter &rewriter) const {
@@ -25,20 +26,24 @@ namespace mlir::standalone::passes {
 
         print(LOCL, "-- Move");
 
-        auto firstBlock = rewriter.getBlock();
-
+        // firstToReg = p2
         auto firstToReg = mvOp.firstToRegAttr().getSInt();
+        // firstFromReg = p1
         auto firstFromReg = mvOp.firstFromRegAttr().getSInt();
+        // nReg = p3
         auto nReg = mvOp.nRegAttr().getSInt();
 
-        // auto curBlock = rewriter.getBlock();
-        // auto endBlock = curBlock->splitBlock(mvOp); GO_BACK_TO(curBlock);
+        auto pInValue = &vdbe->aMem[firstFromReg];
+        auto pOutValue = &vdbe->aMem[firstToReg];
+        do {
+            auto pIn = constants(T::sqlite3_valuePtrTy, pInValue);
+            auto pOut = constants(T::sqlite3_valuePtrTy, pOutValue);
 
-        // branch(LOC, endBlock);
+            call(LOC, f_sqlite3VdbeMemMove, pOut, pIn);
 
-        // ip_start(endBlock);
-
-        print(LOCL, "TODO: Implement Move Lowering");
+            pInValue++;
+            pOutValue++;
+        } while (--nReg);
 
         rewriter.eraseOp(mvOp);
 

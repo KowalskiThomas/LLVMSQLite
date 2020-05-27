@@ -65,6 +65,8 @@ LLVMFuncOp f_sqlite3VdbeMemClearAndResize;
 LLVMFuncOp f_sqlite3PutVarint;
 LLVMFuncOp f_sqlite3VdbeSerialPut;
 LLVMFuncOp f_sqlite3BtreeCursorIsValid;
+LLVMFuncOp f_sqlite3VdbeExec2;
+LLVMFuncOp f_sqlite3VdbeMemMove;
 
 LLVMFuncOp f_memCpy;
 
@@ -124,6 +126,8 @@ public:
     DECLARE_FUNCTION(sqlite3PutVarint);
     DECLARE_FUNCTION(sqlite3VdbeSerialPut);
     DECLARE_FUNCTION(sqlite3BtreeCursorIsValid);
+    DECLARE_FUNCTION(sqlite3VdbeExec2);
+    DECLARE_FUNCTION(sqlite3VdbeMemMove);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -773,6 +777,25 @@ void Prerequisites::generateReferenceTosqlite3BtreeCursorIsValid(ModuleOp m, LLV
     GENERATE_SYMBOL(f_sqlite3BtreeCursorIsValid, sqlite3BtreeCursorIsValid, "sqlite3BtreeCursorIsValid");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeExec2(mlir::ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::VdbePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeExec2, sqlite3VdbeExec2, "sqlite3VdbeExec2");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeMemMove(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(d), {
+                T::sqlite3_valuePtrTy,
+                T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemMove, sqlite3VdbeMemMove, "sqlite3VdbeMemMove");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
@@ -825,6 +848,8 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3PutVarint);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeSerialPut);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeCursorIsValid);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeExec2);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemMove);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

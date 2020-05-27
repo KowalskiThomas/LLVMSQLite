@@ -111,7 +111,7 @@ def Standalone_Gosub : Standalone_Op<"Gosub", [Terminator]> {
 }
 
 def Standalone_MakeRecord : Standalone_Op<"MakeRecord"> {
-    let arguments = (ins I32Attr:$firstRegFrom, I32Attr:$nReg, I32Attr:$dest, I64Attr:$affinities);
+    let arguments = (ins I64Attr:$pc, I32Attr:$firstRegFrom, I32Attr:$nReg, I32Attr:$dest, I64Attr:$affinities);
 }
 
 def Standalone_SorterInsert : Standalone_Op<"SorterInsert"> {

@@ -7,7 +7,9 @@
 using namespace mlir::LLVM;
 using ModuleOp = mlir::ModuleOp;
 
+// Allows me to define "extern LLVMFuncOp" symbols with a single word.
 #define ExternFuncOp extern LLVMFuncOp
+
 ExternFuncOp f_progress;
 ExternFuncOp f_printInt;
 ExternFuncOp f_printPtrAndValue;
@@ -52,9 +54,32 @@ ExternFuncOp f_sqlite3VdbeMemExpandBlob;
 ExternFuncOp f_sqlite3VdbeSorterRowkey;
 ExternFuncOp f_sqlite3VdbeSorterNext;
 
+/*
+ * For debugging purposes, it is possible to call the default implementation of
+ * sqlite3VdbeExec from the JIT for a given number of steps.
+ * It is useful for checking whether the implementation of an operation is faulty,
+ * by doing everything else in JIT but lowering one operation code to issue a call
+ * to the default implementation for (up to) one step.
+ * For example, run up to two instructions using the default implementation:
+ *      store(2, &maxVdbeSteps);
+ *      call(f_sqlite3VdbeExec2, vdbe);
+ * The original sqlite3VdbeExec has been modified to support that.
+ */
+// The maximum number of operations to execute in the default implementation
+extern int64_t maxVdbeSteps;
+ExternFuncOp f_sqlite3VdbeExec2;
+
 ExternFuncOp f_debug;
 ExternFuncOp f_assert;
 ExternFuncOp f_memCpy;
 
+/**
+ * Initialises the "type cache" (the fields of the T class) for a given dialect.
+ */
 void initialiseTypeCache(LLVMDialect*);
+
+/**
+ * Generates the references to SQLite stock functions and debugging functions.
+ * This should be run AFTER initialiseTypeCache!
+ */
 void runPrerequisites(ModuleOp, LLVMDialect*);

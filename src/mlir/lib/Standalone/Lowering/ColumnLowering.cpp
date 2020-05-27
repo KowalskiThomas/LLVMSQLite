@@ -8,6 +8,8 @@
 #include "Standalone/Lowering/Printer.h"
 
 ExternFuncOp f_sqlite3BtreeCursorIsValid;
+ExternFuncOp f_sqlite3VdbeExec2;
+extern int64_t maxVdbeSteps;
 
 namespace mlir {
     namespace standalone {
@@ -21,8 +23,6 @@ namespace mlir {
                 // An operation that jumps to op_column_read_header but is written before the op_column_read_header block
                 // exists. We'll need to update it later, hence the pointer.
                 Operation* operationToUpdateReadHeader = nullptr;
-
-                PROGRESS("-- Column");
 
                 auto firstBlock = rewriter.getBlock();
 
@@ -49,11 +49,10 @@ namespace mlir {
                 auto pc = colOp.counterAttr().getSInt();
                 auto pOp = &vdbe->aOp[pc];
 
+                PROGRESS_PRINT_INT(constants(pc, 32), "-- Column");
+
                 auto curIdx = rewriter.create<AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
                 rewriter.create<StoreOp>(LOC, curIdxValue, curIdx);
-
-                // print(LOCL, "starting op_column");
-                // print(LOCL, curIdxValue, "OP_Column: Cursor index");
 
                 // The address of the array of (pointers to) cursors in the VDBE
                 auto apCsr = constants(T::VdbeCursorPtrPtrTy, vdbe->apCsr);
