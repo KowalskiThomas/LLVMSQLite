@@ -2,7 +2,6 @@
 
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
-#include "Standalone/TypeDefinitions.h"
 
 namespace mlir {
     namespace standalone {

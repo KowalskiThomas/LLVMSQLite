@@ -118,9 +118,6 @@
 #define LLVM_CONSTANT_INT(ty, width, val) \
     builder.create<mlir::LLVM::ConstantOp>(LOC, ty, builder.getIntegerAttr(builder.getIntegerType(width), val))
 
-#define CONSTANT_PTR(ptr) \
-    builder.create<mlir::ConstantIntOp>(LOCB, (uint64_t)ptr, 64)
-
 #define CONSTANT_PTR(ptrType, ptr) \
     rewriter.create<IntToPtrOp>(LOC, ptrType, CONSTANT_INT(ptr, 64));
 

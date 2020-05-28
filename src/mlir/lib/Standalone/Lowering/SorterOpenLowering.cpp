@@ -2,13 +2,10 @@
 
 #include <src/mlir/include/Standalone/ConstantManager.h>
 #include <src/mlir/include/Standalone/Lowering/MyBuilder.h>
-#include "Standalone/AllIncludes.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
 
 #include "Standalone/StandalonePasses.h"
-#include "Standalone/StandalonePrerequisites.h"
-#include "Standalone/TypeDefinitions.h"
 
 ExternFuncOp f_sqlite3VdbeSorterInit;
 
