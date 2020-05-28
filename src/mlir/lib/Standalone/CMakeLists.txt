@@ -30,6 +30,7 @@ set(LOWERING_FILES
     Lowering/SorterSortLowering.cpp
     Lowering/TransactionLowering.cpp
     Lowering/ArithmeticLowering.cpp
+    Lowering/Printer.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

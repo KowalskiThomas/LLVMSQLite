@@ -620,6 +620,8 @@ double sqlite3VdbeRealValue(Mem *pMem){
   }else if( pMem->flags & (MEM_Str|MEM_Blob) ){
     return memRealValue(pMem);
   }else{
+    fprintf(stderr, "sqlite3VdbeRealValue: NO FLAG SET\n");
+    exit(1);
     /* (double)0 In case of SQLITE_OMIT_FLOATING_POINT... */
     return (double)0;
   }

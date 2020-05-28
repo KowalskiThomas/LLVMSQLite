@@ -188,6 +188,7 @@
     using PtrToIntOp = mlir::LLVM::PtrToIntOp; \
     using IntToPtrOp = mlir::LLVM::IntToPtrOp; \
     using BitcastOp = mlir::LLVM::BitcastOp; \
+    using ZExtOp = mlir::LLVM::ZExtOp; \
 
 
 

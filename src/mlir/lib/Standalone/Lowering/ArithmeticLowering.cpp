@@ -37,6 +37,7 @@ namespace mlir::standalone::passes {
 
         auto* pOp = &vdbe->aOp[pc];
 
+        /*
         // TODO: Use our own implementation
         print(LOCL, "Calling into default implementation");
         store(LOC, 1, constants(T::i64PtrTy, &maxVdbeSteps));
@@ -44,6 +45,7 @@ namespace mlir::standalone::passes {
         call(LOC, f_sqlite3VdbeExec2, constants(T::VdbePtrTy, vdbe));
         rewriter.eraseOp(mathOp);
         return success();
+        */
 
         auto firstBlock = rewriter.getBlock();
         auto curBlock = rewriter.getBlock();
@@ -115,11 +117,11 @@ namespace mlir::standalone::passes {
             auto blockAfterSwitch = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
             /// iA = pIn1->u.i;
-            auto iA = load(LOC, constants(T::i32PtrTy, &pIn1Addr->u.i));
+            auto iA = load(LOC, constants(T::i64PtrTy, &pIn1Addr->u.i));
 
             /// iB = pIn2->u.i;
-            auto iBValue = load(LOC, constants(T::i32PtrTy, &pIn2Addr->u.i));
-            auto iB = alloca(LOC, T::i32PtrTy);
+            auto iBValue = load(LOC, constants(T::i64PtrTy, &pIn2Addr->u.i));
+            auto iB = alloca(LOC, T::i64PtrTy);
             store(LOC, iBValue, iB);
 
             // IDEA: Use native operations here
@@ -129,7 +131,7 @@ namespace mlir::standalone::passes {
                     auto result = call(LOC, f_sqlite3AddInt64, iB, iA).getValue();
 
                     /// goto fp_math;
-                    auto resultIsNull = iCmp(LOC, Pred::ne, result, 0);
+                    auto resultIsNull = iCmp(LOC, Pred::eq, result, 0);
                     condBranch(LOC, resultIsNull, blockAfterSwitch, blockBothNotNull);
 
                     break;
@@ -138,7 +140,7 @@ namespace mlir::standalone::passes {
                     auto result = call(LOC, f_sqlite3SubInt64, iB, iA).getValue();
 
                     /// goto fp_math;
-                    auto resultIsNull = iCmp(LOC, Pred::ne, result, 0);
+                    auto resultIsNull = iCmp(LOC, Pred::eq, result, 0);
                     condBranch(LOC, resultIsNull, blockAfterSwitch, blockBothNotNull);
 
                     break;
@@ -147,7 +149,7 @@ namespace mlir::standalone::passes {
                     auto result = call(LOC, f_sqlite3MulInt64, iB, iA).getValue();
 
                     /// goto fp_math;
-                    auto resultIsNull = iCmp(LOC, Pred::ne, result, 0);
+                    auto resultIsNull = iCmp(LOC, Pred::eq, result, 0);
                     condBranch(LOC, resultIsNull, blockAfterSwitch, blockBothNotNull);
 
                     break;
@@ -209,18 +211,19 @@ namespace mlir::standalone::passes {
 
             /// pOut->u.i = iB;
             iBValue = load(LOC, iB);
-            store(LOC, iBValue, constants(T::i32PtrTy, &pOutAddr->u.i));
+            store(LOC, iBValue, constants(T::i64PtrTy, &pOutAddr->u.i));
 
             /// MemSetTypeFlag(pOut, MEM_Int);
             auto flagsOut = load(LOC, flagsOutAddr);
             flagsOut = bitAnd(LOC, flagsOut, ~(MEM_Zero | MEM_TypeMask));
             flagsOut = bitOr(LOC, flagsOut, MEM_Int);
+            store(LOC, flagsOut, flagsOutAddr);
 
             branch(LOC, blockAfterType);
         } // end if ((type1 & type2 & MEM_Int) != 0)
         { // else of if ((type1 & type2 & MEM_Int) != 0)
             ip_start(blockNotBothInt);
-            auto anyNull = bitOr(LOC, flags, MEM_Null);
+            auto anyNull = bitAnd(LOC, flags, MEM_Null);
             anyNull = iCmp(LOC, Pred::ne, anyNull, 0);
             condBranch(LOC, anyNull, blockAnyNull, blockBothNotNull);
         } // end else of if ((type1 & type2 & MEM_Int) != 0)
@@ -287,8 +290,6 @@ namespace mlir::standalone::passes {
 
             ip_start(blockAfterIsNaN);
 
-            print(LOCL, "Result is not NaN");
-
             /// pOut->u.r = rB;
             store(LOC, rB, constants(T::doublePtrTy, &pOutAddr->u.r));
 
@@ -296,13 +297,12 @@ namespace mlir::standalone::passes {
             auto flagsOut = load(LOC, flagsOutAddr);
             flagsOut = bitAnd(LOC, flagsOut, ~(MEM_Zero | MEM_TypeMask));
             flagsOut = bitOr(LOC, flagsOut, MEM_Real);
+            store(LOC, flagsOut, flagsOutAddr);
 
             branch(LOC, blockAfterType);
         } // end else of if ((flags & MEM_Null) != 0) "BothNotNull"
 
         ip_start(blockAfterType);
-
-        print(LOCL, "End of arithmetic");
 
         branch(LOC, endBlock);
 
