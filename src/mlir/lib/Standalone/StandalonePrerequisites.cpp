@@ -184,9 +184,14 @@ uint64_t printDouble(double d, void *s, uint32_t line, const char* fileName) {
     return 0;
 }
 
-uint64_t printPtrAndValue(void* ptr, void* value, void* msg, uint32_t line, const char* fileName) {
-    llvm::outs() << "[" << fileName << ":" << line << "] " << (const char*)msg << " "
-                 << "Value = " << (uint64_t)value << " Ptr = " << (uint64_t)ptr << ", " << "\n";
+uint64_t printPtrAndValue(void* ptr, void* value, void* msg, uint32_t line, const char* fileName, bool pointerLoaded) {
+    if (pointerLoaded) {
+        llvm::outs() << "[" << fileName << ":" << line << "] " << (const char*)msg << " "
+                     << "Value = " << (uint64_t)value << " Ptr = " << (uint64_t)ptr << "\n";
+    } else {
+        llvm::outs() << "[" << fileName << ":" << line << "] " << (const char*)msg << " "
+                     << " Ptr = " << (uint64_t)ptr << "\n";
+    }
     llvm::outs().flush();
     return 0;
 }
@@ -227,7 +232,8 @@ void Prerequisites::generateReferenceToProgress(ModuleOp m, LLVMDialect *dialect
             T::i64Ty, // value
             T::i64Ty, // message
             T::i32Ty, // line
-            T::i64Ty  // filename
+            T::i64Ty, // filename
+            T::i1Ty,  // whether the value has been loaded
     }, false);
 
     f_printPtrAndValue = builder.create<LLVMFuncOp>(m.getLoc(), "printPtrAndValue", funcTy, Linkage::External);

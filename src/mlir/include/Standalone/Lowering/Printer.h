@@ -11,6 +11,7 @@
 
 namespace mlir {
     PRINTER_USING
+
     struct Printer {
         using PatternRewriter = mlir::PatternRewriter;
 

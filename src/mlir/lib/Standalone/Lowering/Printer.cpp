@@ -20,23 +20,27 @@ size_t mlir::Printer::getBitWidth(Value x) const {
             break;
         }
 
-    assert(rightSize > 0);
+    if (rightSize == 0)
+        x.dump();
+
+    assert(rightSize > 0 && "Couldn't find bit-width of variable");
     return rightSize;
 }
 
 void mlir::Printer::printPtr(Location loc, size_t line, Value ptr, const char *msg, bool loadPtr) {
     auto& builder = rewriter;
     auto value = loadPtr ?
-                 (mlir::Value)rewriter.create<mlir::LLVM::LoadOp>(loc, ptr) :
-                 CONSTANT_INT(0, 64);
-    auto extended = rewriter.create<ZExtOp>(loc, T::i64Ty, value);
+                    (Value)rewriter.create<mlir::LLVM::LoadOp>(loc, ptr) :
+                    CONSTANT_INT(0, 64);
+    auto extendedValue = rewriter.create<ZExtOp>(loc, T::i64Ty, value);
 
     rewriter.create<LLVM::CallOp>(loc, f_printPtrAndValue, ValueRange {
-            rewriter.create<mlir::LLVM::PtrToIntOp>(loc, T::i64Ty, ptr),
-            rewriter.create<mlir::ConstantIntOp>(loc, extended, 64),
+            rewriter.create<PtrToIntOp>(loc, T::i64Ty, ptr),
+            extendedValue,
             rewriter.create<mlir::ConstantIntOp>(loc, reinterpret_cast<const uint64_t>(msg), 64),
             rewriter.create<mlir::ConstantIntOp>(loc, line, 32),
-            rewriter.create<mlir::ConstantIntOp>(loc, reinterpret_cast<const uint64_t>(fileName), 64)
+            rewriter.create<mlir::ConstantIntOp>(loc, reinterpret_cast<const uint64_t>(fileName), 64),
+            CONSTANT_INT(loadPtr ? 1 : 0, 1)
     });
 }
 
