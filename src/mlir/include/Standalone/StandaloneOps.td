@@ -72,12 +72,6 @@ def Standalone_Transaction : Standalone_Op<"Transaction"> {
     let arguments = (ins I32Attr:$dbIdx, I32Attr:$isWrite, I32Attr:$P3, I64Attr:$P4, I16Attr:$P5);
 }
 
-def Standalone_Null : Standalone_Op<"Null"> {
-    let summary = "Puts null in some registers";
-
-    let arguments = (ins I64Attr:$pc, I32Attr:$setMemCleared, I32Attr:$firstReg, I32Attr:$lastReg);
-}
-
 def Standalone_AggStep : Standalone_Op<"AggStep"> {
     let summary = "TODO";
 
@@ -102,6 +96,28 @@ def Standalone_SorterOpen : Standalone_Op<"SorterOpen"> {
 
 def Standalone_Integer : Standalone_Op<"Integer"> {
     let arguments = (ins I64Attr:$pc, I32Attr:$value, I32Attr:$dest);
+}
+
+def Standalone_Real : Standalone_Op<"Real"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$regTo, I64Attr:$pointerToValue);
+}
+
+def Standalone_String : Standalone_Op<"String"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$len, I32Attr:$regTo, I32Attr:$hints, I64Attr:$string, I16Attr:$flags);
+}
+
+def Standalone_String8 : Standalone_Op<"String8"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$regTo, I64Attr:$string);
+}
+
+def Standalone_Variable : Standalone_Op<"Variable"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$regTo, I64Attr:$parameterName);
+}
+
+def Standalone_Null : Standalone_Op<"Null"> {
+    let summary = "Puts null in some registers";
+
+    let arguments = (ins I64Attr:$pc, I32Attr:$setMemCleared, I32Attr:$firstReg, I32Attr:$lastReg);
 }
 
 def Standalone_Gosub : Standalone_Op<"Gosub", [Terminator]> {

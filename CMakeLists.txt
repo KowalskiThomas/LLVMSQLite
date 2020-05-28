@@ -119,6 +119,9 @@ add_library(sqlite
         ${PROJECT_SOURCE_DIR}/src/temp_vdbe.c
 )
 
+set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
+# set_property(TARGET sqlite PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
+
 target_link_libraries(sqlite sqlite_jit)
 
 add_executable(shell shell.c)

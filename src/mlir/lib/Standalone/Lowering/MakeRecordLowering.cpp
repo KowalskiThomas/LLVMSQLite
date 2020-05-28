@@ -47,15 +47,17 @@ namespace mlir::standalone::passes {
 
         print(LOCL, "-- MakeRecord");
 
-        // TODO: Use our own implementation
-        print(LOCL, "Calling into default implementation");
-        rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
-        rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
-        rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange{
-                constants(T::VdbePtrTy, vdbe)
-        });
-        rewriter.eraseOp(*op);
-        return success();
+        if (false) {
+            // TODO: Use our own implementation
+            print(LOCL, "Calling into default implementation");
+            rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
+            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+            rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange{
+                    constants(T::VdbePtrTy, vdbe)
+            });
+            rewriter.eraseOp(*op);
+            return success();
+        }
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(mrOp); GO_BACK_TO(curBlock);
@@ -283,9 +285,12 @@ print(LOCL, "Size 1");
 
                     /// if ((i & 1) == i && file_format >= 4)
                     auto iAnd1 = bitAnd(LOC, i, 1);
-                    auto iAnd1Is1 = iCmp(LOC, Pred::eq, iAnd1, 1);
+                    auto iAnd1Is1 = iCmp(LOC, Pred::eq, iAnd1, i);
                     auto fileFormatGe4 = iCmp(LOC, Pred::sge, file_format, 4);
                     auto condCondition = bitAnd(LOC, iAnd1Is1, fileFormatGe4);
+
+                    print(LOCL, i, "i =");
+                    print(LOCL, file_format, "fileFormat = ");
 
                     condBranch(LOC, condCondition, blockCondition, blockNotCondition);
                     { // if ((i & 1) == i && file_format >= 4)
@@ -324,6 +329,7 @@ printA(LOCL, uTempAddress, "uTemp");
                 { // if (uu <= 32767)
                     ip_start(blockSize2);
 
+print(LOCL, "Size 2");
                     addInPlace(LOC, nDataAddr, 2);
                     store(LOC, 2, uTempAddress);
 
@@ -336,6 +342,7 @@ printA(LOCL, uTempAddress, "uTemp");
                 { // if (uu <= 8388607)
                     ip_start(blockSize3);
 
+print(LOCL, "Size 3");
                     addInPlace(LOC, nDataAddr, 3);
                     store(LOC, 3, uTempAddress);
 
@@ -348,6 +355,7 @@ printA(LOCL, uTempAddress, "uTemp");
                 { // if (uu <= 2147483647)
                     ip_start(blockSize4);
 
+print(LOCL, "Size 4");
                     addInPlace(LOC, nDataAddr, 4);
                     store(LOC, 4, uTempAddress);
 
@@ -360,6 +368,7 @@ printA(LOCL, uTempAddress, "uTemp");
                 { // if (uu <= 140737488355327LL)
                     ip_start(blockSize5);
 
+print(LOCL, "Size 5");
                     addInPlace(LOC, nDataAddr, 6);
                     store(LOC, 5, uTempAddress);
 
@@ -368,6 +377,7 @@ printA(LOCL, uTempAddress, "uTemp");
                 { // else of if (uu <= 140737488355327LL)
                     ip_start(blockNotSize5);
 
+print(LOCL, "Size BIG");
                     addInPlace(LOC, nDataAddr, 8);
 
                     auto curBlock = rewriter.getBlock();
@@ -562,7 +572,7 @@ printA(LOCL, uTempAddress, "uTemp");
         ip_start(blockAfterNHdrLt126);
 
         /// nByte = nHdr + nData;
-        auto nHdr64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, load(LOC, nHdrAddr));
+        auto nHdr64 = zExt(LOC, load(LOC, nHdrAddr), T::i64Ty);
         auto nByte = add(LOC, nHdr64, load(LOC, nDataAddr));
 
         /// if (nByte + nZero <= pOut->szMalloc)

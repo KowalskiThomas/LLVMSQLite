@@ -37,15 +37,15 @@ namespace mlir::standalone::passes {
 
         auto* pOp = &vdbe->aOp[pc];
 
-        /*
-        // TODO: Use our own implementation
-        print(LOCL, "Calling into default implementation");
-        store(LOC, 1, constants(T::i64PtrTy, &maxVdbeSteps));
-        rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
-        call(LOC, f_sqlite3VdbeExec2, constants(T::VdbePtrTy, vdbe));
-        rewriter.eraseOp(mathOp);
-        return success();
-        */
+        if (false) {
+            // TODO: Use our own implementation
+            print(LOCL, "Calling into default implementation");
+            store(LOC, 1, constants(T::i64PtrTy, &maxVdbeSteps));
+            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+            call(LOC, f_sqlite3VdbeExec2, constants(T::VdbePtrTy, vdbe));
+            rewriter.eraseOp(mathOp);
+            return success();
+        }
 
         auto firstBlock = rewriter.getBlock();
         auto curBlock = rewriter.getBlock();

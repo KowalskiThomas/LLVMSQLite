@@ -3112,9 +3112,11 @@ case OP_Offset: {          /* out3 */
                         if (uu <= 127) {
                             if ((i & 1) == i && file_format >= 4) {
                                 pRec->uTemp = 8 + (u32) uu;
+                                printf("First branch\n");
                             } else {
                                 nData++;
                                 pRec->uTemp = 1;
+                                printf("Other branch\n");
                             }
                         } else if (uu <= 32767) {
                             nData += 2;

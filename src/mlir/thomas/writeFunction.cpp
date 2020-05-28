@@ -640,13 +640,73 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 break;
             }
+            case OP_Real: {
+                auto p2 = op.p2;
+                auto p4 = op.p4.pReal;
+
+                rewriter.create<mlir::standalone::Real>
+                    (LOCB,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(64, false, (uint64_t)p4)
+                    );
+
+                break;
+            }
+            case OP_String: {
+                auto len = op.p1;
+                auto regTo = op.p2;
+                auto hints = op.p3;
+                auto string = op.p4.z;
+                auto flags = op.p5;
+
+                rewriter.create<mlir::standalone::String>
+                    (LOCB,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, len),
+                        INTEGER_ATTR(32, true, regTo),
+                        INTEGER_ATTR(32, true, hints),
+                        INTEGER_ATTR(64, false, (uint64_t)string),
+                        INTEGER_ATTR(16, false, flags)
+                    );
+
+                break;
+            }
+            case OP_String8: {
+                auto regTo = op.p2;
+                auto string = op.p4.z;
+
+                rewriter.create<mlir::standalone::String8>
+                    (LOCB,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, regTo),
+                        INTEGER_ATTR(64, false, (uint64_t)string)
+                    );
+
+                break;
+            }
+            case OP_Variable: {
+                auto parameter = op.p1;
+                auto regTo = op.p2;
+                auto parameterName = op.p4.z;
+
+                rewriter.create<mlir::standalone::Variable>
+                    (LOCB,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, parameter),
+                        INTEGER_ATTR(32, true, regTo),
+                        INTEGER_ATTR(64, false, (uint64_t)parameterName)
+                    );
+
+                break;
+            }
         }
 
         // Add the block to the blocks map (for use in branches)
         blocks[pc] = block;
 
         // Update all instructions that branch to this instruction but couldn't refer to it before
-        for(auto opAndIdx : operations_to_update[pc]) {
+        for(const auto& opAndIdx : operations_to_update[pc]) {
             auto op = opAndIdx.first;
             auto idx = opAndIdx.second;
             op->getBlockOperands()[idx].set(block);

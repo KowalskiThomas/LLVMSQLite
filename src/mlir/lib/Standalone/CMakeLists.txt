@@ -1,5 +1,6 @@
 set(LOWERING_FILES
     Lowering/MyBuilder.cpp
+    Lowering/Printer.cpp
 
     Lowering/AggFinalLowering.cpp
     Lowering/AggStepLowering.cpp
@@ -30,7 +31,10 @@ set(LOWERING_FILES
     Lowering/SorterSortLowering.cpp
     Lowering/TransactionLowering.cpp
     Lowering/ArithmeticLowering.cpp
-    Lowering/Printer.cpp
+    Lowering/String8Lowering.cpp
+    Lowering/StringLowering.cpp
+    Lowering/VariableLowering.cpp
+    Lowering/RealLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

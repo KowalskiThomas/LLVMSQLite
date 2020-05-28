@@ -61,6 +61,7 @@ ExternFuncOp f_sqlite3VdbeSorterNext;
  * by doing everything else in JIT but lowering one operation code to issue a call
  * to the default implementation for (up to) one step.
  * For example, run up to two instructions using the default implementation:
+ *      store(pc, &vdbe->pc);
  *      store(2, &maxVdbeSteps);
  *      call(f_sqlite3VdbeExec2, vdbe);
  * The original sqlite3VdbeExec has been modified to support that.

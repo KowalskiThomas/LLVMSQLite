@@ -104,6 +104,10 @@ namespace mlir {
         DECLARE_LOWERING(IfPos)
         DECLARE_LOWERING(Return)
         DECLARE_LOWERING(Arithmetic)
+        DECLARE_LOWERING(Real)
+        DECLARE_LOWERING(String)
+        DECLARE_LOWERING(String8)
+        DECLARE_LOWERING(Variable)
 
         } // namespace passes
     } // namespace standalone
