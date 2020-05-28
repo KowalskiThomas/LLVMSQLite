@@ -168,6 +168,18 @@ def Standalone_Move : Standalone_Op<"Move"> {
     let arguments = (ins I32Attr:$firstFromReg, I32Attr:$firstToReg, I32Attr:$nReg);
 }
 
+def Standalone_If : Standalone_Op<"If", [Terminator]> {
+    let arguments = (ins I32Attr:$condition, I32Attr:$hints);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
+}
+
+def Standalone_IfNot : Standalone_Op<"IfNot", [Terminator]> {
+    let arguments = (ins I32Attr:$condition, I32Attr:$hints);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
+}
+
 def Standalone_IfPos : Standalone_Op<"IfPos", [Terminator]> {
     let arguments = (ins I32Attr:$integerReg, I32Attr:$toSubtract);
 
@@ -184,9 +196,16 @@ def Standalone_Arithmetic : Standalone_Op<"Arithmetic"> {
     let arguments = (ins I64Attr:$pc, I32Attr:$P1, I32Attr:$P2, I32Attr:$resultReg);
 }
 
+def Standalone_CompareJump : Standalone_Op<"CompareJump", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p2, I32Attr:$lhs, I32Attr:$rhs, I64Attr:$comparator, I16Attr:$flags);
+
+    let successors = (successor AnySuccessor:$ifTrue, AnySuccessor:$ifFalse);
+}
+
+
 /*
 def Standalone_ : Standalone_Op<""> {
-    let arguments = (ins I32Attr:$curIdx, I32Attr:$reg, I32Attr:$nFields);
+    let arguments = (ins I64Attr:$pc, I32Attr:$curIdx, I32Attr:$reg, I32Attr:$nFields);
 }
 */
 

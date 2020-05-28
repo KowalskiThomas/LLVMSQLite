@@ -331,7 +331,8 @@ static int alsoAnInt(Mem *pRec, double rValue, i64 *piValue) {
 ** point or exponential notation, the result is only MEM_Real, even
 ** if there is an exact integer representation of the quantity.
 */
-static void applyNumericAffinity(Mem *pRec, int bTryForInt) {
+// TODO: That was static
+/* static */ void applyNumericAffinity(Mem *pRec, int bTryForInt) {
     double rValue;
     u8 enc = pRec->enc;
     int rc;

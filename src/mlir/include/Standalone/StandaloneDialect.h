@@ -17,7 +17,6 @@ namespace mlir {
     namespace standalone {
 
         #include "Standalone/StandaloneOpsDialect.h.inc"
-        struct FooOp;
 
         namespace VdbeTypes {
             enum Kind {
@@ -88,7 +87,7 @@ namespace mlir {
     } // namespace standalone
 } // namespace mlir
 
-[[maybe_unused]] [[maybe_unused]] void print(mlir::OpAsmPrinter&, const mlir::standalone::FooOp&);
+// [[maybe_unused]] [[maybe_unused]] void print(mlir::OpAsmPrinter&, const mlir::standalone::FooOp&);
 [[maybe_unused]] [[maybe_unused]] void print(mlir::OpAsmPrinter&, const mlir::standalone::VdbeTypes::RegisterType&);
 
 #endif // STANDALONE_STANDALONEDIALECT_H

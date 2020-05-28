@@ -124,10 +124,10 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 }
 
                 auto initOp = builder.create<mlir::standalone::InitOp>
-                    (LOCB,
-                        INTEGER_ATTR(64, true, initValue),
-                        entryBlock
-                    );
+                        (LOCB,
+                         INTEGER_ATTR(64, true, initValue),
+                         entryBlock
+                        );
 
                 operations_to_update[jumpTo].emplace_back(initOp, 0);
 
@@ -137,7 +137,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
             case OP_Noop: {
                 builder.create<mlir::standalone::Noop>
                         (LOCB,
-                            INTEGER_ATTR(64, false, pc)
+                         INTEGER_ATTR(64, false, pc)
                         );
                 break;
             }
@@ -156,8 +156,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 // Create the jump
                 auto op = builder.create<mlir::standalone::Goto>(
-                    LOCB,
-                    toBlock
+                        LOCB,
+                        toBlock
                 );
 
                 // If the destination block hasn't been created yet, add this operation to the
@@ -192,14 +192,14 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                     */
                 } else {
                     builder.create<mlir::standalone::OpenRead>
-                        (LOCB,
-                            INTEGER_ATTR(64, false, pc),
-                            INTEGER_ATTR(32, true, curIdx),
-                            INTEGER_ATTR(32, true, rootPage),
-                            INTEGER_ATTR(32, true, dbIdx),
-                            INTEGER_ATTR(32, true, p4.i),
-                            INTEGER_ATTR(16, false, p5)
-                        );
+                            (LOCB,
+                             INTEGER_ATTR(64, false, pc),
+                             INTEGER_ATTR(32, true, curIdx),
+                             INTEGER_ATTR(32, true, rootPage),
+                             INTEGER_ATTR(32, true, dbIdx),
+                             INTEGER_ATTR(32, true, p4.i),
+                             INTEGER_ATTR(16, false, p5)
+                            );
                 }
                 break;
             }
@@ -208,15 +208,15 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto curIdx = op.p1;
                 auto jumpTo = op.p2;
 
-                Block* blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
-                Block* blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
+                Block *blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
+                Block *blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
 
                 auto op = builder.create<mlir::standalone::Rewind>
-                    (LOCB,
-                        INTEGER_ATTR(32, true, curIdx),
-                        blockJumpTo,
-                        blockFallthrough
-                    );
+                        (LOCB,
+                         INTEGER_ATTR(32, true, curIdx),
+                         blockJumpTo,
+                         blockFallthrough
+                        );
 
                 if (blockJumpTo == entryBlock)
                     operations_to_update[jumpTo].emplace_back(op.getOperation(), 0);
@@ -276,7 +276,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                         (LOCB,
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, curHint),
-                         INTEGER_ATTR(64, false, (uint64_t)p4.p),
+                         INTEGER_ATTR(64, false, (uint64_t) p4.p),
                          INTEGER_ATTR(16, false, p5),
                          blockJumpTo,
                          blockFallThrough
@@ -293,16 +293,16 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto dbIdx = op.p1;
                 auto isWrite = op.p2;
                 auto p3 = op.p3;
-                auto p4 = (uint64_t)op.p4.p;
+                auto p4 = (uint64_t) op.p4.p;
                 auto p5 = op.p5;
 
                 builder.create<mlir::standalone::Transaction>
                         (LOCB,
-                                INTEGER_ATTR(32, true, dbIdx),
-                                INTEGER_ATTR(32, true, isWrite),
-                                INTEGER_ATTR(32, true, p3),
-                                INTEGER_ATTR(64, true, p4),
-                                INTEGER_ATTR(16, true, p5)
+                         INTEGER_ATTR(32, true, dbIdx),
+                         INTEGER_ATTR(32, true, isWrite),
+                         INTEGER_ATTR(32, true, p3),
+                         INTEGER_ATTR(64, true, p4),
+                         INTEGER_ATTR(16, true, p5)
                         );
 
                 break;
@@ -314,10 +314,10 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 builder.create<mlir::standalone::Null>
                         (LOCB,
-                            INTEGER_ATTR(64, false, pc),
-                            INTEGER_ATTR(32, true, setMemCleared),
-                            INTEGER_ATTR(32, true, firstReg),
-                            INTEGER_ATTR(32, true, lastReg)
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, setMemCleared),
+                         INTEGER_ATTR(32, true, firstReg),
+                         INTEGER_ATTR(32, true, lastReg)
                         );
 
                 break;
@@ -331,12 +331,12 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 builder.create<mlir::standalone::AggStep>
                         (LOCB,
-                             INTEGER_ATTR(64, false, pc),
-                             INTEGER_ATTR(32, false, p1),
-                             INTEGER_ATTR(32, true, firstRegFrom),
-                             INTEGER_ATTR(32, true, firstRegTo),
-                             INTEGER_ATTR(64, false, (uint64_t)funcDef),
-                             INTEGER_ATTR(16, true, nArgs)
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, false, p1),
+                         INTEGER_ATTR(32, true, firstRegFrom),
+                         INTEGER_ATTR(32, true, firstRegTo),
+                         INTEGER_ATTR(64, false, (uint64_t) funcDef),
+                         INTEGER_ATTR(16, true, nArgs)
                         );
 
                 break;
@@ -348,9 +348,9 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 builder.create<mlir::standalone::AggFinal>
                         (LOCB,
-                            INTEGER_ATTR(32, true, p1),
-                            INTEGER_ATTR(32, false, nArgs),
-                            INTEGER_ATTR(64, false, (uint64_t)funcDef)
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(32, false, nArgs),
+                         INTEGER_ATTR(64, false, (uint64_t) funcDef)
                         );
 
                 break;
@@ -374,11 +374,11 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto nothing = op.p2;
 
                 builder.create<mlir::standalone::Integer>
-                    (LOCB,
-                        INTEGER_ATTR(64, false, pc),
-                        INTEGER_ATTR(32, true, value),
-                        INTEGER_ATTR(32, true, nothing)
-                    );
+                        (LOCB,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, value),
+                         INTEGER_ATTR(32, true, nothing)
+                        );
 
                 // lastOpSeen = true;
                 break;
@@ -387,14 +387,14 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto writeAddressTo = op.p1;
                 auto jumpTo = op.p2;
 
-                Block* blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
+                Block *blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
 
                 auto op = rewriter.create<mlir::standalone::Gosub>
-                    (LOCB,
-                        INTEGER_ATTR(64, false, pc),
-                        INTEGER_ATTR(32, true, writeAddressTo),
-                        blockJumpTo
-                     );
+                        (LOCB,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, writeAddressTo),
+                         blockJumpTo
+                        );
 
                 if (blockJumpTo == entryBlock)
                     operations_to_update[jumpTo].emplace_back(op.getOperation(), 0);
@@ -406,16 +406,16 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto firstRegFrom = op.p1;
                 auto nReg = op.p2;
                 auto dest = op.p3;
-                auto affinities = (uint64_t)op.p4.p;
+                auto affinities = (uint64_t) op.p4.p;
 
                 rewriter.create<mlir::standalone::MakeRecord>
-                    (LOCB,
-                     INTEGER_ATTR(64, false, pc),
-                     INTEGER_ATTR(32, true, firstRegFrom),
-                     INTEGER_ATTR(32, true, nReg),
-                     INTEGER_ATTR(32, true, dest),
-                     INTEGER_ATTR(64, false, affinities)
-                    );
+                        (LOCB,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, firstRegFrom),
+                         INTEGER_ATTR(32, true, nReg),
+                         INTEGER_ATTR(32, true, dest),
+                         INTEGER_ATTR(64, false, affinities)
+                        );
 
                 break;
             }
@@ -425,11 +425,11 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto nFields = op.p3;
 
                 rewriter.create<mlir::standalone::OpenPseudo>
-                    (LOCB,
-                     INTEGER_ATTR(32, true, curIdx),
-                     INTEGER_ATTR(32, true, reg),
-                     INTEGER_ATTR(32, true, nFields)
-                     );
+                        (LOCB,
+                         INTEGER_ATTR(32, true, curIdx),
+                         INTEGER_ATTR(32, true, reg),
+                         INTEGER_ATTR(32, true, nFields)
+                        );
 
                 break;
             }
@@ -449,7 +449,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto curIdx = op.p1;
                 auto nCol = op.p2;
                 auto p3 = op.p3;
-                auto p4 = (uint64_t)op.p4.p;
+                auto p4 = (uint64_t) op.p4.p;
 
                 builder.create<mlir::standalone::SorterOpen>
                         (LOCB,
@@ -461,40 +461,40 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 break;
             }
-            /*
-            case OP_SorterSort: {
-                auto curIdx = op.p1;
+                /*
+                case OP_SorterSort: {
+                    auto curIdx = op.p1;
 
-                auto jumpToAddr = op.p2;
-                auto jumpToBlock = blocks.find(jumpToAddr) != blocks.end() ? blocks[jumpToAddr] : entryBlock;
-                auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;
+                    auto jumpToAddr = op.p2;
+                    auto jumpToBlock = blocks.find(jumpToAddr) != blocks.end() ? blocks[jumpToAddr] : entryBlock;
+                    auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;
 
-                auto op = builder.create<mlir::standalone::SorterSort>
-                    (LOCB,
-                        INTEGER_ATTR(32, true, curIdx),
-                        jumpToBlock, fallthroughBlock
-                    );
+                    auto op = builder.create<mlir::standalone::SorterSort>
+                        (LOCB,
+                            INTEGER_ATTR(32, true, curIdx),
+                            jumpToBlock, fallthroughBlock
+                        );
 
-                if (jumpToBlock == entryBlock)
-                    operations_to_update[jumpToAddr].emplace_back(op, 0);
-                if (fallthroughBlock == entryBlock)
-                    operations_to_update[pc + 1].emplace_back(op, 1);
+                    if (jumpToBlock == entryBlock)
+                        operations_to_update[jumpToAddr].emplace_back(op, 0);
+                    if (fallthroughBlock == entryBlock)
+                        operations_to_update[pc + 1].emplace_back(op, 1);
 
-                newWriteBranchOut = false;
-                break;
-            }
-            */
+                    newWriteBranchOut = false;
+                    break;
+                }
+                */
             case OP_SorterData: {
                 auto curIdx = op.p1;
                 auto regTo = op.p2;
                 auto p3 = op.p3;
 
                 auto op = builder.create<mlir::standalone::SorterData>
-                    (LOCB,
-                        INTEGER_ATTR(32, true, curIdx),
-                        INTEGER_ATTR(32, true, regTo),
-                        INTEGER_ATTR(32, true, p3)
-                    );
+                        (LOCB,
+                         INTEGER_ATTR(32, true, curIdx),
+                         INTEGER_ATTR(32, true, regTo),
+                         INTEGER_ATTR(32, true, p3)
+                        );
 
                 break;
             }
@@ -507,12 +507,12 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;
 
                 auto op = builder.create<mlir::standalone::SorterNext>
-                    (LOCB,
-                        INTEGER_ATTR(32, true, p1),
-                        INTEGER_ATTR(16, false, p5),
-                        jumpToBlock,
-                        fallthroughBlock
-                    );
+                        (LOCB,
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(16, false, p5),
+                         jumpToBlock,
+                         fallthroughBlock
+                        );
 
                 if (jumpToBlock == entryBlock)
                     operations_to_update[jumpToAddr].emplace_back(op, 0);
@@ -526,18 +526,18 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p1 = op.p1;
                 auto p2 = op.p2;
                 auto p3 = op.p3;
-                auto p4 = (uint64_t)op.p4.p;
+                auto p4 = (uint64_t) op.p4.p;
                 auto p5 = op.p5;
 
                 builder.create<mlir::standalone::Compare>
-                    (LOCB,
-                        INTEGER_ATTR(64, false, pc),
-                        INTEGER_ATTR(32, true, p1),
-                        INTEGER_ATTR(32, true, p2),
-                        INTEGER_ATTR(32, true, p3),
-                        INTEGER_ATTR(64, false, p4),
-                        INTEGER_ATTR(16, true, p5)
-                    );
+                        (LOCB,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(32, true, p2),
+                         INTEGER_ATTR(32, true, p3),
+                         INTEGER_ATTR(64, false, p4),
+                         INTEGER_ATTR(16, true, p5)
+                        );
 
                 break;
             }
@@ -546,16 +546,16 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto addrEq = op.p2;
                 auto addrGreater = op.p3;
 
-                Block* blockLess = blocks.count(addrLess) == 0 ? entryBlock : blocks[addrLess];
-                Block* blockEq = blocks.count(addrEq) == 0 ? entryBlock : blocks[addrEq];
-                Block* blockGreater = blocks.count(addrGreater) == 0 ? entryBlock : blocks[addrGreater];
+                Block *blockLess = blocks.count(addrLess) == 0 ? entryBlock : blocks[addrLess];
+                Block *blockEq = blocks.count(addrEq) == 0 ? entryBlock : blocks[addrEq];
+                Block *blockGreater = blocks.count(addrGreater) == 0 ? entryBlock : blocks[addrGreater];
 
                 auto op = builder.create<mlir::standalone::Jump>
-                    (LOCB,
-                        blockLess,
-                        blockEq,
-                        blockGreater
-                    );
+                        (LOCB,
+                         blockLess,
+                         blockEq,
+                         blockGreater
+                        );
 
                 if (blockLess == entryBlock)
                     operations_to_update[addrLess].emplace_back(op.getOperation(), 0);
@@ -573,11 +573,11 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p3 = op.p3;
 
                 rewriter.create<mlir::standalone::Move>
-                    (LOCB,
+                        (LOCB,
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, true, p2),
                          INTEGER_ATTR(32, true, p3)
-                    );
+                        );
 
                 break;
             }
@@ -586,16 +586,16 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p3 = op.p3;
 
                 auto jumpToAddr = op.p2;
-                Block* blockTarget = blocks.count(jumpToAddr) == 0 ? entryBlock : blocks[jumpToAddr];
-                Block* blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
+                Block *blockTarget = blocks.count(jumpToAddr) == 0 ? entryBlock : blocks[jumpToAddr];
+                Block *blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
 
                 auto op = rewriter.create<mlir::standalone::IfPos>
-                    (LOCB,
-                        INTEGER_ATTR(32, true, p1),
-                        INTEGER_ATTR(32, true, p3),
-                        blockTarget,
-                        blockFallthrough
-                    );
+                        (LOCB,
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(32, true, p3),
+                         blockTarget,
+                         blockFallthrough
+                        );
 
                 if (blockTarget == entryBlock)
                     operations_to_update[jumpToAddr].emplace_back(op.getOperation(), 0);
@@ -611,9 +611,9 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 // auto returnTo = blocks.count(returnToAddr) == 0 ? entryBlock : blocks[returnToAddr];
 
                 auto op = rewriter.create<mlir::standalone::Return>
-                    (LOCB,
-                        INTEGER_ATTR(32, true, returnToAddrReg)
-                    );
+                        (LOCB,
+                         INTEGER_ATTR(32, true, returnToAddrReg)
+                        );
 
                 // if (blocks.count(returnToAddr) == 0)
                 //     operations_to_update[returnToAddr].emplace_back(op, 0);
@@ -632,10 +632,10 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 rewriter.create<mlir::standalone::Arithmetic>
                         (LOCB,
-                            INTEGER_ATTR(64, false, pc),
-                            INTEGER_ATTR(32, true, p1),
-                            INTEGER_ATTR(32, true, p2),
-                            INTEGER_ATTR(32, true, p3)
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(32, true, p2),
+                         INTEGER_ATTR(32, true, p3)
                         );
 
                 break;
@@ -645,11 +645,11 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p4 = op.p4.pReal;
 
                 rewriter.create<mlir::standalone::Real>
-                    (LOCB,
-                        INTEGER_ATTR(64, false, pc),
-                        INTEGER_ATTR(32, true, p2),
-                        INTEGER_ATTR(64, false, (uint64_t)p4)
-                    );
+                        (LOCB,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, p2),
+                         INTEGER_ATTR(64, false, (uint64_t) p4)
+                        );
 
                 break;
             }
@@ -661,14 +661,14 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto flags = op.p5;
 
                 rewriter.create<mlir::standalone::String>
-                    (LOCB,
-                        INTEGER_ATTR(64, false, pc),
-                        INTEGER_ATTR(32, true, len),
-                        INTEGER_ATTR(32, true, regTo),
-                        INTEGER_ATTR(32, true, hints),
-                        INTEGER_ATTR(64, false, (uint64_t)string),
-                        INTEGER_ATTR(16, false, flags)
-                    );
+                        (LOCB,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, len),
+                         INTEGER_ATTR(32, true, regTo),
+                         INTEGER_ATTR(32, true, hints),
+                         INTEGER_ATTR(64, false, (uint64_t) string),
+                         INTEGER_ATTR(16, false, flags)
+                        );
 
                 break;
             }
@@ -677,11 +677,11 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto string = op.p4.z;
 
                 rewriter.create<mlir::standalone::String8>
-                    (LOCB,
-                        INTEGER_ATTR(64, false, pc),
-                        INTEGER_ATTR(32, true, regTo),
-                        INTEGER_ATTR(64, false, (uint64_t)string)
-                    );
+                        (LOCB,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, regTo),
+                         INTEGER_ATTR(64, false, (uint64_t) string)
+                        );
 
                 break;
             }
@@ -691,13 +691,50 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto parameterName = op.p4.z;
 
                 rewriter.create<mlir::standalone::Variable>
+                        (LOCB,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, parameter),
+                         INTEGER_ATTR(32, true, regTo),
+                         INTEGER_ATTR(64, false, (uint64_t) parameterName)
+                        );
+
+                break;
+            }
+            case OP_Eq:
+            case OP_Ne:
+            case OP_Lt:
+            case OP_Le:
+            case OP_Gt:
+            case OP_Ge: {
+                auto lhs = op.p1;
+                auto p2 = op.p2;
+                auto rhs = op.p2;
+                auto comparator = op.p4.pFunc;
+                auto flags = op.p5;
+
+                auto jumpTo = op.p2;
+
+                Block *blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
+                Block *blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
+
+                auto op = rewriter.create<mlir::standalone::CompareJump>
                     (LOCB,
                         INTEGER_ATTR(64, false, pc),
-                        INTEGER_ATTR(32, true, parameter),
-                        INTEGER_ATTR(32, true, regTo),
-                        INTEGER_ATTR(64, false, (uint64_t)parameterName)
+                        INTEGER_ATTR(32, true, lhs),
+                        INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(32, true, rhs),
+                        INTEGER_ATTR(64, false, (uint64_t)comparator),
+                        INTEGER_ATTR(16, false, flags),
+                        blockJumpTo,
+                        blockFallthrough
                     );
 
+                if (blockJumpTo == entryBlock)
+                    operations_to_update[jumpTo].emplace_back(op.getOperation(), 0);
+                if (blockFallthrough == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op.getOperation(), 1);
+
+                newWriteBranchOut = false;
                 break;
             }
         }

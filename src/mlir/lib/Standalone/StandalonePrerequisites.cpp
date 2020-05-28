@@ -74,6 +74,7 @@ LLVMFuncOp f_sqlite3SubInt64;
 LLVMFuncOp f_sqlite3MulInt64;
 LLVMFuncOp f_sqlite3VdbeRealValue;
 LLVMFuncOp f_sqlite3IsNaN;
+LLVMFuncOp f_applyNumericAffinity;
 
 LLVMFuncOp f_memCpy;
 
@@ -141,6 +142,7 @@ public:
     DECLARE_FUNCTION(sqlite3MulInt64);
     DECLARE_FUNCTION(sqlite3VdbeRealValue);
     DECLARE_FUNCTION(sqlite3IsNaN);
+    DECLARE_FUNCTION(applyNumericAffinity);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -886,6 +888,20 @@ void Prerequisites::generateReferenceTosqlite3IsNaN(mlir::ModuleOp m, LLVMDialec
     GENERATE_SYMBOL(f_sqlite3IsNaN, sqlite3IsNaN, "sqlite3IsNaN");
 }
 
+extern "C" {
+    void applyNumericAffinity(sqlite3_value*, int);
+}
+
+void Prerequisites::generateReferenceToapplyNumericAffinity(mlir::ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            LLVMType::getVoidTy(d), {
+                T::sqlite3_valuePtrTy,
+                T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_applyNumericAffinity, applyNumericAffinity, "applyNumericAffinity");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
@@ -946,6 +962,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3MulInt64);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeRealValue);
     CALL_SYMBOL_GENERATOR(sqlite3IsNaN);
+    CALL_SYMBOL_GENERATOR(applyNumericAffinity);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

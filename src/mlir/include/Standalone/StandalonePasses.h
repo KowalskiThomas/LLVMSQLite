@@ -108,7 +108,11 @@ namespace mlir {
         DECLARE_LOWERING(String)
         DECLARE_LOWERING(String8)
         DECLARE_LOWERING(Variable)
+        DECLARE_LOWERING(If)
+        DECLARE_LOWERING(CompareJump)
 
         } // namespace passes
     } // namespace standalone
 } // namespace mlir
+
+#undef DECLARE_LOWERING
