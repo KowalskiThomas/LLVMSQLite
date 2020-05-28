@@ -25,13 +25,12 @@ namespace mlir::standalone::passes {
 
         auto firstBlock = rewriter.getBlock();
 
-        auto firstFromRegAttr = txnOp.firstFromRegAttr();
-        auto nFromRegAttr = txnOp.nFromRegAttr();
-        auto firstToRegAttr = txnOp.firstToRegAttr();
-
-        auto firstFromReg = firstFromRegAttr.getSInt();
-        auto nReg = nFromRegAttr.getSInt() + 1;
-        auto firstToReg = firstToRegAttr.getSInt();
+        auto pc = txnOp.pcAttr().getUInt();
+        auto p1 = txnOp.p1Attr().getSInt();
+        auto p2 = txnOp.p2Attr().getSInt();
+        auto p3 = txnOp.p3Attr().getSInt();
+        auto p4 = txnOp.p4Attr().getSInt();
+        auto p5 = txnOp.p5Attr().getSInt();
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
