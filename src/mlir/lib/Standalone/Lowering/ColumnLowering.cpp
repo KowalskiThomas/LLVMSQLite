@@ -26,6 +26,8 @@ namespace mlir {
 
                 auto firstBlock = rewriter.getBlock();
 
+                auto stackState = rewriter.create<mlir::LLVM::StackSaveOp>(LOC, T::i8PtrTy);
+
                 ConstantManager constants(rewriter, ctx);
                 MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
                 GetVarint32Operator generate_getVarint32(rewriter, constants, ctx);
@@ -49,7 +51,7 @@ namespace mlir {
                 auto pc = colOp.counterAttr().getSInt();
                 auto pOp = &vdbe->aOp[pc];
 
-                PROGRESS_PRINT_INT(constants(pc, 32), "-- Column");
+                // PROGRESS_PRINT_INT(constants(pc, 32), "-- Column");
 
                 if (false) {
                     // TODO: Use our own implementation
@@ -498,6 +500,14 @@ namespace mlir {
                         rewriter.setInsertionPointToStart(blockEndCacheNeStatusCacheCtr);
 
                         print(LOCL, "After if rowNull");
+                        {
+                            static size_t counter = 0;
+                            auto counterAddr = constants(T::i64PtrTy, &counter);
+                            auto curValue = rewriter.create<LoadOp>(LOC, counterAddr);
+                            auto newValue = rewriter.create<AddOp>(LOC, curValue, constants(1, 64));
+                            rewriter.create<StoreOp>(LOC, newValue, counterAddr);
+                            print(LOCL, constants(T::i64PtrTy, &counter), "Counter");
+                        }
 
                         //// pC->cacheStatus = p->cacheCtr;
                         auto newCacheCtr = rewriter.create<LoadOp>(LOC, cacheCtrAddr);
@@ -690,7 +700,7 @@ namespace mlir {
 
                             { // Do-while action block
                                 rewriter.setInsertionPointToStart(blockDoWhileBlock);
-                                print(LOCL, "Do-while");
+                                // print(LOCL, "Do-while");
                                 auto curBlock = rewriter.getBlock();
                                 auto blockIfLt80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                                 auto blockIfNotLt80 = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -1409,7 +1419,7 @@ namespace mlir {
 
                 rewriter.setInsertionPointToStart(blockColumnEnd);
                 print(LOCL, "op_column_out: ending");
-
+                rewriter.create<mlir::LLVM::StackRestoreOp>(LOC, stackState);
                 rewriter.eraseOp(colOp);
                 return success();
             } // matchAndRewrite

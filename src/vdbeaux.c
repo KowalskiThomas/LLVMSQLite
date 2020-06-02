@@ -4184,6 +4184,11 @@ static void vdbeAssertFieldCountWithinLimits(
 ** or positive value if *pMem1 is less than, equal to or greater than 
 ** *pMem2, respectively. Similar in spirit to "rc = (*pMem1) - (*pMem2);".
 */
+int binCollFunc(
+        void *NotUsed,
+        int nKey1, const void *pKey1,
+        int nKey2, const void *pKey2
+);
 static int vdbeCompareMemString(
   const Mem *pMem1,
   const Mem *pMem2,
@@ -4193,6 +4198,13 @@ static int vdbeCompareMemString(
   if( pMem1->enc==pColl->enc ){
     /* The strings are already in the correct encoding.  Call the
      ** comparison function directly */
+    if (pColl->xCmp != &binCollFunc)
+        printf("Not binCollFunc!\n");
+    else {
+        // printf("BinCollFunc\n");
+        return 0;
+        return binCollFunc(pColl->pUser,pMem1->n,pMem1->z,pMem2->n,pMem2->z);
+    }
     return pColl->xCmp(pColl->pUser,pMem1->n,pMem1->z,pMem2->n,pMem2->z);
   }else{
     int rc;

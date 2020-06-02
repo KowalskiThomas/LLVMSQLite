@@ -43,6 +43,7 @@ namespace mlir::standalone::passes {
         auto pc = mrOp.pcAttr().getUInt();
 
         print(LOCL, "-- MakeRecord");
+        auto stackState = saveStack(LOC);
 
         if (false) {
             // TODO: Use our own implementation
@@ -727,6 +728,7 @@ print(LOCL, "Size BIG");
         branch(LOC, endBlock);
 
         ip_start(endBlock);
+        restoreStack(LOC, stackState);
         rewriter.eraseOp(mrOp);
 
         return success();

@@ -236,3 +236,5 @@
         rewriter.create<BranchOp>(LOC, blockColumnEnd); \
         EXIT_PASS_EARLY(false) \
     }
+
+#define ALWAYS_ASSERT(x) if (!(x)) { (*(volatile int*)0) = 0; }

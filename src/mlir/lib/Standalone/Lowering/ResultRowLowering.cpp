@@ -20,6 +20,7 @@ namespace mlir::standalone::passes {
         myOperators
 
         print(LOCL, "-- ResultRow");
+        auto stackState = saveStack(LOC);
 
         auto i = alloca(LOC, T::i32PtrTy);
 
@@ -112,6 +113,7 @@ namespace mlir::standalone::passes {
         auto newAcountVal = rewriter.create<AddOp>(LOC, aCountVal, constants(1, 32));
         rewriter.create<StoreOp>(LOC, newAcountVal, aCountAddr);
 
+        restoreStack(LOC, stackState);
         rewriter.create<LLVM::ReturnOp>(LOC, constants(SQLITE_ROW, 32));
 
         rewriter.eraseOp(rrOp);

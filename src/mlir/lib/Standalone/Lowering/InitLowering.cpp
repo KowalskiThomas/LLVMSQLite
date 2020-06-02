@@ -1,3 +1,5 @@
+#include "Standalone/Lowering/Printer.h"
+#include "Standalone/ConstantManager.h"
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
@@ -11,8 +13,10 @@ namespace mlir {
                 ModuleOp parentModule2 = op->getParentOfType<ModuleOp>();
                 int i = 2;
                 LOWERING_PASS_HEADER
+                ConstantManager constants(rewriter, ctx);
+                Printer print(ctx, rewriter, __FILE_NAME__);
 
-                PROGRESS("-- Init");
+                print(LOCL, "-- Init");
 
                 auto jumpToAttr = initOp.jumpTo();
 

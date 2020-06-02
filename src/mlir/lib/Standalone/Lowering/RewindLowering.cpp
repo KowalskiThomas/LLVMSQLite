@@ -1,6 +1,8 @@
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
+#include "Standalone/Lowering/Printer.h"
+#include "Standalone/ConstantManager.h"
 
 namespace mlir {
     namespace standalone {
@@ -10,13 +12,16 @@ namespace mlir {
                 auto& builder = rewriter;
                 LOWERING_PASS_HEADER
                 LOWERING_NAMESPACE
+                ConstantManager constants(rewriter, ctx);
+                Printer print(ctx, rewriter, __FILE_NAME__);
 
                 auto curIdx = CONSTANT_INT(rewindOp.curIdxAttr().getSInt(), 32);
 
                 auto jumpTo = rewindOp.jumpToIfEmpty();
                 auto fallthrough = rewindOp.fallthrough();
 
-                PROGRESS("-- Rewind");
+                print(LOCL, "-- Rewind");
+                auto stackState = rewriter.create<mlir::LLVM::StackSaveOp>(LOC, T::i8PtrTy);
 
                 auto firstBlock = rewriter.getBlock();
 
@@ -102,7 +107,7 @@ namespace mlir {
                     // Store the result in rc
                     rewriter.create<StoreOp>(LOC, tempRc, rc);
 
-                    PROGRESS_PRINT_INT(tempRc, "Returned by sqlite3BtreeFirst")
+                    print(LOCL, tempRc, "Returned by sqlite3BtreeFirst");
 
                     /// pC->deferredMoveto = 0;
                     auto deferredMoveToAddr = rewriter.create<GEPOp>
@@ -138,6 +143,7 @@ namespace mlir {
                         });
                 rewriter.create<StoreOp>(LOC, resAsI8, pNullRow);
 
+                rewriter.create<mlir::LLVM::StackRestoreOp>(LOC, stackState);
                 auto condResNotNull = rewriter.create<ICmpOp>
                     (LOC, Pred::ne,
                         resValue, CONSTANT_INT(0, 32)

@@ -37,6 +37,8 @@ namespace mlir::standalone::passes {
         ip_start(endBlock);
 
         print(LOCL, "TODO: Implement Variable");
+        err("TODO: Implement Variable Lowering");
+        exit(3);
 
         rewriter.eraseOp(varOp);
 

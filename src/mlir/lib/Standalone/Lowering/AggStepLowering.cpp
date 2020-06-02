@@ -22,6 +22,8 @@ namespace mlir::standalone::passes {
 
         print(LOCL, "-- AggStep");
 
+        auto stackState = saveStack(LOC);
+
         auto firstBlock = rewriter.getBlock();
 
         auto p1Attr = aggStepOp.p1Attr();
@@ -304,6 +306,7 @@ namespace mlir::standalone::passes {
         branch(LOC, endBlock);
 
         ip_start(endBlock);
+        restoreStack(LOC, stackState);
         rewriter.eraseOp(aggStepOp);
 
         return success();

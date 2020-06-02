@@ -1,6 +1,8 @@
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
+#include "Standalone/Lowering/Printer.h"
+#include "Standalone/ConstantManager.h"
 
 namespace mlir {
     namespace standalone {
@@ -10,8 +12,10 @@ namespace mlir {
                 auto &builder = rewriter;
                 LOWERING_PASS_HEADER
                 LOWERING_NAMESPACE
+                ConstantManager constants(rewriter, ctx);
+                Printer print(ctx, rewriter, __FILE_NAME__);
 
-                PROGRESS("-- OpenRead")
+                print(LOCL, "-- OpenRead");
 
                 mlir::Value curIdx = CONSTANT_INT(orOp.curIdxAttr().getSInt(), 32);
                 mlir::Value databaseIdx = CONSTANT_INT(orOp.databaseAttr().getSInt(), 32);
@@ -129,7 +133,7 @@ namespace mlir {
                             pX, rootPage, wrFlag, pKeyInfo, pCur_uc_pCursor
                         }).getResult(0);
 
-                PROGRESS_PRINT_INT(TO_I64(rc), "Value returned by sqlite3_BtreeCursor:")
+                print(LOCL, rc, "Value returned by sqlite3_BtreeCursor:");
 
                 /// pCur->pKeyInfo = pKeyInfo;
                 auto ppKeyInfo = rewriter.create<GEPOp>

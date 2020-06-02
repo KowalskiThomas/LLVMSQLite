@@ -44,6 +44,8 @@ namespace mlir::standalone::passes {
             return success();
         }
 
+        auto stackState = saveStack(LOC);
+
         auto firstBlock = rewriter.getBlock();
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(mathOp); GO_BACK_TO(curBlock);
@@ -304,6 +306,7 @@ namespace mlir::standalone::passes {
         branch(LOC, endBlock);
 
         ip_start(endBlock);
+        restoreStack(LOC, stackState);
         rewriter.eraseOp(mathOp);
 
         { // arithmetic_result_is_null:

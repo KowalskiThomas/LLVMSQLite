@@ -205,3 +205,11 @@ Value MyBuilder::insertRemOp(Location loc, Value a, Value b) {
 
     return rewriter.create<mlir::LLVM::SDivOp>(loc, a, b);
 }
+
+Value MyBuilder::insertSaveStack(Location loc) {
+    return rewriter.create<mlir::LLVM::StackSaveOp>(loc, T::i8PtrTy);
+}
+
+void MyBuilder::insertRestoreStack(Location loc, Value stackState) {
+    rewriter.create<mlir::LLVM::StackRestoreOp>(loc, stackState);
+}

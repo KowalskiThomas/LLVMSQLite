@@ -24,6 +24,7 @@ namespace mlir::standalone::passes {
         myOperators
 
         print(LOCL, "-- Transaction");
+        auto stackState = rewriter.create<StackSaveOp>(LOC, T::i8PtrTy);
 
         auto firstBlock = rewriter.getBlock();
 
@@ -169,6 +170,7 @@ namespace mlir::standalone::passes {
         branch(LOC, endBlock);
 
         ip_start(endBlock);
+        rewriter.create<StackRestoreOp>(LOC, stackState);
         rewriter.eraseOp(txnOp);
 
         return success();

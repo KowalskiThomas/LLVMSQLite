@@ -925,7 +925,8 @@ int sqlite3_db_config(sqlite3 *db, int op, ...){
 ** This is the default collating function named "BINARY" which is always
 ** available.
 */
-static int binCollFunc(
+// TODO: This was static
+/* static */ int binCollFunc(
   void *NotUsed,
   int nKey1, const void *pKey1,
   int nKey2, const void *pKey2
@@ -937,6 +938,21 @@ static int binCollFunc(
   ** strings byte by byte using the memcmp() function from the standard C
   ** library. */
   assert( pKey1 && pKey2 );
+  // TODO: Remove this
+  const char* test = (char*) pKey1;
+  const char* test2 = (char*) pKey2;
+  char bufferTemp[1024];
+  char* buffer = (char*)bufferTemp;
+  for(size_t i = 0; i < n; i++) {
+      buffer[i] = test[i];
+  }
+  (void)buffer;
+  for(size_t i = 0; i < n; i++) {
+    buffer[i] = test2[i];
+  }
+  // TODO END: Remove this
+  // printf("%d %d\n", nKey1, strlen(test));
+  // printf("%d %d\n", nKey2, strlen(test2));
   rc = memcmp(pKey1, pKey2, n);
   if( rc==0 ){
     rc = nKey1 - nKey2;

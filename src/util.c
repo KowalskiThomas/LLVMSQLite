@@ -385,6 +385,7 @@ static LONGDOUBLE_TYPE sqlite3Pow10(int E){
 ** returns FALSE but it still converts the prefix and writes the result
 ** into *pResult.
 */
+extern size_t top_of_stack;
 #if defined(_MSC_VER)
 #pragma warning(disable : 4756)
 #endif
@@ -402,6 +403,12 @@ int sqlite3AtoF(const char *z, double *pResult, int length, u8 enc){
   double result;
   int nDigit = 0;  /* Number of digits processed */
   int eType = 1;   /* 1: pure integer,  2+: fractional  -1 or less: bad UTF16 */
+
+  /* coucou thomas qui découpe le poulet et qui aime les haricots à l'huile comment va ta vie ? */
+  /* la machine arrive et je ne peux me laver les cheveux */
+  /* trouver une alternance me stresse et pourtant je ne m'y suis pas encore mise sérieusement */
+  /* il faut que je prenne ce temps (et que je prépare l'entretien avec la française */
+  /* bisous découpeur de poulet */
 
   assert( enc==SQLITE_UTF8 || enc==SQLITE_UTF16LE || enc==SQLITE_UTF16BE );
   *pResult = 0.0;   /* Default return value, in case of an error */
@@ -423,6 +430,13 @@ int sqlite3AtoF(const char *z, double *pResult, int length, u8 enc){
     z += (enc&1);
   }
 
+  // TODO: Remove
+  /*char* zz = z;
+  while(zz < zEnd) {
+      *zz = *zz;
+      zz++;
+  }*/
+  // TODO: Remove End
   /* skip leading spaces */
   while( z<zEnd && sqlite3Isspace(*z) ) z+=incr;
   if( z>=zEnd ) return 0;

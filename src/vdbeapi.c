@@ -612,6 +612,7 @@ static int doWalCallbacks(sqlite3 *db){
 ** schema change has occurred.  That detail is handled by the
 ** outer sqlite3_step() wrapper procedure.
 */
+#include <time.h>
 static int sqlite3Step(Vdbe *p){
   sqlite3 *db;
   int rc;
@@ -694,7 +695,6 @@ static int sqlite3Step(Vdbe *p){
 #endif /* SQLITE_OMIT_EXPLAIN */
   {
     db->nVdbeExec++;
-    // THOMAS SWITCH HERE azeaze
     printf("Calling sqlite3VdbeExec\n");
     rc = sqlite3VdbeExec(p);
 

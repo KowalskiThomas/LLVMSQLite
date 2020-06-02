@@ -93,6 +93,10 @@ struct MyBuilder {
     Value insertTruncOp(Location loc, Value x, Type targetType);
 
     Value insertTruncOp(Location loc, Value x, size_t targetWidth);
+
+    Value insertSaveStack(Location loc);
+
+    void insertRestoreStack(Location loc, Value stackState);
 };
 
 #undef alloca
@@ -194,4 +198,10 @@ auto zExt = [&](Location loc, auto a, auto b) { \
 }; \
 auto trunc = [&](Location loc, auto a, auto b) { \
     return builder.insertTruncOp(loc, a, b); \
+}; \
+auto saveStack = [&](Location loc) { \
+    return builder.insertSaveStack(loc); \
+}; \
+auto restoreStack = [&](Location loc, Value state) { \
+    builder.insertRestoreStack(loc, state); \
 }; \

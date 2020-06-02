@@ -24,6 +24,7 @@ namespace mlir::standalone::passes {
         myOperators
 
         print(LOCL, "-- SorterInsert");
+        auto stackState = saveStack(LOC);
 
         auto firstBlock = rewriter.getBlock();
 
@@ -82,9 +83,9 @@ namespace mlir::standalone::passes {
         branch(LOC, endBlock);
 
         ip_start(endBlock);
-
+        restoreStack(LOC, stackState);
         rewriter.eraseOp(siOp);
 
         return success();
-    } // matchAndRewrite
+    } // matchAndRewrite"
 } // namespace mlir::standalone::passes

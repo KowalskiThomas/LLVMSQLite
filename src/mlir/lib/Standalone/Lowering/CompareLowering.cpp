@@ -23,6 +23,8 @@ namespace mlir::standalone::passes {
 
         print(LOCL, "-- Compare");
 
+        auto stackState = saveStack(LOC);
+
         auto firstBlock = rewriter.getBlock();
 
         // First LHS = p1
@@ -138,6 +140,7 @@ namespace mlir::standalone::passes {
         branch(LOC, endBlock);
 
         ip_start(endBlock);
+        restoreStack(LOC, stackState);
 
         rewriter.eraseOp(compOp);
 

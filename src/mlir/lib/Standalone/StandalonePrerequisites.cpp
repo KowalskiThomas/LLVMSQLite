@@ -75,6 +75,8 @@ LLVMFuncOp f_sqlite3MulInt64;
 LLVMFuncOp f_sqlite3VdbeRealValue;
 LLVMFuncOp f_sqlite3IsNaN;
 LLVMFuncOp f_applyNumericAffinity;
+LLVMFuncOp f_sqlite3VdbeMemStringify;
+LLVMFuncOp f_sqlite3VdbeMemTooBig;
 
 LLVMFuncOp f_memCpy;
 
@@ -143,6 +145,8 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeRealValue);
     DECLARE_FUNCTION(sqlite3IsNaN);
     DECLARE_FUNCTION(applyNumericAffinity);
+    DECLARE_FUNCTION(sqlite3VdbeMemStringify);
+    DECLARE_FUNCTION(sqlite3VdbeMemTooBig);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -169,8 +173,10 @@ uint32_t add(uint32_t a, uint32_t b) {
 }
 
 uint64_t printProgress(void *s, uint32_t line, const char* fileName) {
-    llvm::outs() << "[" << fileName << ":" << line << "] " << (char *) s << /* " (" << (uint64_t) (s) << ")" << */ "\n";
-    llvm::outs().flush();
+    static auto& outs = llvm::outs();
+    char* msg = (char *) s;
+    outs << "[" << fileName << ":" << line << "] " << msg << /* " (" << (uint64_t) (s) << ")" << */ "\n";
+    outs.flush();
     return 0;
 }
 
@@ -239,6 +245,7 @@ void Prerequisites::generateReferenceToProgress(ModuleOp m, LLVMDialect *dialect
     }, false);
 
     f_printPtrAndValue = builder.create<LLVMFuncOp>(m.getLoc(), "printPtrAndValue", funcTy, Linkage::External);
+
     llvm::sys::DynamicLibrary::AddSymbol("printPtrAndValue", reinterpret_cast<void*>(printPtrAndValue));
 }
 
@@ -902,6 +909,26 @@ void Prerequisites::generateReferenceToapplyNumericAffinity(mlir::ModuleOp m, LL
     GENERATE_SYMBOL(f_applyNumericAffinity, applyNumericAffinity, "applyNumericAffinity");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeMemStringify(mlir::ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::sqlite3_valuePtrTy,
+                T::i8Ty,
+                T::i8Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemStringify, sqlite3VdbeMemStringify, "sqlite3VdbeMemStringify");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeMemTooBig(mlir::ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemTooBig, sqlite3VdbeMemTooBig, "sqlite3VdbeMemTooBig");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
@@ -963,6 +990,8 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeRealValue);
     CALL_SYMBOL_GENERATOR(sqlite3IsNaN);
     CALL_SYMBOL_GENERATOR(applyNumericAffinity);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemStringify);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemTooBig);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

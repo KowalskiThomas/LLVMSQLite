@@ -13,6 +13,8 @@
 
 #include "tsrc/vdbe.h"
 
+#define EXIT_ON_UNSUPPORTED_OPCODE
+
 #define INTEGER_ATTR(width, signed, value) builder.getIntegerAttr(builder.getIntegerType(width, signed), value)
 
 using MLIRContext = mlir::MLIRContext;
@@ -673,14 +675,20 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
             }
             case OP_String8: {
+                auto string = (char*)op.p4.z;
+                auto strLen = sqlite3Strlen30(string);
                 auto regTo = op.p2;
-                auto string = op.p4.z;
+                auto p3 = op.p3;
+                auto p5 = op.p5;
 
-                rewriter.create<mlir::standalone::String8>
+                rewriter.create<mlir::standalone::String>
                         (LOCB,
                          INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, strLen),
                          INTEGER_ATTR(32, true, regTo),
-                         INTEGER_ATTR(64, false, (uint64_t) string)
+                         INTEGER_ATTR(32, true, p3),
+                         INTEGER_ATTR(64, false, (uint64_t) string),
+                         INTEGER_ATTR(16, false, p5)
                         );
 
                 break;
@@ -706,12 +714,13 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
             case OP_Le:
             case OP_Gt:
             case OP_Ge: {
+                auto* pOp = &vdbe->aOp[pc];
+                ALWAYS_ASSERT(pOp->p4type == P4_COLLSEQ || pOp->p4.pColl == 0);
                 auto lhs = op.p1;
                 auto p2 = op.p2;
-                auto rhs = op.p2;
-                auto comparator = op.p4.pFunc;
+                auto rhs = op.p3;
+                auto comparator = op.p4.pColl;
                 auto flags = op.p5;
-
                 auto jumpTo = op.p2;
 
                 Block *blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
@@ -720,8 +729,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto op = rewriter.create<mlir::standalone::CompareJump>
                     (LOCB,
                         INTEGER_ATTR(64, false, pc),
-                        INTEGER_ATTR(32, true, lhs),
                         INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(32, true, lhs),
                         INTEGER_ATTR(32, true, rhs),
                         INTEGER_ATTR(64, false, (uint64_t)comparator),
                         INTEGER_ATTR(16, false, flags),

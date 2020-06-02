@@ -5,6 +5,8 @@
 PRINTER_USING
 USING_OPS
 
+#define ENABLE_PRINTER false
+
 extern LLVMFuncOp f_printPtrAndValue;
 extern LLVMFuncOp f_progress;
 extern LLVMFuncOp f_printInt;
@@ -28,6 +30,7 @@ size_t mlir::Printer::getBitWidth(Value x) const {
 }
 
 void mlir::Printer::printPtr(Location loc, size_t line, Value ptr, const char *msg, bool loadPtr) {
+#if ENABLE_PRINTER
     auto& builder = rewriter;
     auto value = loadPtr ?
                     (Value)rewriter.create<mlir::LLVM::LoadOp>(loc, ptr) :
@@ -42,17 +45,21 @@ void mlir::Printer::printPtr(Location loc, size_t line, Value ptr, const char *m
             rewriter.create<mlir::ConstantIntOp>(loc, reinterpret_cast<const uint64_t>(fileName), 64),
             CONSTANT_INT(loadPtr ? 1 : 0, 1)
     });
+#endif
 }
 
 void mlir::Printer::printString(Location loc, size_t line, const char *msg) {
+#if ENABLE_PRINTER
     rewriter.create<LLVM::CallOp>(loc, f_progress, ValueRange {
             rewriter.create<mlir::ConstantIntOp>(loc, reinterpret_cast<const uint64_t>(msg), 64),
             rewriter.create<mlir::ConstantIntOp>(loc, line, 32),
             rewriter.create<mlir::ConstantIntOp>(loc, reinterpret_cast<const uint64_t>(fileName), 64),
     });
+#endif
 }
 
 void mlir::Printer::printInt(Location loc, size_t line, Value v, const char *msg) {
+#if ENABLE_PINTER
     auto extended = rewriter.create<ZExtOp>(loc, T::i64Ty, v);
     rewriter.create<mlir::LLVM::CallOp>(loc, f_printInt, ValueRange {
             rewriter.create<mlir::LLVM::PtrToIntOp>(loc, T::i64Ty, extended),
@@ -60,18 +67,22 @@ void mlir::Printer::printInt(Location loc, size_t line, Value v, const char *msg
             rewriter.create<mlir::ConstantIntOp>(loc, line, 32),
             rewriter.create<mlir::ConstantIntOp>(loc, reinterpret_cast<const uint64_t>(fileName), 64)
     });
+#endif
 }
 
 void mlir::Printer::printDouble(Location loc, size_t line, Value v, const char *msg) {
+#if ENABLE_PRINTER
     rewriter.create<mlir::LLVM::CallOp>(loc, f_printDouble, ValueRange {
             v,
             rewriter.create<mlir::ConstantIntOp>(loc, reinterpret_cast<const uint64_t>(msg), 64),
             rewriter.create<mlir::ConstantIntOp>(loc, line, 32),
             rewriter.create<mlir::ConstantIntOp>(loc, reinterpret_cast<const uint64_t>(fileName), 64)
     });
+#endif
 }
 
 void mlir::Printer::operator()(Location loc, size_t line, Value v, const char *msg) {
+#if ENABLE_PRINTER
     auto t = v.getType();
     if (t == T::i1Ty || t == T::i8Ty || t == T::i16Ty || t == T::i32Ty || t == T::i64Ty
         || false) {
@@ -90,6 +101,7 @@ void mlir::Printer::operator()(Location loc, size_t line, Value v, const char *m
             exit(10);
         }
     }
+#endif
 }
 
 void mlir::Printer::operator()(Location loc, size_t line, const char *msg) {

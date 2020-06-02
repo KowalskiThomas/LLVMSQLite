@@ -4,11 +4,20 @@
 
 #include "sqlite_bridge.h"
 
-bool enableOpt = false;
+bool enableOpt = true;
 const char* const JIT_MAIN_FN_NAME = "jittedFunction";
 
 class VdbeRunner;
 static auto runners = std::unordered_map<Vdbe*, VdbeRunner*>{};
+
+template<typename T>
+void printTimeDifference(std::chrono::time_point<T> tick, std::string msg) {
+    auto tock = std::chrono::system_clock::now();
+    auto diff = tock - tick;
+    printf("%s time difference: %llu\n",
+           msg.c_str(),
+           std::chrono::duration_cast<std::chrono::milliseconds>(diff).count());
+}
 
 static void init() {
     mlir::registerAllDialects();
@@ -80,8 +89,11 @@ struct VdbeRunner {
     }
 
     int run() {
-        if (!runningInitialised)
+        if (!runningInitialised) {
+            auto tick = std::chrono::system_clock::now();
             prepareFunction();
+            printTimeDifference(tick, "Function preparation");
+        }
         return runJit();
     }
 
@@ -90,6 +102,7 @@ struct VdbeRunner {
     void(*fptr)(void**) = nullptr;
 
     int runJit() {
+        auto tick = std::chrono::system_clock::now();
         if (!runningInitialised) {
             // Initialize LLVM targets.
             llvm::InitializeNativeTarget();
@@ -127,6 +140,7 @@ struct VdbeRunner {
                 }
             }
         }
+        printTimeDifference(tick, "Initialisation");
 
         int32_t returnedValue = -1;
 
@@ -159,15 +173,20 @@ struct VdbeRunner {
     }
 
 };
-
 int jitVdbeStep(Vdbe* p) {
     init();
 
-    if (runners.find(p) != runners.end()) {
-        return runners[p]->run();
+    VdbeRunner* runner;
+    if (runners.find(p) == runners.end()) {
+        out("Creating a new VDBERunner");
+        auto tick = std::chrono::system_clock::now();
+        runners[p] = new VdbeRunner(p);
+        printTimeDifference(tick, "VdbeRunner creation");
     }
 
-    out("Creating a new VDBERunner");
-    runners[p] = new VdbeRunner(p);
-    return runners[p]->run();
+    runner = runners[p];
+    auto tick = std::chrono::system_clock::now();
+    auto result = runner->run();
+    printTimeDifference(tick, "Total run() time");
+    return result;
 }

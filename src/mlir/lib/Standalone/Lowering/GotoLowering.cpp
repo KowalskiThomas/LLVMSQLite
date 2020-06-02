@@ -1,3 +1,6 @@
+#include "Standalone/ConstantManager.h"
+#include "Standalone/Lowering/Printer.h"
+
 #include "Standalone/AllIncludes.h"
 
 #include "Standalone/StandalonePasses.h"
@@ -10,8 +13,10 @@ namespace mlir {
             GotoLowering::matchAndRewrite(Goto gotoOp, PatternRewriter &rewriter) const {
                 auto op = &gotoOp;
                 LOWERING_PASS_HEADER
+                ConstantManager constants(rewriter, ctx);
+                Printer print(ctx, rewriter, __FILE_NAME__);
 
-                PROGRESS("-- GoTo");
+                print(LOCL, "-- GoTo");
 
                 rewriter.create<mlir::BranchOp>(LOC, gotoOp.dest());
 

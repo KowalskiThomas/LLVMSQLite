@@ -7,6 +7,7 @@
 
 #include "Standalone/StandalonePasses.h"
 
+ExternFuncOp f_sqlite3VdbeMemTooBig;
 
 namespace mlir::standalone::passes {
     LogicalResult AggFinalLowering::matchAndRewrite(AggFinal txnOp, PatternRewriter &rewriter) const {
@@ -31,6 +32,8 @@ namespace mlir::standalone::passes {
 
         print(LOCL, "-- AggFinal");
 
+        auto stackState = saveStack(LOC);
+
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
 
@@ -47,13 +50,16 @@ namespace mlir::standalone::passes {
 
         call(LOC, f_sqlite3VdbeChangeEncoding, pMem, constants(vdbe->db->enc, 32));
 
-        { //
-            // TODO: if (sqlite3VdbeMemTooBig(pMem)) goto too_big;
+        { // if (sqlite3VdbeMemTooBig) goto too_big;
+            auto tooBig = call(LOC, f_sqlite3VdbeMemTooBig, pMem).getValue();
+            auto notTooBig = iCmp(LOC, Pred::eq, tooBig, 0);
+            myAssert(LOCL, notTooBig);
         } //
 
         branch(LOC, endBlock);
 
         ip_start(endBlock);
+        restoreStack(LOC, stackState);
         rewriter.eraseOp(txnOp);
 
         return success();

@@ -22,6 +22,8 @@ namespace mlir::standalone::passes {
 
         auto firstBlock = rewriter.getBlock();
 
+        auto pc = strOp.pcAttr().getUInt();
+        auto* pOp = &vdbe->aOp[pc];
         // regTo = p2
         auto regTo = strOp.regToAttr().getSInt();
         // string = p4
@@ -40,7 +42,21 @@ namespace mlir::standalone::passes {
 
         ip_start(endBlock);
 
-        print(LOCL, "TODO: Implement String");
+        auto pOut = call(LOC, f_out2Prerelease,
+            constants(T::VdbePtrTy, vdbe),
+            constants(T::VdbeOpPtrTy, pOp)
+        ).getValue();
+
+        auto pOutFlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
+        auto pOutEncAddr = getElementPtrImm(LOC, T::i8PtrTy, pOut, 0, 2);
+        auto pOutNAddr = getElementPtrImm(LOC, T::i32PtrTy, pOut, 0, 4);
+        auto pOutZAddr = getElementPtrImm(LOC, T::i8PtrPtrTy, pOut, 0, 5);
+        store(LOC, MEM_Str | MEM_Static | MEM_Term, pOutFlagsAddr);
+        store(LOC, constants(T::i8PtrTy, (char*)string), pOutZAddr);
+        store(LOC, len, pOutNAddr);
+        store(LOC, vdbe->db->enc, pOutEncAddr);
+
+        // TODO: Line 1238
 
         rewriter.eraseOp(strOp);
 
