@@ -1,6 +1,12 @@
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
+#include "Standalone/ConstantManager.h"
+#include "Standalone/Lowering/MyBuilder.h"
+#include "Standalone/AllIncludes.h"
+#include "Standalone/Lowering/AssertOperator.h"
+#include "Standalone/Lowering/Printer.h"
+
 
 namespace mlir {
     namespace standalone {
@@ -8,11 +14,15 @@ namespace mlir {
             LogicalResult HaltLowering::matchAndRewrite(Halt haltOp, PatternRewriter& rewriter) const {
                 auto op = &haltOp;
                 LOWERING_PASS_HEADER
+                ConstantManager constants(rewriter, ctx);
+                MyBuilder builder(ctx, constants, rewriter);
+                MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
+                Printer print(ctx, rewriter, __FILE_NAME__);
 
-                PROGRESS("-- Halt")
+                print(LOCL, "-- Halt");
                 // TODO: This is not complete at all (in comparison with the vdbe.c implementation)
 
-                PROGRESS("Halting execution");
+                print(LOCL, "Halting execution");
                 {
                     auto& builder = rewriter;
                     auto p = CONSTANT_PTR(T::VdbePtrTy, vdbe);

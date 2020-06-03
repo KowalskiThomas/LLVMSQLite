@@ -54,7 +54,6 @@ struct GetVarint32Operator {
         { // if *A < 0x80
             rewriter.setInsertionPointToStart(blockLessThan80);
 
-            // PROGRESS("*A < 0x80")
             // Convert *A to u32
             auto aAsU32 = rewriter.template create<ZExtOp>(LOC, T::i32Ty, valA);
 
@@ -69,7 +68,6 @@ struct GetVarint32Operator {
         { // else of if *A < 0x80
             rewriter.setInsertionPointToStart(blockNotLessThan80);
 
-            // PROGRESS("ELSE(*A < 0x80)")
             // Convert B to u32*
             auto bAsU32Ptr = rewriter.template create<BitcastOp>(LOC, T::i32PtrTy, B);
             // Call sqlite3GetVarint32(A, (u32*)B)

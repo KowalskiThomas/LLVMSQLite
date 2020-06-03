@@ -75,7 +75,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                  || vdbe->aOp[targetPc - 1].opcode == OP_Goto
                  || vdbe->aOp[targetPc - 1].opcode == OP_Gosub))
             ) {
-            // TODO: Put that back: continue;
+            continue;
         }
 
         targetBlock = blocks.find(targetOpCode) != blocks.end() ? blocks[targetOpCode] : entryBlock;

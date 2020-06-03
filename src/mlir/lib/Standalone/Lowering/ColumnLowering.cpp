@@ -51,8 +51,6 @@ namespace mlir {
                 auto pc = colOp.counterAttr().getSInt();
                 auto pOp = &vdbe->aOp[pc];
 
-                // PROGRESS_PRINT_INT(constants(pc, 32), "-- Column");
-
                 if (false) {
                     // TODO: Use our own implementation
                     print(LOCL, "Calling into default implementation");

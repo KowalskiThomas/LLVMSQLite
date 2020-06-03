@@ -1,6 +1,12 @@
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
+#include "Standalone/ConstantManager.h"
+#include "Standalone/Lowering/MyBuilder.h"
+#include "Standalone/AllIncludes.h"
+#include "Standalone/Lowering/AssertOperator.h"
+#include "Standalone/Lowering/Printer.h"
+
 
 namespace mlir {
     namespace standalone {
@@ -9,15 +15,17 @@ namespace mlir {
             NoopLowering::matchAndRewrite(Noop noopOp, PatternRewriter& rewriter) const {
                 auto op = &noopOp;
                 LOWERING_PASS_HEADER
-                auto& builder = rewriter;
+                ConstantManager constants(rewriter, ctx);
+                MyBuilder builder(ctx, constants, rewriter);
+                MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
+                Printer print(ctx, rewriter, __FILE_NAME__);
 
-                PROGRESS("-- NoOp");
+                print(LOCL, "-- NoOp");
 
                 {
-                    auto operand = CONSTANT_INT(noopOp.pcAttr().getUInt(), 64);
+                    auto operand = constants(noopOp.pcAttr().getUInt(), 64);
                     // Macro needs a variable named "builder" so we give it one
-                    auto& builder = rewriter;
-                    PROGRESS_PRINT_INT_REWRITER(operand, "<- Noop at line");
+                    print(LOCL, operand, "Noop at line");
                 }
 
                 rewriter.eraseOp(noopOp);

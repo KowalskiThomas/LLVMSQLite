@@ -40,7 +40,7 @@ namespace mlir::standalone::passes {
         { // if (SQLITE_OK != (rc = sqlite3VdbeCheckFk(p, 0)))
             rewriter.setInsertionPointToStart(blockRcNeOk);
 
-            PROGRESS("TODO: GoTo OP_ResultRow: Abort due to error")
+            print(LOCL, "TODO: GoTo OP_ResultRow: Abort due to error");
 
             branch(LOC, blockAfterRcNeOk);
         } // end if (SQLITE_OK != (rc = sqlite3VdbeCheckFk(p, 0)))
