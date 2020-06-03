@@ -2,7 +2,7 @@
 #include "Standalone/StandalonePassManager.h"
 #include "Standalone/StandaloneDialect.h"
 
-#include "sqlite_bridge.h"
+#include "SQLiteBridge.h"
 
 bool enableOpt = true;
 const char* const JIT_MAIN_FN_NAME = "jittedFunction";
@@ -14,12 +14,12 @@ template<typename T>
 void printTimeDifference(std::chrono::time_point<T> tick, std::string msg) {
     auto tock = std::chrono::system_clock::now();
     auto diff = tock - tick;
-    printf("%s time difference: %llu\n",
+    printf("%s time difference: %llu ms\n",
            msg.c_str(),
            std::chrono::duration_cast<std::chrono::milliseconds>(diff).count());
 }
 
-static void init() {
+static void initRuntime() {
     mlir::registerAllDialects();
     mlir::registerAllPasses();
 
@@ -55,7 +55,7 @@ struct VdbeRunner {
       vdbeDialect(context.getRegisteredDialect<VdbeDialect>()),
       builder(mlir::OpBuilder(ctx))
     {
-        init();
+        initRuntime();
 
         initialiseTypeCache(llvmDialect);
         theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
@@ -78,9 +78,10 @@ struct VdbeRunner {
         // llvm::errs() << "\n\n-- Intermediate module";
         // theModule.dump();
 
-        // llvm::errs() << "\n\n--LLVM IR-Translated module";
         auto mod = mlir::translateModuleToLLVMIR(theModule);
+        // llvm::errs() << "\n\n--LLVM IR-Translated module";
         // mod->dump();
+
         llvm::errs() << "\n\n";
     }
 
@@ -89,26 +90,28 @@ struct VdbeRunner {
     }
 
     int run() {
-        if (!runningInitialised) {
+        if (!functionPrepared) {
             auto tick = std::chrono::system_clock::now();
             prepareFunction();
             printTimeDifference(tick, "Function preparation");
+            functionPrepared = true;
         }
         return runJit();
     }
 
     std::unique_ptr<mlir::ExecutionEngine> engine;
-    bool runningInitialised = false;
-    void(*fptr)(void**) = nullptr;
+    bool executionEngineCreated = false;
+    bool functionPrepared = false;
+    void(*jittedFunctionPointer)(void**) = nullptr;
 
     int runJit() {
         auto tick = std::chrono::system_clock::now();
-        if (!runningInitialised) {
+        if (!executionEngineCreated) {
             // Initialize LLVM targets.
             llvm::InitializeNativeTarget();
             llvm::InitializeNativeTargetAsmPrinter();
 
-            runningInitialised = true;
+            executionEngineCreated = true;
 
             {
                 // An optimization pipeline to use within the execution engine.
@@ -136,28 +139,29 @@ struct VdbeRunner {
                     llvm::errs() << "JIT invocation failed\n";
                     return -1;
                 } else {
-                    fptr = *expectedFPtr;
+                    jittedFunctionPointer = *expectedFPtr;
                 }
             }
         }
-        printTimeDifference(tick, "Initialisation");
+        printTimeDifference(tick, "Optimisation and ExecutionEngine creation");
 
         int32_t returnedValue = -1;
 
         sqlite3VdbeEnter(vdbe);
         if (vdbe->rc == SQLITE_NOMEM) {
-            err("ERROR: Can't allocate memory")
+            err("ERROR: Cannot allocate memory");
+            exit(124);
         }
 
         // The function wants addresses to arguments
         // So if we want to pass value 123, we need to
         // - Put 123 in a variable var
         // - Put the address of var in a variable addr
-        // - Pass the address of addr
+        // - Pass the value of addr
         // The last parameter is used to store the returned value
         llvm::outs() << "Calling JITted function\n";
         llvm::SmallVector<void*, 8> args = {(void*)&vdbe, (void*)&returnedValue };
-        (*fptr)(args.data());
+        (*jittedFunctionPointer)(args.data());
 
         sqlite3VdbeLeave(vdbe);
 
@@ -165,18 +169,20 @@ struct VdbeRunner {
 
         if (returnedValue == SQLITE_DONE) {
             out("Removing VDBE " << (void*)vdbe << " from VDBERunner cache");
+            // TODO: Fix this memory leak
+            // delete runners[vdbe];
             runners.erase(vdbe);
         }
 
         return returnedValue;
-
     }
 
 };
-int jitVdbeStep(Vdbe* p) {
-    init();
 
-    VdbeRunner* runner;
+int jitVdbeStep(Vdbe* p) {
+    initRuntime();
+
+    VdbeRunner* runner = nullptr;
     if (runners.find(p) == runners.end()) {
         out("Creating a new VDBERunner");
         auto tick = std::chrono::system_clock::now();
@@ -185,8 +191,6 @@ int jitVdbeStep(Vdbe* p) {
     }
 
     runner = runners[p];
-    auto tick = std::chrono::system_clock::now();
     auto result = runner->run();
-    printTimeDifference(tick, "Total run() time");
     return result;
 }

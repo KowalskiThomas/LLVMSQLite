@@ -18,8 +18,8 @@ set(LIBS
 )
 
 add_library(sqlite_jit
-    sqlite_bridge.cpp
-    writeFunction.cpp
+        SQLiteBridge.cpp
+        ModuleWriter.cpp
 )
 llvm_update_compile_flags(sqlite_jit)
 target_link_libraries(sqlite_jit PRIVATE ${LIBS})

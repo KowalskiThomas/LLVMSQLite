@@ -1,6 +1,6 @@
 #include <unordered_map>
 #include <src/mlir/include/Standalone/ConstantManager.h>
-#include "sqlite_bridge.h"
+#include "SQLiteBridge.h"
 
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/StandaloneDialect.h"
@@ -13,7 +13,7 @@
 
 #include "tsrc/vdbe.h"
 
-#define EXIT_ON_UNSUPPORTED_OPCODE
+#define EXIT_ON_UNSUPPORTED_OPCODE true
 
 #define INTEGER_ATTR(width, signed, value) builder.getIntegerAttr(builder.getIntegerType(width, signed), value)
 
