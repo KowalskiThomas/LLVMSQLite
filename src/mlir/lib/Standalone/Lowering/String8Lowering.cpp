@@ -53,7 +53,6 @@ namespace mlir::standalone::passes {
 
         ip_start(endBlock);
 
-        print(LOCL, "TODO: Implement String8 Lowering");
         myAssert(LOCL, constants(0, 1));
 
         rewriter.eraseOp(strOp);

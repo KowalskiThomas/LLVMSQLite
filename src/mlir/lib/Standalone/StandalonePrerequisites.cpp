@@ -77,6 +77,7 @@ LLVMFuncOp f_sqlite3IsNaN;
 LLVMFuncOp f_applyNumericAffinity;
 LLVMFuncOp f_sqlite3VdbeMemStringify;
 LLVMFuncOp f_sqlite3VdbeMemTooBig;
+LLVMFuncOp f_sqlite3VdbeBooleanValue;
 
 LLVMFuncOp f_memCpy;
 
@@ -147,6 +148,7 @@ public:
     DECLARE_FUNCTION(applyNumericAffinity);
     DECLARE_FUNCTION(sqlite3VdbeMemStringify);
     DECLARE_FUNCTION(sqlite3VdbeMemTooBig);
+    DECLARE_FUNCTION(sqlite3VdbeBooleanValue);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -920,13 +922,23 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemStringify(mlir::ModuleOp m,
     GENERATE_SYMBOL(f_sqlite3VdbeMemStringify, sqlite3VdbeMemStringify, "sqlite3VdbeMemStringify");
 }
 
-void Prerequisites::generateReferenceTosqlite3VdbeMemTooBig(mlir::ModuleOp m, LLVMDialect *) {
+void Prerequisites::generateReferenceTosqlite3VdbeMemTooBig(ModuleOp m, LLVMDialect *) {
     auto funcTy = LLVMType::getFunctionTy(
             T::i32Ty, {
                 T::sqlite3_valuePtrTy
             }, false);
 
     GENERATE_SYMBOL(f_sqlite3VdbeMemTooBig, sqlite3VdbeMemTooBig, "sqlite3VdbeMemTooBig");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeBooleanValue(ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::sqlite3_valuePtrTy,
+                T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeBooleanValue, sqlite3VdbeBooleanValue, "sqlite3VdbeBooleanValue");
 }
 
 #undef GENERATE_SYMBOL
@@ -992,6 +1004,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(applyNumericAffinity);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemStringify);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemTooBig);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeBooleanValue);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

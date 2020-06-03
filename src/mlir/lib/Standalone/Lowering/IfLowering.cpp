@@ -7,6 +7,7 @@
 
 #include "Standalone/StandalonePasses.h"
 
+ExternFuncOp f_sqlite3VdbeBooleanValue;
 
 namespace mlir::standalone::passes {
     LogicalResult IfLowering::matchAndRewrite(If ifOp, PatternRewriter &rewriter) const {
@@ -30,13 +31,17 @@ namespace mlir::standalone::passes {
         auto jumpTo = ifOp.jumpTo();
         auto fallThrough = ifOp.fallthrough();
 
-        auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(ifOp); GO_BACK_TO(curBlock);
+        // auto curBlock = rewriter.getBlock();
+        // auto endBlock = curBlock->splitBlock(ifOp); GO_BACK_TO(curBlock);
 
-        branch(LOC, endBlock);
-        ip_start(endBlock);
+        auto* pMem = &vdbe->aMem[conditionReg];
+        auto c = call(LOC, f_sqlite3VdbeBooleanValue,
+            constants(T::sqlite3_valuePtrTy, pMem),
+            constants(hints, 32)
+        ).getValue();
 
-        print(LOCL, "TODO: Implement IfLowering");
+        auto cNotNull = iCmp(LOC, Pred::ne, c, 0);
+        condBranch(LOC, cNotNull, jumpTo, fallThrough);
 
         rewriter.eraseOp(ifOp);
 
