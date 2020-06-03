@@ -116,7 +116,7 @@ add_library(sqlite
         ${PROJECT_SOURCE_DIR}/parse.c
 
         ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp
-        ${PROJECT_SOURCE_DIR}/src/temp_vdbe.c
+        # ${PROJECT_SOURCE_DIR}/src/temp_vdbe.c
 )
 
 set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")

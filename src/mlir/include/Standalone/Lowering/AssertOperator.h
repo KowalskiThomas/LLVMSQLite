@@ -1,4 +1,5 @@
 #include "Standalone/AllIncludes.h"
+#include "Standalone/TypeDefinitions.h"
 #include "Standalone/ConstantManager.h"
 #include "Standalone/StandalonePrerequisites.h"
 

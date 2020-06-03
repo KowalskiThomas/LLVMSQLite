@@ -4,6 +4,8 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     using t = T::t;
     using namespace mlir;
 
+    T::voidTy = t::getVoidTy(d);
+
     T::Sqlite3ConfigTy = t::createStructTy(d, Optional<StringRef>("Sqlite3Config"));
     T::sqlite3_mem_methodsTy = t::createStructTy(d, Optional<StringRef>("sqlite3_mem_methods"));
     T::sqlite3_mutex_methodsTy = t::createStructTy(d, Optional<StringRef>("sqlite3_mutex_methods"));

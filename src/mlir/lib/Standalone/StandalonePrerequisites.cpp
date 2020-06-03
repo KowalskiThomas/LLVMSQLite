@@ -78,6 +78,8 @@ LLVMFuncOp f_applyNumericAffinity;
 LLVMFuncOp f_sqlite3VdbeMemStringify;
 LLVMFuncOp f_sqlite3VdbeMemTooBig;
 LLVMFuncOp f_sqlite3VdbeBooleanValue;
+LLVMFuncOp f_sqlite3_value_text;
+LLVMFuncOp f_sqlite3VdbeError;
 
 LLVMFuncOp f_memCpy;
 
@@ -149,6 +151,8 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeMemStringify);
     DECLARE_FUNCTION(sqlite3VdbeMemTooBig);
     DECLARE_FUNCTION(sqlite3VdbeBooleanValue);
+    DECLARE_FUNCTION(sqlite3VdbeError);
+    DECLARE_FUNCTION(sqlite3_value_text);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -941,6 +945,33 @@ void Prerequisites::generateReferenceTosqlite3VdbeBooleanValue(ModuleOp m, LLVMD
     GENERATE_SYMBOL(f_sqlite3VdbeBooleanValue, sqlite3VdbeBooleanValue, "sqlite3VdbeBooleanValue");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeError(ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::voidTy, {
+                T::VdbePtrTy,
+                T::i8PtrTy,
+                T::i8PtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeError, sqlite3VdbeError, "sqlite3VdbeError");
+}
+
+extern "C" {
+    // Copy of sqlite3_value_text in vdbeapi.c
+    const unsigned char* sqlite3_value_text_internal(sqlite3_value *pVal) {
+        return (const unsigned char *)sqlite3ValueText(pVal, SQLITE_UTF8);
+    }
+}
+
+void Prerequisites::generateReferenceTosqlite3_value_text(ModuleOp m, LLVMDialect *) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::i8PtrTy, {
+            T::sqlite3_valuePtrTy
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3_value_text, sqlite3_value_text_internal, "sqlite3_value_text");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, dialect)
 
@@ -1005,6 +1036,9 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *dialect) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemStringify);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemTooBig);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeBooleanValue);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeError);
+    CALL_SYMBOL_GENERATOR(sqlite3_value_text);
+
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

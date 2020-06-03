@@ -7,6 +7,8 @@
 
 #include "Standalone/StandalonePasses.h"
 
+ExternFuncOp f_sqlite3VdbeError;
+ExternFuncOp f_sqlite3_value_text;
 
 namespace mlir::standalone::passes {
     LogicalResult AggStepLowering::matchAndRewrite(AggStep aggStepOp, PatternRewriter &rewriter) const {
@@ -63,8 +65,10 @@ namespace mlir::standalone::passes {
         store(LOC, pCtxValue, pCtx);
 
         { // if (pCtx == 0) goto no_mem
-            // TODO: Here
-        }
+            auto pCtxValueInt = ptrToInt(LOC, pCtxValue);
+            auto pCtxNotNull = iCmp(LOC, Pred::ne, pCtxValueInt, 0);
+            myAssert(LOCL, pCtxNotNull);
+        } // end if (pCtx == 0) goto no_mem
 
         auto pOutAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pCtxValue, 0, 0);
         auto pFuncAddr = getElementPtrImm(LOC, T::FuncDefPtrTy.getPointerTo(), pCtxValue, 0, 1);
@@ -210,7 +214,7 @@ namespace mlir::standalone::passes {
         if (p1) {
             assert(false);
             auto xInverseAddr = getElementPtrImm(LOC, funcType.getPointerTo(), funcDefAddr, 0, 7);
-            // call(LOC, f_callXInversePtr, load(LOC, xInverseAddr), pCtxValue, argcValue, argvAddr);
+            // TODO: call(LOC, f_callXInversePtr, load(LOC, xInverseAddr), pCtxValue, argcValue, argvAddr);
         } else {
             auto xSFuncAddr = getElementPtrImm(LOC, funcType.getPointerTo().getPointerTo(), funcDefAddr, 0, 4);
             auto xsFuncAddrAsI64Ptr = bitCast(LOC, xSFuncAddr, T::i64PtrTy);
@@ -239,7 +243,16 @@ namespace mlir::standalone::passes {
             { // if (pCtx->isError > 0)
                 ip_start(blockIsErrorPos);
 
-                print(LOCL, "TODO: Error while computing aggregate function");
+                auto pOutValue = load(LOC, pOutAddr);
+                auto valueText = call(LOC, f_sqlite3_value_text, pOutValue).getValue();
+
+                call(LOC, f_sqlite3VdbeError,
+                    constants(T::VdbePtrTy, vdbe),
+                    constants(T::i8PtrTy, (char*)"%s"),
+                    valueText
+                );
+
+                auto isErrorVal = load(LOC, isErrorAddr);
                 store(LOC, isErrorVal, rcAddr);
 
                 branch(LOC, blockAfterIsErrorPos);

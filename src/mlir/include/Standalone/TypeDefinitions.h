@@ -91,6 +91,7 @@ struct T {
     static inline t UnpackedRecordTy = nullptr;
     static inline t BtreePayloadTy = nullptr;
     static inline t InitDataTy = nullptr;
+    static inline t voidTy = nullptr;
     SQLITE_JIT_IR_TYPE i32Ty = nullptr;
     SQLITE_JIT_IR_TYPE i8Ty = nullptr;
     SQLITE_JIT_IR_TYPE i8PtrTy = nullptr;

@@ -3,7 +3,7 @@
 #include "Standalone/AllIncludes.h"
 #include <unordered_map>
 
-#include "utils.h"
+#include "Utils.h"
 
 extern "C" {
     #include "src/sqlite3ext.h"

@@ -6,12 +6,12 @@
 namespace mlir::standalone::passes {
 namespace {
     static void useMacros() {
-        auto *ctx = std::declval<mlir::MLIRContext *>();
-        auto &builder = *std::declval<mlir::OpBuilder *>();
-        auto &rewriter = *std::declval<mlir::ConversionPatternRewriter *>();
-        auto &val = *std::declval<mlir::Value *>();
-        auto *vdbe = static_cast<Vdbe *>(nullptr);
-        auto *vdbeCtx = std::declval<VdbeContext *>();
+        auto *ctx = (mlir::MLIRContext *)(nullptr);
+        auto &builder = *(mlir::OpBuilder *)(nullptr);
+        auto &rewriter = *(mlir::ConversionPatternRewriter *)(nullptr);
+        auto &val = *(mlir::Value *)(nullptr);
+        auto *vdbe = (Vdbe *)(nullptr);
+        auto *vdbeCtx = (VdbeContext *)(nullptr);
         PROGRESSB("__unused__")
         PROGRESS("__unused__")
         PROGRESS_PRINT_PTR(val, "__unused__")
@@ -42,10 +42,10 @@ namespace {
 /*
 mlir::LogicalResult IntegerLowering::matchAndRewrite(mlir::Operation *op, llvm::ArrayRef<mlir::Value> operands,
                                                    mlir::ConversionPatternRewriter &rewriter) const {
-    auto *llvmDialect = op->getContext()->getRegisteredDialect<LLVM::LLVMDialect>();
+    auto *llvmDialect = op->getContext()->getRegisteredDialect<LLVM::LLVMDialect)(nullptr);
     assert(llvmDialect && "expected llvm dialect to be registered");
     auto* ctx = op->getContext();
-    ModuleOp parentModule = op->getParentOfType<ModuleOp>();
+    ModuleOp parentModule = op->getParentOfType<ModuleOp)(nullptr);
 
     auto result = rewriter.create<ConstantIntOp>(LOC, 123, 32);
     rewriter.eraseOp(op);
@@ -56,9 +56,9 @@ mlir::LogicalResult IntegerLowering::matchAndRewrite(mlir::Operation *op, llvm::
 /*
 mlir::LogicalResult OpenCursorLowering::matchAndRewrite(mlir::Operation *op, llvm::ArrayRef<mlir::Value> operands,
                                                    mlir::ConversionPatternRewriter &rewriter) const {
-    auto *llvmDialect = op->getContext()->getRegisteredDialect<LLVM::LLVMDialect>();
+    auto *llvmDialect = op->getContext()->getRegisteredDialect<LLVM::LLVMDialect)(nullptr);
     assert(llvmDialect && "expected llvm dialect to be registered");
-    ModuleOp parentModule = op->getParentOfType<ModuleOp>();
+    ModuleOp parentModule = op->getParentOfType<ModuleOp)(nullptr);
 
     auto *ctx = llvmDialect->getContext();
 

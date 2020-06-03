@@ -32,20 +32,6 @@ namespace mlir::standalone::passes {
         // string = p4
         auto string = (const char*)strOp.stringAttr().getUInt();
 
-
-        if (true) {
-            // TODO: Use our own implementation
-            print(LOCL, "Calling into default implementation");
-            rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
-            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
-            rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange{
-                    constants(T::VdbePtrTy, vdbe)
-            });
-            rewriter.eraseOp(*op);
-            return success();
-        }
-
-
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(strOp); GO_BACK_TO(curBlock);
 

@@ -61,8 +61,6 @@ int main(int argc, char **argv) {
   mlir::registerAllPasses();
 
   mlir::registerDialect<mlir::standalone::StandaloneDialect>();
-  // TODO: Register standalone passes here.
-
   llvm::InitLLVM y(argc, argv);
 
   // Register any pass manager command line options.

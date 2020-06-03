@@ -11,7 +11,7 @@
 
 #include "Standalone/VdbeContext.h"
 
-#include "tsrc/vdbe.h"
+#include "vdbe.h"
 
 #define EXIT_ON_UNSUPPORTED_OPCODE true
 
@@ -771,12 +771,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         // Mark this block as the lastBlock
         lastBlock = block;
         writeBranchOut = newWriteBranchOut;
-
-        // TODO: Remove this to do the whole thing
-        if (lastOpSeen) {
-            out("Exiting code generation early after " << sqlite3OpcodeName(op.opcode))
-            break;
-        }
     }
 
     /*

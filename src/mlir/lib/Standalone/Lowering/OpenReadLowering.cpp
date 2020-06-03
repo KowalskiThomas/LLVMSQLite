@@ -3,6 +3,7 @@
 #include "Standalone/TypeDefinitions.h"
 #include "Standalone/Lowering/Printer.h"
 #include "Standalone/ConstantManager.h"
+#include "Standalone/Lowering/AssertOperator.h"
 
 namespace mlir {
     namespace standalone {
@@ -14,6 +15,7 @@ namespace mlir {
                 LOWERING_NAMESPACE
                 ConstantManager constants(rewriter, ctx);
                 Printer print(ctx, rewriter, __FILE_NAME__);
+                MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
 
                 print(LOCL, "-- OpenRead");
 
@@ -150,8 +152,13 @@ namespace mlir {
                     pCur_uc_pCursor, CONSTANT_INT(hint, 32)
                 });
 
-
-                // TODO: if (rc) goto abort_due_to_error
+                { // if (rc) goto abort_due_to_error
+                    auto rcNull = rewriter.create<ICmpOp>
+                        (LOC, Pred::eq,
+                            rc, constants(0, 32)
+                        );
+                    myAssert(LOCL, rcNull);
+                } // end if (rc) goto abort_due_to_error
 
                 rewriter.eraseOp(orOp);
                 return success();

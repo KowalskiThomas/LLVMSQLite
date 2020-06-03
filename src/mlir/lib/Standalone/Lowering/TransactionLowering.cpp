@@ -66,11 +66,10 @@ namespace mlir::standalone::passes {
                     pBtValue, constants(isWriteValue, 32), metaAddr).getValue();
             store(LOC, rcTemp, rcAddr);
 
-            {
-                // TODO: if rc != SQLITE_OK goto abort_due_to_error
+            { // if rc != SQLITE_OK goto abort_due_to_error
                 auto rcTempIsSqliteOk = iCmp(LOC, Pred::eq, rcTemp, SQLITE_OK);
                 myAssert(LOCL, rcTempIsSqliteOk);
-            }
+            } // end if rc != SQLITE_OK goto abort_due_to_error
 
             auto iStatementAddr = constants(T::i32PtrTy, &vdbe->iStatement);
 

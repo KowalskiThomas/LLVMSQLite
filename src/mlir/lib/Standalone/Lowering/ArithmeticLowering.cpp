@@ -34,18 +34,6 @@ namespace mlir::standalone::passes {
 
         auto* pOp = &vdbe->aOp[pc];
 
-        if (false) {
-            // TODO: Use our own implementation
-            print(LOCL, "Calling into default implementation");
-            store(LOC, 1, constants(T::i64PtrTy, &maxVdbeSteps));
-            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
-            call(LOC, f_sqlite3VdbeExec2, constants(T::VdbePtrTy, vdbe));
-            rewriter.eraseOp(mathOp);
-            return success();
-        }
-
-        auto stackState = saveStack(LOC);
-
         auto firstBlock = rewriter.getBlock();
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(mathOp); GO_BACK_TO(curBlock);
@@ -64,6 +52,7 @@ namespace mlir::standalone::passes {
             default:
                 print(LOCL, "-- Arithmetic / Remainder"); break;
         }
+        auto stackState = saveStack(LOC);
 
         /// pIn1 = &aMem[pOp->p1];
         auto pIn1Addr = &vdbe->aMem[p1];
