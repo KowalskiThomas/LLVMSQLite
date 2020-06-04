@@ -108,7 +108,7 @@ struct VdbeRunner {
 
         llvmModule = mlir::translateModuleToLLVMIR(mlirModule);
         // llvm::errs() << "\n\n--LLVM IR-Translated module";
-        // mod->dump();
+        llvmModule->dump();
 
         llvm::errs() << "\n\n";
     }
@@ -161,6 +161,7 @@ struct VdbeRunner {
                         JIT_MAIN_FN_NAME));
             }
         }
+
         printTimeDifference(tick, "Optimisation and ExecutionEngine creation");
 
         int32_t returnedValue = -1;

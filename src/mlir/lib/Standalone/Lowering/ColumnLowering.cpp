@@ -1248,9 +1248,9 @@ namespace mlir {
                             auto len_u64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, len);
                             auto zValue = rewriter.create<LoadOp>(LOC, zAddr);
                             auto zDataValue = rewriter.create<LoadOp>(LOC, zDataAddress);
-                            rewriter.create<CallOp>(LOC, f_memCpy, ValueRange {
-                                zValue, zDataValue, len_u64
-                            });
+                            rewriter.create<mlir::LLVM::MemCpyOp>(LOC,
+                                zValue, zDataValue, len_u64, constants(0, 1)
+                            );
 
                             /// pDest->z[len] = 0;
                             auto zLen = rewriter.create<GEPOp>(LOC, T::i8PtrTy, zValue, ValueRange{ len });
