@@ -19,9 +19,9 @@ int sqlite3VdbeExec(Vdbe *p) {
 #endif
 
     auto tock = std::chrono::system_clock::now();
-    auto diff = tock - tick;
-    printf("Time with compilation: %llu\n",
-           std::chrono::duration_cast<std::chrono::milliseconds>(tock - tick).count());
+    auto diff = (unsigned long long)(std::chrono::duration_cast<std::chrono::milliseconds>(tock - tick).count());
+    printf("Total step time: %llu ms\n", diff);
+
     return step_return;
 }
 
