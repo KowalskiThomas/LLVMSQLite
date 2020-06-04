@@ -1,6 +1,7 @@
 set(LOWERING_FILES
     Lowering/MyBuilder.cpp
     Lowering/Printer.cpp
+    Lowering/AssertOperator.cpp
 
     Lowering/AggFinalLowering.cpp
     Lowering/AggStepLowering.cpp
