@@ -128,15 +128,17 @@ add_library(sqlite
         ${PROJECT_SOURCE_DIR}/src/window.c
         ${PROJECT_SOURCE_DIR}/opcodes.c
         ${PROJECT_SOURCE_DIR}/parse.c
-)
+        )
 
 add_executable(shell_jit shell.c)
-target_link_libraries(shell_jit sqlite_llvm)
-target_link_libraries(shell_jit vdbe_exec_llvm)
 target_link_libraries(shell_jit sqlite)
+target_link_libraries(shell_jit vdbe_exec_llvm)
+target_link_libraries(shell_jit sqlite_llvm)
 target_link_libraries(shell_jit ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(shell_jit ${CMAKE_DL_LIBS})
 
 add_executable(shell_default shell.c)
 target_link_libraries(shell_default sqlite)
 target_link_libraries(shell_default vdbe_exec_default)
 target_link_libraries(shell_default ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(shell_default ${CMAKE_DL_LIBS})
