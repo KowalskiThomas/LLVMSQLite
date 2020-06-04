@@ -208,11 +208,6 @@ namespace mlir::standalone::passes {
 
                         print(LOCL, "Applying numeric affinity to 1");
                         /// applyNumericAffinity(pIn1, 0);
-                        // TODO: Double call
-                        call(LOC, f_applyNumericAffinity,
-                            pIn1,
-                            constants(0, 32)
-                        );
                         call(LOC, f_applyNumericAffinity,
                              pIn1,
                              constants(0, 32)

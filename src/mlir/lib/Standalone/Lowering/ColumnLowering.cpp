@@ -87,7 +87,11 @@ namespace mlir {
                 auto rc = rewriter.create<CallOp>(LOC, f_sqlite3VdbeCursorMoveto, ValueRange{
                     pCAddr, curIdx
                 }).getResult(0);
-                rewriter.create<StoreOp>(LOC, rc, rcAddr);
+
+                { // if (rc) goto abort_due_to_error;
+                    auto rcNull = rewriter.create<ICmpOp>(LOC, Pred::eq, rc, constants(0, 32));
+                    myAssert(LOCL, rcNull);
+                } // end if (rc) goto abort_due_to_error;
 
                 // These might have changed since we pass them by reference
                 pCValue = rewriter.create<LoadOp>(LOC, pCAddr);
