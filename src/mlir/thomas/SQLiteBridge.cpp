@@ -148,11 +148,7 @@ struct VdbeRunner {
             {
                 auto &tempLlvmModule = *llvmModule;
                 auto broken = llvm::verifyModule(tempLlvmModule, &llvm::outs());
-                if (broken) {
-                    llvm_unreachable("c'est cassé");
-                } else {
-                    out("c'est ok");
-                }
+                ALWAYS_ASSERT(!broken && "Generated IR Module is invalid");
 
                 auto builder = llvm::EngineBuilder(std::move(llvmModule));
                 auto engine = builder
@@ -160,7 +156,7 @@ struct VdbeRunner {
                                 .setOptLevel(llvm::CodeGenOpt::Aggressive)
                                 .setVerifyModules(true)
                                 .create();
-                printf("Engine: %p\n", engine);
+                ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");
                 jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(engine->getFunctionAddress(
                         JIT_MAIN_FN_NAME));
             }

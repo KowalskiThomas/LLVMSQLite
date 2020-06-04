@@ -26,8 +26,8 @@ set(LIBS
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl -z origin")
 
 add_library(sqlite_jit
-        SQLiteBridge.cpp
-        ModuleWriter.cpp
+    SQLiteBridge.cpp
+    ModuleWriter.cpp
 )
 llvm_update_compile_flags(sqlite_jit)
 target_link_libraries(sqlite_jit PRIVATE ${LIBS})
