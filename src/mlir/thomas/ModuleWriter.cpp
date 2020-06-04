@@ -805,8 +805,8 @@ void prepareFunction(MLIRContext& context, LLVMDialect* llvmDialect, ModuleOp& t
         vdbeCtx->regInstances.emplace_back(&vdbe->aMem[i]);
     }
 
-    auto inTypes = mlir::ArrayRef<mlir::Type>{
-            T::VdbePtrTy
+    auto inTypes = mlir::SmallVector<mlir::Type, 1>{
+        T::VdbePtrTy
     };
 
     auto funcTy = builder.getFunctionType(inTypes, builder.getIntegerType(32));
