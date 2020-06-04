@@ -108,7 +108,7 @@ struct VdbeRunner {
 
         llvmModule = mlir::translateModuleToLLVMIR(mlirModule);
         // llvm::errs() << "\n\n--LLVM IR-Translated module";
-        llvmModule->dump();
+        // llvmModule->dump();
 
         llvm::errs() << "\n\n";
     }
@@ -154,6 +154,8 @@ struct VdbeRunner {
                 auto engine = builder
                                 .setEngineKind(llvm::EngineKind::JIT)
                                 .setOptLevel(llvm::CodeGenOpt::Aggressive)
+                                // .setRelocationModel(llvm::Reloc::)
+
                                 .setVerifyModules(true)
                                 .create();
                 ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");

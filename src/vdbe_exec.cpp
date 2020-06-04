@@ -3,14 +3,21 @@
 
 extern "C" {
 
+#ifndef ENABLE_JIT
+#error("Please define ENABLE_JIT")
+#endif
+
 int jitVdbeStep(Vdbe *);
 
 int sqlite3VdbeExec(Vdbe *p) {
     auto tick = std::chrono::system_clock::now();
 
     // THOMAS SWITCH HERE azeaze
-    //auto step_return = sqlite3VdbeExec2(p);
+#if ENABLE_JIT
     auto step_return = jitVdbeStep(p);
+#else
+    auto step_return = sqlite3VdbeExec2(p);
+#endif
 
     auto tock = std::chrono::system_clock::now();
     auto diff = tock - tick;

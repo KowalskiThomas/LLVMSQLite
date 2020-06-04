@@ -23,11 +23,12 @@ set(LIBS
     LLVMLTO
 )
 
+# Needed for LTO
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl -z origin")
 
-add_library(sqlite_jit
+add_library(sqlite_llvm
     SQLiteBridge.cpp
     ModuleWriter.cpp
 )
-llvm_update_compile_flags(sqlite_jit)
-target_link_libraries(sqlite_jit PRIVATE ${LIBS})
+llvm_update_compile_flags(sqlite_llvm)
+target_link_libraries(sqlite_llvm PRIVATE ${LIBS})

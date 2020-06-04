@@ -9,6 +9,13 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/mlir)
 
+# Custom file serving as a bridge between SQLite and the JIT
+add_library(vdbe_exec_llvm ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
+target_compile_definitions(vdbe_exec_llvm PUBLIC ENABLE_JIT=1)
+
+add_library(vdbe_exec_default ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
+target_compile_definitions(vdbe_exec_default PUBLIC ENABLE_JIT=0)
+
 add_library(sqlite
         ${PROJECT_SOURCE_DIR}/src/alter.c
         ${PROJECT_SOURCE_DIR}/src/analyze.c
@@ -114,16 +121,13 @@ add_library(sqlite
         ${PROJECT_SOURCE_DIR}/src/window.c
         ${PROJECT_SOURCE_DIR}/opcodes.c
         ${PROJECT_SOURCE_DIR}/parse.c
-
-        ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp
-        # ${PROJECT_SOURCE_DIR}/src/temp_vdbe.c
 )
 
-set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
-# set_property(TARGET sqlite PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
+add_executable(shell_jit shell.c)
+target_link_libraries(shell_jit sqlite_llvm)
+target_link_libraries(shell_jit vdbe_exec_llvm)
+target_link_libraries(shell_jit sqlite)
 
-target_link_libraries(sqlite sqlite_jit)
-
-add_executable(shell shell.c)
-target_link_libraries(shell sqlite)
-include_directories(${PROJECT_SOURCE_DIR}/fmt/include/)
+add_executable(shell_default shell.c)
+target_link_libraries(shell_default sqlite)
+target_link_libraries(shell_default vdbe_exec_default)
