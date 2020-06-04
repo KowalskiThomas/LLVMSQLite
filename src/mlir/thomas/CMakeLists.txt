@@ -15,7 +15,15 @@ set(LIBS
     MLIRSideEffects
     MLIRTargetLLVMIR
     MLIRTransforms
+    LLVMCore
+    LLVMExecutionEngine
+    LLVMInterpreter
+    LLVMSupport
+    LLVMMCJIT
+    LLVMLTO
 )
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl -z origin")
 
 add_library(sqlite_jit
         SQLiteBridge.cpp

@@ -4,6 +4,34 @@
 
 #include "SQLiteBridge.h"
 
+
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/ExecutionEngine/GenericValue.h"
+#include "llvm/IR/Argument.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/ExecutionEngine/OrcMCJITReplacement.h"
+#include "llvm/ExecutionEngine/MCJIT.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/IR/Type.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/ManagedStatic.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/raw_ostream.h"
+#include <algorithm>
+#include <cassert>
+#include <memory>
+#include <vector>
+
+
+
 bool enableOpt = true;
 const char* const JIT_MAIN_FN_NAME = "jittedFunction";
 
@@ -21,7 +49,6 @@ void printTimeDifference(std::chrono::time_point<T> tick, std::string msg) {
 
 static void initRuntime() {
     mlir::registerAllDialects();
-    mlir::registerAllPasses();
 
     using VdbeDialect = mlir::standalone::StandaloneDialect;
     mlir::registerDialect<VdbeDialect>();
@@ -39,7 +66,8 @@ struct VdbeRunner {
     VdbeDialect* vdbeDialect;
 
     mlir::OpBuilder builder;
-    mlir::ModuleOp theModule;
+    mlir::ModuleOp mlirModule;
+    std::unique_ptr<llvm::Module> llvmModule;
 
     Vdbe* vdbe;
 
@@ -58,27 +86,27 @@ struct VdbeRunner {
         initRuntime();
 
         initialiseTypeCache(llvmDialect);
-        theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
+        mlirModule = mlir::ModuleOp::create(builder.getUnknownLoc());
 
         vdbeDialect->setVdbe(p);
 
-        runPrerequisites(theModule, llvmDialect);
+        runPrerequisites(mlirModule, llvmDialect);
     }
 
     void prepareFunction() {
-        ::prepareFunction(context, llvmDialect, theModule);
+        ::prepareFunction(context, llvmDialect, mlirModule);
 
         // llvm::errs() << "-- Original module";
         // theModule.dump();
 
         mlir::PassManager pm(ctx);
         pm.addPass(std::make_unique<VdbeToLLVM>());
-        pm.run(theModule);
+        pm.run(mlirModule);
 
         // llvm::errs() << "\n\n-- Intermediate module";
         // theModule.dump();
 
-        auto mod = mlir::translateModuleToLLVMIR(theModule);
+        llvmModule = mlir::translateModuleToLLVMIR(mlirModule);
         // llvm::errs() << "\n\n--LLVM IR-Translated module";
         // mod->dump();
 
@@ -86,7 +114,7 @@ struct VdbeRunner {
     }
 
     mlir::ModuleOp& module() {
-        return theModule;
+        return mlirModule;
     }
 
     int run() {
@@ -110,6 +138,73 @@ struct VdbeRunner {
             // Initialize LLVM targets.
             llvm::InitializeNativeTarget();
             llvm::InitializeNativeTargetAsmPrinter();
+            // llvm::InitializeNativeTargetDisassembler();
+
+            llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
+            auto result = llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("my_assert");
+            ALWAYS_ASSERT(result);
+
+            executionEngineCreated = true;
+            {
+                auto &tempLlvmModule = *llvmModule;
+                auto broken = llvm::verifyModule(tempLlvmModule, &llvm::outs());
+                if (broken) {
+                    llvm_unreachable("c'est cassé");
+                } else {
+                    out("c'est ok");
+                }
+
+                auto builder = llvm::EngineBuilder(std::move(llvmModule));
+                auto engine = builder
+                                .setEngineKind(llvm::EngineKind::JIT)
+                                .setOptLevel(llvm::CodeGenOpt::Aggressive)
+                                .setVerifyModules(true)
+                                .create();
+                printf("Engine: %p\n", engine);
+                jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(engine->getFunctionAddress(
+                        JIT_MAIN_FN_NAME));
+            }
+        }
+        printTimeDifference(tick, "Optimisation and ExecutionEngine creation");
+
+        int32_t returnedValue = -1;
+
+        sqlite3VdbeEnter(vdbe);
+        if (vdbe->rc == SQLITE_NOMEM) {
+            err("ERROR: Cannot allocate memory");
+            exit(124);
+        }
+
+        llvm::outs() << "Calling JITted function\n";
+        {
+            using testType = int(*)(Vdbe*);
+            returnedValue = ((testType)(jittedFunctionPointer))(vdbe);
+        }
+
+        sqlite3VdbeLeave(vdbe);
+
+        out("Value returned by VDBEStep: " << returnedValue);
+
+        if (returnedValue == SQLITE_DONE) {
+            out("Removing VDBE " << (void*)vdbe << " from VDBERunner cache");
+            // TODO: Fix this memory leak
+            // delete runners[vdbe];
+            runners.erase(vdbe);
+        }
+
+        return returnedValue;
+    }
+
+    int runJit2() {
+        auto tick = std::chrono::system_clock::now();
+        if (!executionEngineCreated) {
+            // Initialize LLVM targets.
+            llvm::InitializeNativeTarget();
+            llvm::InitializeNativeTargetAsmPrinter();
+
+            llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
+            auto result = llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("my_assert");
+            printf("Test: %p\n", result);
 
             executionEngineCreated = true;
 
@@ -121,14 +216,22 @@ struct VdbeRunner {
                         /* targetMachine */ nullptr
                 );
 
-                // Create an MLIR execution engine. The execution engine eagerly JIT-compiles
-                // the module.
-                auto maybeEngine = mlir::ExecutionEngine::create(theModule, optPipeline);
+                // Create an MLIR execution engine. The execution engine eagerly JIT-compiles the module.
+                // TODO remove: theModule.dump();
+                auto maybeEngine = mlir::ExecutionEngine::create(mlirModule, optPipeline);
                 assert(maybeEngine && "failed to construct an execution engine");
                 if (!maybeEngine) {
                     llvm_unreachable("Couldn't build engine");
                 }
                 engine = std::move(maybeEngine.get());
+
+                {
+                    auto tempFptr = engine->lookup("printf");
+                    if (!tempFptr)
+                        llvm_unreachable("Nothing\n");
+                    else
+                        printf("Test: %p\n", tempFptr ? tempFptr.get() : nullptr);
+                }
             }
 
             {
