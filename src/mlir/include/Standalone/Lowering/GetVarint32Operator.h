@@ -16,7 +16,7 @@ struct GetVarint32Operator {
     {
     }
 
-    Value operator()(Value A, Value B, Value writeResultTo) {
+    void operator()(Value A, Value B, Value writeResultTo) {
         // #define getVarint32(A,B)  \
         //   (u8)((*(A)<(u8)0x80)?((B)=(u32)*(A)),1:sqlite3GetVarint32((A),(u32 *)&(B)))
         //
