@@ -1,8 +1,15 @@
 project(sqlite)
 cmake_minimum_required(VERSION 3.15)
 
+# Sanitation measures
+# set(sanitize "")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${sanitize}  -fno-omit-frame-pointer -fsanitize-memory-track-origins -g")
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=${sanitize}  -fno-omit-frame-pointer -fsanitize-memory-track-origins -g")
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package (Threads)
 
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/src)
@@ -127,7 +134,9 @@ add_executable(shell_jit shell.c)
 target_link_libraries(shell_jit sqlite_llvm)
 target_link_libraries(shell_jit vdbe_exec_llvm)
 target_link_libraries(shell_jit sqlite)
+target_link_libraries(shell_jit ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(shell_default shell.c)
 target_link_libraries(shell_default sqlite)
 target_link_libraries(shell_default vdbe_exec_default)
+target_link_libraries(shell_default ${CMAKE_THREAD_LIBS_INIT})
