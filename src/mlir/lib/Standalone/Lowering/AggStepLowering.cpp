@@ -43,33 +43,100 @@ namespace mlir::standalone::passes {
         auto pc = aggStepOp.pcAttr().getUInt();
         VdbeOp* pOp = &vdbe->aOp[pc];
 
-        auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(aggStepOp); GO_BACK_TO(curBlock);
-
-        // auto nAddr = alloca(LOC, T::i32PtrTy);
-        // store(LOC, nReg, nAddr);
-
+        /// int rc = 0;
         auto rcAddr = alloca(LOC, T::i32PtrTy);
         store(LOC, 0, rcAddr);
 
-        auto mallocSize = nReg * sizeof(sqlite3_value *) +
-                (sizeof(sqlite3_context) + sizeof(Mem) - sizeof(sqlite3_value *));
+        auto curBlock = rewriter.getBlock();
+        auto endBlock = curBlock->splitBlock(aggStepOp); GO_BACK_TO(curBlock);
 
-        auto pCtx = alloca(LOC, T::sqlite3_contextPtrTy.getPointerTo());
-        auto pCtxValueVoidStar = call
-                (LOC, f_sqlite3DbMallocRawNN,
-                    constants(T::sqlite3PtrTy, vdbe->db),
-                    constants(mallocSize, 64)
-                ).getValue();
-        auto pCtxValue = bitCast(LOC, pCtxValueVoidStar, T::sqlite3_contextPtrTy);
-        store(LOC, pCtxValue, pCtx);
+        auto blockAfterFirstRun = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockFirstRun = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto p4TypeAddr = constants(T::i8PtrTy, &vdbe->aOp[pc].p4type);
+        auto p4TypeVal = load(LOC, p4TypeAddr);
+        auto p4TypeIsCtx = iCmp(LOC, Pred::eq, p4TypeVal, P4_FUNCDEF);
 
-        { // if (pCtx == 0) goto no_mem
-            auto pCtxValueInt = ptrToInt(LOC, pCtxValue);
-            auto pCtxNotNull = iCmp(LOC, Pred::ne, pCtxValueInt, 0);
-            myAssert(LOCL, pCtxNotNull);
-        } // end if (pCtx == 0) goto no_mem
+        condBranch(LOC, p4TypeIsCtx, blockFirstRun, blockAfterFirstRun);
+        {
+            ip_start(blockFirstRun);
 
+            auto mallocSize = nReg * sizeof(sqlite3_value *) +
+                    (sizeof(sqlite3_context) + sizeof(Mem) - sizeof(sqlite3_value *));
+
+            auto pCtx = alloca(LOC, T::sqlite3_contextPtrTy.getPointerTo());
+            auto pCtxValueVoidStar = call
+                    (LOC, f_sqlite3DbMallocRawNN,
+                        constants(T::sqlite3PtrTy, vdbe->db),
+                        constants(mallocSize, 64)
+                    ).getValue();
+            auto pCtxValue = bitCast(LOC, pCtxValueVoidStar, T::sqlite3_contextPtrTy);
+            store(LOC, pCtxValue, pCtx);
+
+            { // if (pCtx == 0) goto no_mem
+                auto pCtxValueInt = ptrToInt(LOC, pCtxValue);
+                auto pCtxNotNull = iCmp(LOC, Pred::ne, pCtxValueInt, 0);
+                myAssert(LOCL, pCtxNotNull);
+            } // end if (pCtx == 0) goto no_mem
+
+            auto pOutAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pCtxValue, 0, 0);
+            auto pFuncAddr = getElementPtrImm(LOC, T::FuncDefPtrTy.getPointerTo(), pCtxValue, 0, 1);
+            auto pMemAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pCtxValue, 0, 2);
+            auto pVdbeAddr = getElementPtrImm(LOC, T::VdbePtrTy.getPointerTo(), pCtxValue, 0, 3);
+            auto iOpAddr = getElementPtrImm(LOC, T::i32PtrTy, pCtxValue, 0, 4);
+            auto isErrorAddr = getElementPtrImm(LOC, T::i32PtrTy, pCtxValue, 0, 5);
+            auto skipFlagAddr = getElementPtrImm(LOC, T::i8PtrTy, pCtxValue, 0, 6);
+            auto argcAddr = getElementPtrImm(LOC, T::i8PtrTy, pCtxValue, 0, 7);
+            auto argvAddrArr = getElementPtrImm(LOC, T::Arr_1_sqlite3_valuePtrTy, pCtxValue, 0, 8);
+            auto argvAddr = bitCast(LOC, argvAddrArr, T::sqlite3_valuePtrPtrTy);
+
+            {
+                auto p4TypeAddr = getElementPtrImm(LOC, T::i8PtrTy, constants(T::VdbeOpPtrTy, pOp), 0, 1);
+                auto p4UnionAddr = rewriter.create<GEPOp>
+                        (LOC, T::p4unionPtrTy, constants(T::VdbeOpPtrTy, pOp), ValueRange {
+                            constants(0, 32),
+                            constants(6, 32)
+                        });
+                auto p4UnionValueAddr = getElementPtrImm(LOC, T::i8PtrTy.getPointerTo(), p4UnionAddr, 0, 0);
+
+
+                /// (Mem *) &(pCtx->argv[n]);
+                auto pOutValueUncasted = getElementPtrImm(LOC, T::sqlite3_valuePtrPtrTy, argvAddr, nReg);
+                auto pOutValue = bitCast(LOC, pOutValueUncasted, T::sqlite3_valuePtrTy);
+
+                call(LOC, f_sqlite3VdbeMemInit,
+                     pOutValue, // Of type sqlite3_value*
+                     constants(T::sqlite3PtrTy, vdbe->db), // Of type sqlite3*
+                     constants(MEM_Null, 16) // Of type u16
+                );
+
+                store(LOC, constants(T::sqlite3_valuePtrTy, (Mem*)nullptr), pMemAddr);
+                store(LOC, pOutValue, pOutAddr);
+                store(LOC, constants(T::FuncDefPtrTy, (void*)functionAddress), pFuncAddr);
+
+                assert(pc == pOp - vdbe->aOp && "pc is assumed to be pOp - vdbe->aOp");
+                store(LOC, constants(pc, 32), iOpAddr);
+                store(LOC, constants(T::VdbePtrTy, vdbe), pVdbeAddr);
+                store(LOC, 0, skipFlagAddr);
+                store(LOC, 0, isErrorAddr);
+                store(LOC, nReg, argcAddr);
+
+                /// pOp->p4type = P4_FUNCCTX;
+                store(LOC, P4_FUNCCTX, p4TypeAddr);
+                /// pOp->p4.pCtx = pCtx;
+                auto ctxAsI8Ptr = bitCast(LOC, pCtxValue, T::i8PtrTy);
+                store(LOC, ctxAsI8Ptr, p4UnionValueAddr);
+            }
+
+            /// pOp->opcode = OP_AggStep1
+            branch(LOC, blockAfterFirstRun);
+        }
+
+        ip_start(blockAfterFirstRun);
+
+        /** Fallthrough into OP_AggStep */
+
+        auto pCtxAddr = constants(T::sqlite3_contextPtrTy.getPointerTo(), &vdbe->aOp[pc].p4.pCtx);
+        auto pCtxValue = load(LOC, pCtxAddr);
         auto pOutAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pCtxValue, 0, 0);
         auto pFuncAddr = getElementPtrImm(LOC, T::FuncDefPtrTy.getPointerTo(), pCtxValue, 0, 1);
         auto pMemAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pCtxValue, 0, 2);
@@ -80,48 +147,6 @@ namespace mlir::standalone::passes {
         auto argcAddr = getElementPtrImm(LOC, T::i8PtrTy, pCtxValue, 0, 7);
         auto argvAddrArr = getElementPtrImm(LOC, T::Arr_1_sqlite3_valuePtrTy, pCtxValue, 0, 8);
         auto argvAddr = bitCast(LOC, argvAddrArr, T::sqlite3_valuePtrPtrTy);
-
-        {
-            auto p4TypeAddr = getElementPtrImm(LOC, T::i8PtrTy, constants(T::VdbeOpPtrTy, pOp), 0, 1);
-            auto p4UnionAddr = rewriter.create<GEPOp>
-                    (LOC, T::p4unionPtrTy, constants(T::VdbeOpPtrTy, pOp), ValueRange {
-                        constants(0, 32),
-                        constants(6, 32)
-                    });
-            auto p4UnionValueAddr = getElementPtrImm(LOC, T::i8PtrTy.getPointerTo(), p4UnionAddr, 0, 0);
-
-
-            /// (Mem *) &(pCtx->argv[n]);
-            auto pOutValueUncasted = getElementPtrImm(LOC, T::sqlite3_valuePtrPtrTy, argvAddr, nReg);
-            auto pOutValue = bitCast(LOC, pOutValueUncasted, T::sqlite3_valuePtrTy);
-
-            call(LOC, f_sqlite3VdbeMemInit,
-                 pOutValue, // Of type sqlite3_value*
-                 constants(T::sqlite3PtrTy, vdbe->db), // Of type sqlite3*
-                 constants(MEM_Null, 16) // Of type u16
-            );
-
-            store(LOC, constants(T::sqlite3_valuePtrTy, (Mem*)nullptr), pMemAddr);
-            store(LOC, pOutValue, pOutAddr);
-            store(LOC, constants(T::FuncDefPtrTy, (void*)functionAddress), pFuncAddr);
-
-            assert(pc == pOp - vdbe->aOp && "pc is assumed to be pOp - vdbe->aOp");
-            store(LOC, constants(pc, 32), iOpAddr);
-            store(LOC, constants(T::VdbePtrTy, vdbe), pVdbeAddr);
-            store(LOC, 0, skipFlagAddr);
-            store(LOC, 0, isErrorAddr);
-            store(LOC, nReg, argcAddr);
-
-            /// pOp->p4type = P4_FUNCCTX;
-            store(LOC, P4_FUNCCTX, p4TypeAddr);
-            /// pOp->p4.pCtx = pCtx;
-            auto ctxAsI8Ptr = bitCast(LOC, pCtxValue, T::i8PtrTy);
-            store(LOC, ctxAsI8Ptr, p4UnionValueAddr);
-        }
-
-        // TODO: pOp->opcode = OP_AggStep1 // Later
-
-        /** Fallthrough into OP_AggStep */
 
         /// int i;
         auto iAddr = alloca(LOC, T::i32PtrTy);
@@ -212,7 +237,7 @@ namespace mlir::standalone::passes {
             }, false);
         auto argcValue = load(LOC, argcAddr);
         if (p1) {
-            assert(false);
+            ALWAYS_ASSERT(false);
             auto xInverseAddr = getElementPtrImm(LOC, funcType.getPointerTo(), funcDefAddr, 0, 7);
             // TODO: call(LOC, f_callXInversePtr, load(LOC, xInverseAddr), pCtxValue, argcValue, argvAddr);
         } else {
