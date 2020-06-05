@@ -152,7 +152,7 @@ namespace mlir::standalone::passes {
                     auto pOut = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[p2]);
                     store(LOC, 1, vdbeCtx->iCompare);
 
-                    print(LOCL, "TODO: MemSetTypeFlag(pOut, MEM_Null);");
+                    memSetTypeFlag(pOut, MEM_Null);
 
                     branch(LOC, endBlock);
 

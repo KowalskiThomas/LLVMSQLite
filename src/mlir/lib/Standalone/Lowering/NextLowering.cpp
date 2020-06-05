@@ -101,8 +101,6 @@ namespace mlir::standalone::passes {
             auto aCounterValuePlus1 = add(LOC, aCounterValue, 1);
             store(LOC, aCounterValuePlus1, aCounterAddr);
 
-            // TODO: goto jump_to_p2_and_check_for_interrupt;
-
             branch(LOC, jumpTo);
         } // end if (rc == SQLITE_OK)
 
@@ -118,7 +116,6 @@ namespace mlir::standalone::passes {
         /// pC->nullRow = 1
         store(LOC, 1, nullRowAddr);
 
-        // TODO: goto check_for_interrupt;
         branch(LOC, fallthrough);
 
         return success();

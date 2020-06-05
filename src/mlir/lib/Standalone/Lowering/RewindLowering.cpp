@@ -1,6 +1,7 @@
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
+#include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
 #include "Standalone/ConstantManager.h"
 
@@ -14,6 +15,7 @@ namespace mlir {
                 LOWERING_NAMESPACE
                 ConstantManager constants(rewriter, ctx);
                 Printer print(ctx, rewriter, __FILE_NAME__);
+                MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
 
                 auto curIdx = CONSTANT_INT(rewindOp.curIdxAttr().getSInt(), 32);
 
@@ -129,7 +131,11 @@ namespace mlir {
 
                 rewriter.setInsertionPointToStart(endBlock);
 
-                // TODO: if (rc) goto abort_due_to_error;
+                { // if (rc) goto abort_due_to_error;
+                    auto rcVal = rewriter.create<LoadOp>(LOC, rc);
+                    auto rcNull = rewriter.create<ICmpOp>(LOC, Pred::eq, rcVal, constants(0, 32));
+                    myAssert(LOCL, rcNull);
+                } // end if (rc) goto abort_due_to_error;
 
                 /// pC->nullRow = (u8) res;
                 auto resValue = rewriter.create<LoadOp>(LOC, res);

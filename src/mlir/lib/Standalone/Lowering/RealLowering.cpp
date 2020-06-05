@@ -58,8 +58,6 @@ namespace mlir::standalone::passes {
 
         ip_start(endBlock);
 
-        print(LOCL, "TODO: Implement Real");
-
         rewriter.eraseOp(txnOp);
 
         return success();

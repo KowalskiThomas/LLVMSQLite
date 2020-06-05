@@ -2,6 +2,7 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 #include "Standalone/ConstantManager.h"
+#include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/Printer.h"
 
@@ -17,6 +18,7 @@ namespace mlir::standalone::passes {
         ConstantManager constants(rewriter, ctx);
         MyBuilder builder(ctx, constants, rewriter);
         Printer print(ctx, rewriter, __FILE_NAME__);
+        MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
         myOperators
 
         print(LOCL, "-- ResultRow");
@@ -40,7 +42,8 @@ namespace mlir::standalone::passes {
         { // if (SQLITE_OK != (rc = sqlite3VdbeCheckFk(p, 0)))
             rewriter.setInsertionPointToStart(blockRcNeOk);
 
-            print(LOCL, "TODO: GoTo OP_ResultRow: Abort due to error");
+            print(LOCL, "(SQLITE_OK != (rc = sqlite3VdbeCheckFk(p, 0))");
+            myAssert(LOCL, constants(0, 1));
 
             branch(LOC, blockAfterRcNeOk);
         } // end if (SQLITE_OK != (rc = sqlite3VdbeCheckFk(p, 0)))
@@ -97,7 +100,18 @@ namespace mlir::standalone::passes {
             call(LOC, f_sqlite3VdbeMemNulTerminate, pMemIAddr);
         }
 
-        // TODO: if (db->mallocFailed) goto no_mem;
+        { // if (db->mallocFailed) goto no_mem;
+            auto dbAddr = getElementPtrImm(LOC, T::sqlite3PtrTy.getPointerTo(),
+                constants(T::VdbePtrTy, vdbe),
+                0,
+                0
+            );
+            auto db = load(LOC, dbAddr);
+            auto mallocFailedAddr = getElementPtrImm(LOC, T::i8PtrTy, db, 0, 19);
+            auto mallocFailed = load(LOC, mallocFailedAddr);
+            auto mallocFailedFalse = iCmp(LOC, Pred::eq, mallocFailed, 0);
+            myAssert(LOCL, mallocFailedFalse);
+        } // end if (db->mallocFailed) goto no_mem;
 
         /// p->pc = (int) (pOp - aOp) + 1;
         auto pcAddr = constants(T::i32PtrTy, (int*)&vdbe->pc);
