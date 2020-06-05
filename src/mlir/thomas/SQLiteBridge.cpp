@@ -110,10 +110,9 @@ struct VdbeRunner {
 
 #ifdef DEBUG_MACHINE
         llvm::errs() << "\n\n--LLVM IR-Translated module";
-        llvmModule->dump();
-#endif
-
+        // llvmModule->dump();
         llvm::errs() << "\n\n";
+#endif
     }
 
     mlir::ModuleOp& module() {
@@ -167,7 +166,6 @@ struct VdbeRunner {
                 {
                     auto fn = engine->FindFunctionNamed(JIT_MAIN_FN_NAME);
                     fn->addFnAttr(llvm::Attribute::NoUnwind);
-                    fn->dump();
                 }
             }
         }
