@@ -105,7 +105,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         builder.setInsertionPointToStart(block);
         auto& op = vdbe->aOp[pc];
 
-        out(pc << " - " << sqlite3OpcodeName(op.opcode))
+        debug(pc << " - " << sqlite3OpcodeName(op.opcode))
 
         bool newWriteBranchOut = true;
         // Construct the adequate VDBE MLIR operation based on the instruction

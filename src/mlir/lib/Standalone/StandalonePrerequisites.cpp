@@ -15,7 +15,6 @@
 using LLVMDialect = mlir::LLVM::LLVMDialect;
 using LLVMFuncOp = mlir::LLVM::LLVMFuncOp;
 
-LLVMFuncOp addFunction;
 LLVMFuncOp f_progress;
 LLVMFuncOp f_printInt;
 LLVMFuncOp f_printPtrAndValue;
@@ -225,7 +224,7 @@ uint64_t printPtrAndValue(void* ptr, void* value, void* msg, uint32_t line, cons
     return 0;
 }
 
-void debug() {
+void dbg() {
     // This function should not be called but allows me to easily find where
     // a piece of code was translated in IR.
 }
@@ -340,7 +339,7 @@ void Prerequisites::generateReferenceTosqlite3VdbeCursorMoveto(ModuleOp m, LLVMD
 
 void Prerequisites::generateReferenceToDebug(ModuleOp m, LLVMDialect *d) {
     auto funcTy = LLVMType::getFunctionTy(T::voidTy, {}, false);
-    GENERATE_SYMBOL(f_debug, debug, "debug");
+    GENERATE_SYMBOL(f_debug, dbg, "dbg");
 }
 
 void Prerequisites::generateReferenceTosqlite3VdbeMemSetNull(ModuleOp m, LLVMDialect *d) {

@@ -73,6 +73,12 @@
     llvm::outs().flush(); \
 }
 
+#ifdef DEBUG_MACHINE
+    #define debug(x) out(x)
+#else
+    #define debug(x)
+#endif
+
 
 #define err(x) { \
     llvm::errs() << x << "\n"; \

@@ -1,6 +1,10 @@
 project(sqlite)
 cmake_minimum_required(VERSION 3.15)
 
+if (APPLE)
+    add_compile_definitions(DEBUG_MACHINE)
+endif()
+
 if (SANITIZE)
     message("Building with sanitizer on")
     set(sanitize "undefined")

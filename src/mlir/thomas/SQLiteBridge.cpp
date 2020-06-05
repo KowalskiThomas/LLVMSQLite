@@ -72,7 +72,7 @@ struct VdbeRunner {
     Vdbe* vdbe;
 
     ~VdbeRunner() {
-        out("Destroying runner")
+        debug("Destroying runner")
     }
 
     VdbeRunner(Vdbe* p)
@@ -107,8 +107,11 @@ struct VdbeRunner {
         // theModule.dump();
 
         llvmModule = mlir::translateModuleToLLVMIR(mlirModule);
-        // llvm::errs() << "\n\n--LLVM IR-Translated module";
-        // llvmModule->dump();
+
+#ifdef DEBUG_MACHINE
+        llvm::errs() << "\n\n--LLVM IR-Translated module";
+        llvmModule->dump();
+#endif
 
         llvm::errs() << "\n\n";
     }
@@ -154,13 +157,18 @@ struct VdbeRunner {
                 auto engine = builder
                                 .setEngineKind(llvm::EngineKind::JIT)
                                 .setOptLevel(llvm::CodeGenOpt::Aggressive)
-                                // .setRelocationModel(llvm::Reloc::)
-
                                 .setVerifyModules(true)
                                 .create();
+
                 ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");
                 jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(engine->getFunctionAddress(
                         JIT_MAIN_FN_NAME));
+
+                {
+                    auto fn = engine->FindFunctionNamed(JIT_MAIN_FN_NAME);
+                    fn->addFnAttr(llvm::Attribute::NoUnwind);
+                    fn->dump();
+                }
             }
         }
 
@@ -182,10 +190,10 @@ struct VdbeRunner {
 
         sqlite3VdbeLeave(vdbe);
 
-        out("Value returned by VDBEStep: " << returnedValue);
+        debug("Value returned by VDBEStep: " << returnedValue);
 
         if (returnedValue == SQLITE_DONE) {
-            out("Removing VDBE " << (void*)vdbe << " from VDBERunner cache");
+            debug("Removing VDBE " << (void*)vdbe << " from VDBERunner cache");
             // TODO: Fix this memory leak
             // delete runners[vdbe];
             runners.erase(vdbe);
@@ -261,16 +269,16 @@ struct VdbeRunner {
         // - Put the address of var in a variable addr
         // - Pass the value of addr
         // The last parameter is used to store the returned value
-        llvm::outs() << "Calling JITted function\n";
+        debug("Calling JITted function");
         llvm::SmallVector<void*, 8> args = {(void*)&vdbe, (void*)&returnedValue };
         (*jittedFunctionPointer)(args.data());
 
         sqlite3VdbeLeave(vdbe);
 
-        out("Value returned by VDBEStep: " << returnedValue);
+        debug("Value returned by VDBEStep: " << returnedValue);
 
         if (returnedValue == SQLITE_DONE) {
-            out("Removing VDBE " << (void*)vdbe << " from VDBERunner cache");
+            debug("Removing VDBE " << (void*)vdbe << " from VDBERunner cache");
             // TODO: Fix this memory leak
             // delete runners[vdbe];
             runners.erase(vdbe);
@@ -286,7 +294,7 @@ int jitVdbeStep(Vdbe* p) {
 
     VdbeRunner* runner = nullptr;
     if (runners.find(p) == runners.end()) {
-        out("Creating a new VDBERunner");
+        debug("Creating a new VDBERunner");
         auto tick = std::chrono::system_clock::now();
         runners[p] = new VdbeRunner(p);
         printTimeDifference(tick, "VdbeRunner creation");
