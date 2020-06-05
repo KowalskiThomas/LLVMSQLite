@@ -25,12 +25,8 @@
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
-#include <algorithm>
 #include <cassert>
 #include <memory>
-#include <vector>
-
-
 
 bool enableOpt = true;
 const char* const JIT_MAIN_FN_NAME = "jittedFunction";
@@ -133,10 +129,12 @@ struct VdbeRunner {
     bool executionEngineCreated = false;
     bool functionPrepared = false;
     void(*jittedFunctionPointer)(void**) = nullptr;
+    using vdbeExecType = int(*)(Vdbe*);
 
     int runJit() {
-        auto tick = std::chrono::system_clock::now();
         if (!executionEngineCreated) {
+            auto tick = std::chrono::system_clock::now();
+
             // Initialize LLVM targets.
             llvm::InitializeNativeTarget();
             llvm::InitializeNativeTargetAsmPrinter();
@@ -168,11 +166,11 @@ struct VdbeRunner {
                     fn->addFnAttr(llvm::Attribute::NoUnwind);
                 }
             }
-        }
 
-        printTimeDifference(tick, "Optimisation and ExecutionEngine creation");
-
-        int32_t returnedValue = -1;
+#ifdef DEBUG_MACHINE
+            printTimeDifference(tick, "Optimisation and ExecutionEngine creation");
+#endif
+        } // if (!executionEngineCreated)
 
         sqlite3VdbeEnter(vdbe);
         if (vdbe->rc == SQLITE_NOMEM) {
@@ -180,15 +178,11 @@ struct VdbeRunner {
             exit(124);
         }
 
-        llvm::outs() << "Calling JITted function\n";
-        {
-            using testType = int(*)(Vdbe*);
-            returnedValue = ((testType)(jittedFunctionPointer))(vdbe);
-        }
+        int returnedValue = ((vdbeExecType)(jittedFunctionPointer))(vdbe);
 
         sqlite3VdbeLeave(vdbe);
 
-        debug("Value returned by VDBEStep: " << returnedValue);
+        debug("Value returned by VdbeStep: " << returnedValue);
 
         if (returnedValue == SQLITE_DONE) {
             debug("Removing VDBE " << (void*)vdbe << " from VDBERunner cache");
@@ -199,92 +193,6 @@ struct VdbeRunner {
 
         return returnedValue;
     }
-
-    int runJit2() {
-        auto tick = std::chrono::system_clock::now();
-        if (!executionEngineCreated) {
-            // Initialize LLVM targets.
-            llvm::InitializeNativeTarget();
-            llvm::InitializeNativeTargetAsmPrinter();
-
-            llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
-            auto result = llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("my_assert");
-            printf("Test: %p\n", result);
-
-            executionEngineCreated = true;
-
-            {
-                // An optimization pipeline to use within the execution engine.
-                auto optPipeline = mlir::makeOptimizingTransformer(
-                        /* optLevel */ enableOpt ? 3 : 0,
-                        /* sizeLevel */ 0,
-                        /* targetMachine */ nullptr
-                );
-
-                // Create an MLIR execution engine. The execution engine eagerly JIT-compiles the module.
-                // TODO remove: theModule.dump();
-                auto maybeEngine = mlir::ExecutionEngine::create(mlirModule, optPipeline);
-                assert(maybeEngine && "failed to construct an execution engine");
-                if (!maybeEngine) {
-                    llvm_unreachable("Couldn't build engine");
-                }
-                engine = std::move(maybeEngine.get());
-
-                {
-                    auto tempFptr = engine->lookup("printf");
-                    if (!tempFptr)
-                        llvm_unreachable("Nothing\n");
-                    else
-                        printf("Test: %p\n", tempFptr ? tempFptr.get() : nullptr);
-                }
-            }
-
-            {
-                // Determine a pointer to the JITted function
-                auto expectedFPtr = engine->lookup(JIT_MAIN_FN_NAME);
-                // decltype(expectedFPtr.takeError()) result = llvm::Error::success();
-                if (!expectedFPtr) {
-                    llvm::errs() << "JIT invocation failed\n";
-                    return -1;
-                } else {
-                    jittedFunctionPointer = *expectedFPtr;
-                }
-            }
-        }
-        printTimeDifference(tick, "Optimisation and ExecutionEngine creation");
-
-        int32_t returnedValue = -1;
-
-        sqlite3VdbeEnter(vdbe);
-        if (vdbe->rc == SQLITE_NOMEM) {
-            err("ERROR: Cannot allocate memory");
-            exit(124);
-        }
-
-        // The function wants addresses to arguments
-        // So if we want to pass value 123, we need to
-        // - Put 123 in a variable var
-        // - Put the address of var in a variable addr
-        // - Pass the value of addr
-        // The last parameter is used to store the returned value
-        debug("Calling JITted function");
-        llvm::SmallVector<void*, 8> args = {(void*)&vdbe, (void*)&returnedValue };
-        (*jittedFunctionPointer)(args.data());
-
-        sqlite3VdbeLeave(vdbe);
-
-        debug("Value returned by VDBEStep: " << returnedValue);
-
-        if (returnedValue == SQLITE_DONE) {
-            debug("Removing VDBE " << (void*)vdbe << " from VDBERunner cache");
-            // TODO: Fix this memory leak
-            // delete runners[vdbe];
-            runners.erase(vdbe);
-        }
-
-        return returnedValue;
-    }
-
 };
 
 int jitVdbeStep(Vdbe* p) {

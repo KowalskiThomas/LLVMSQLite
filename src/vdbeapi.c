@@ -695,9 +695,9 @@ static int sqlite3Step(Vdbe *p){
 #endif /* SQLITE_OMIT_EXPLAIN */
   {
     db->nVdbeExec++;
-    printf("Calling sqlite3VdbeExec\n");
     rc = sqlite3VdbeExec(p);
 
+    // The following allows to print the content of registers after sqlite3VdbeExec
     /*
     printf("Finished execution of sqlite3VdbeExec. Return code: %d Dumping memory.\n", rc);
     for(int i = 0; i < p->nMem; i++) {
@@ -725,7 +725,7 @@ static int sqlite3Step(Vdbe *p){
           printf("  [Undefined]\n");
       }
     }
-     */
+    */
 
   db->nVdbeExec--;
   }

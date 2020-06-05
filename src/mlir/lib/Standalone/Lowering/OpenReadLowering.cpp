@@ -50,7 +50,6 @@ namespace mlir {
                 Value rootPage = CONSTANT_INT(orOp.rootPageAttr().getSInt(), 32);
                 // If P5 says that P2 is a register (and not an integer)
                 if (p5Value & OPFLAG_P2ISREG) {
-                    out("Writing special case for OPFLAG_P2ISREG");
                     // Get the address at which the array of sqlite3_value (aMem) starts
                     auto addressOfRegisters = rewriter.create<IntToPtrOp>(LOC, T::sqlite3_valuePtrTy,
                                                                           (Value) CONSTANT_INT(vdbe->aMem, 64));
@@ -65,6 +64,7 @@ namespace mlir {
                              });
 
                     out("TODO: Add 3826 sqlite3VdbeMemIntegerify(pIn2);")
+                    exit(126);
 
                     // Load the content at the address of the union
                     auto regContent = rewriter.create<LoadOp>(LOC, adressOfValue);
