@@ -38,6 +38,8 @@ set(LOWERING_FILES
     Lowering/RealLowering.cpp
     Lowering/CompareJumpLowering.cpp
     Lowering/IfLowering.cpp
+    Lowering/OnceLowering.cpp
+    Lowering/FunctionLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

@@ -99,6 +99,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
     // Used to stop generating code after a certain instruction is seen (and finished)
     bool lastOpSeen = false;
+    bool unsupportedOpCodeSeen = false;
     for(auto pc = 0llu; pc < vdbe->nOp; pc++) {
         // Create a block for that operation
         auto block = func.addBlock();
@@ -113,11 +114,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
             default:
                 llvm::errs() << "Unsupported opcode: " << sqlite3OpcodeName(op.opcode) << '\n';
                 llvm::errs().flush();
-#ifdef EXIT_ON_UNSUPPORTED_OPCODE
-                exit(3);
-#else
-                break;
-#endif
+                unsupportedOpCodeSeen = true;
             case OP_Init: {
                 auto initValue = op.p1;
                 auto jumpTo = op.p2;
@@ -746,6 +743,71 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 newWriteBranchOut = false;
                 break;
             }
+            case OP_Once: {
+                break;
+                auto p1 = op.p1;
+                auto jumpTo = op.p2;
+
+                Block *blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
+                Block *blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
+
+                auto op = rewriter.create<mlir::standalone::Once>
+                    (LOCB,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        blockJumpTo,
+                        blockFallthrough
+                    );
+
+                if (blockJumpTo == entryBlock)
+                    operations_to_update[jumpTo].emplace_back(op.getOperation(), 0);
+                if (blockFallthrough == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op.getOperation(), 1);
+
+                break;
+            }
+            case OP_If: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+
+                Block *blockJump = blocks.count(p2) == 0 ? entryBlock : blocks[p2];
+                Block *blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
+
+                auto op = rewriter.create<mlir::standalone::If>
+                    (LOCB,
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(32, true, p3),
+                         blockJump,
+                         blockFallthrough
+                    );
+
+                if (blockJump == entryBlock)
+                    operations_to_update[p2].emplace_back(op.getOperation(), 0);
+                if (blockFallthrough == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op.getOperation(), 1);
+
+                newWriteBranchOut = false;
+                break;
+            }
+            case OP_PureFunc:
+            case OP_Function: {
+                auto bitmask = op.p1;
+                auto firstParameter = op.p2;
+                auto outRegister = op.p3;
+                auto func = op.p4.pCtx;
+
+                rewriter.create<mlir::standalone::Function>
+                    (LOC,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, bitmask),
+                         INTEGER_ATTR(32, true, firstParameter),
+                         INTEGER_ATTR(32, true, outRegister),
+                         INTEGER_ATTR(64, false, (uint64_t)func)
+                    );
+
+                break;
+            }
         }
 
         // Add the block to the blocks map (for use in branches)
@@ -771,6 +833,11 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         // Mark this block as the lastBlock
         lastBlock = block;
         writeBranchOut = newWriteBranchOut;
+    }
+
+    if (unsupportedOpCodeSeen) {
+        out("Exiting after seeing unsupported opcodes")
+        exit(1);
     }
 
     /*

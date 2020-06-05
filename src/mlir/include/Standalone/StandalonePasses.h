@@ -110,6 +110,8 @@ namespace mlir {
         DECLARE_LOWERING(Variable)
         DECLARE_LOWERING(If)
         DECLARE_LOWERING(CompareJump)
+        DECLARE_LOWERING(Once)
+        DECLARE_LOWERING(Function)
 
         } // namespace passes
     } // namespace standalone

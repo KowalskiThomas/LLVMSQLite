@@ -31,9 +31,6 @@ namespace mlir::standalone::passes {
         auto jumpTo = ifOp.jumpTo();
         auto fallThrough = ifOp.fallthrough();
 
-        // auto curBlock = rewriter.getBlock();
-        // auto endBlock = curBlock->splitBlock(ifOp); GO_BACK_TO(curBlock);
-
         auto* pMem = &vdbe->aMem[conditionReg];
         auto c = call(LOC, f_sqlite3VdbeBooleanValue,
             constants(T::sqlite3_valuePtrTy, pMem),

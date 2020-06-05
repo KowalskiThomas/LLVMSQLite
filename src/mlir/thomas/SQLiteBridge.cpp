@@ -106,7 +106,7 @@ struct VdbeRunner {
 
 #ifdef DEBUG_MACHINE
         llvm::errs() << "\n\n--LLVM IR-Translated module";
-        // llvmModule->dump();
+        llvmModule->dump();
         llvm::errs() << "\n\n";
 #endif
     }
@@ -148,6 +148,11 @@ struct VdbeRunner {
             {
                 auto &tempLlvmModule = *llvmModule;
                 auto broken = llvm::verifyModule(tempLlvmModule, &llvm::outs());
+#ifdef DEBUG_MACHINE
+                if (broken) {
+                    tempLlvmModule.dump();
+                }
+#endif
                 ALWAYS_ASSERT(!broken && "Generated IR Module is invalid");
 
                 auto builder = llvm::EngineBuilder(std::move(llvmModule));

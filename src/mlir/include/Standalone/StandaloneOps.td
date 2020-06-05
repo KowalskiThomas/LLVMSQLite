@@ -203,6 +203,16 @@ def Standalone_CompareJump : Standalone_Op<"CompareJump", [Terminator]> {
 }
 
 
+def Standalone_Once : Standalone_Op<"Once", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$onceValue);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
+}
+
+def Standalone_Function : Standalone_Op<"FunctionOp"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$constantBitmask, I32Attr:$firstInReg, I32Attr:$outReg, I64Attr:$function);
+}
+
 /*
 def Standalone_ : Standalone_Op<""> {
     let arguments = (ins I64Attr:$pc, I32Attr:$curIdx, I32Attr:$reg, I32Attr:$nFields);
