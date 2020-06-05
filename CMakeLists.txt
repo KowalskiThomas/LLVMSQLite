@@ -1,10 +1,12 @@
 project(sqlite)
 cmake_minimum_required(VERSION 3.15)
 
-# Sanitation measures
-# set(sanitize "")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${sanitize}  -fno-omit-frame-pointer -fsanitize-memory-track-origins -g")
-# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=${sanitize}  -fno-omit-frame-pointer -fsanitize-memory-track-origins -g")
+if (SANITIZE)
+    message("Building with sanitizer on")
+    set(sanitize "undefined")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${sanitize}  -fno-omit-frame-pointer -fsanitize-memory-track-origins -g")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=${sanitize}  -fno-omit-frame-pointer -fsanitize-memory-track-origins -g")
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
