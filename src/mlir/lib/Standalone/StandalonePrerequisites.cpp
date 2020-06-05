@@ -173,7 +173,7 @@ public:
     builder.setInsertionPointToStart(m.getBody()); \
     auto ctx = d->getContext(); \
     auto passthrough = llvm::SmallVector<mlir::Attribute, 16>{}; \
-    for(auto s : std::vector<std::string>(passthroughAttrs)) { \
+    for(auto s : llvm::SmallVector<const char*, 16>(passthroughAttrs)) { \
         passthrough.push_back({mlir::StringAttr::get(s, ctx)}); \
     } \
     auto attrs = llvm::SmallVector<mlir::NamedAttribute, 16>{ \
@@ -185,7 +185,8 @@ public:
     ref_name = builder.create<LLVMFuncOp>(m.getLoc(), symbol_name, funcTy, Linkage::External, attrs); \
     llvm::sys::DynamicLibrary::AddSymbol(symbol_name, reinterpret_cast<void*>(f));
 
-#define GENERATE_SYMBOL(ref_name, f, symbol_name) GENERATE_SYMBOL_ATTR(ref_name, f, symbol_name, {})
+llvm::SmallVector<const char*, 16> DEFAULT_ATTRS = {"uwtable", "nonlazybind", "nonfree", "nounwind", "norecurse", "willreturn"};
+#define GENERATE_SYMBOL(ref_name, f, symbol_name) GENERATE_SYMBOL_ATTR(ref_name, f, symbol_name, DEFAULT_ATTRS)
 
 extern "C" {
 uint32_t add(uint32_t a, uint32_t b) {
@@ -279,7 +280,7 @@ void Prerequisites::generateReferenceToAllocateCursor(ModuleOp m, LLVMDialect *d
                 T::i8Ty
             }, false);
 
-    GENERATE_SYMBOL_ATTR(f_allocateCursor, allocateCursor, "allocateCursor", { "nounwind" });
+    GENERATE_SYMBOL_ATTR(f_allocateCursor, allocateCursor, "allocateCursor", DEFAULT_ATTRS);
     llvm::sys::DynamicLibrary::AddSymbol("allocateCursor", reinterpret_cast<void*>(allocateCursor));
 }
 
