@@ -1,5 +1,6 @@
 #include "llvm/Support/DynamicLibrary.h"
 #include "mlir/IR/Dialect.h"
+#include "mlir/IR/Attributes.h"
 #include "mlir/Target/LLVMIR.h"
 
 #include "Standalone/StandalonePassManager.h"
@@ -185,22 +186,6 @@ public:
     llvm::sys::DynamicLibrary::AddSymbol(symbol_name, reinterpret_cast<void*>(f));
 
 #define GENERATE_SYMBOL(ref_name, f, symbol_name) GENERATE_SYMBOL_ATTR(ref_name, f, symbol_name, {})
-
-void test(ModuleOp m) {
-    mlir::MLIRContext* ctx;
-    auto funcTy = nullptr;
-    auto builder = mlir::OpBuilder(m);
-    builder.setInsertionPointToStart(m.getBody());
-    auto attrList = mlir::NamedAttributeList{};
-    attrList.set(
-            mlir::Identifier::get("thomas", ctx),
-            mlir::IntegerAttr::get(mlir::IntegerType::get(1, ctx), 32));
-
-    auto f = builder.create<LLVMFuncOp>(m.getLoc(), "test", funcTy, Linkage::External);
-    llvm::sys::DynamicLibrary::AddSymbol("test", reinterpret_cast<void*>(1));
-
-
-}
 
 extern "C" {
 uint32_t add(uint32_t a, uint32_t b) {
