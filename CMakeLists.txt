@@ -24,10 +24,13 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/src/mlir)
 
 # Custom file serving as a bridge between SQLite and the JIT
 add_library(vdbe_exec_llvm ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
-target_compile_definitions(vdbe_exec_llvm PUBLIC ENABLE_JIT=1)
+target_compile_definitions(vdbe_exec_llvm PUBLIC ENABLE_JIT=1 ENABLE_DEFAULT=0)
 
 add_library(vdbe_exec_default ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
-target_compile_definitions(vdbe_exec_default PUBLIC ENABLE_JIT=0)
+target_compile_definitions(vdbe_exec_default PUBLIC ENABLE_JIT=0 ENABLE_DEFAULT=1)
+
+add_library(vdbe_exec_universal ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
+target_compile_definitions(vdbe_exec_universal PUBLIC ENABLE_JIT=1 ENABLE_DEFAULT=1)
 
 add_library(sqlite
         ${PROJECT_SOURCE_DIR}/src/alter.c
@@ -151,7 +154,7 @@ target_link_libraries(shell_default ${CMAKE_DL_LIBS})
 
 add_executable(profilable_shell shell.c)
 target_link_libraries(profilable_shell sqlite)
-target_link_libraries(profilable_shell vdbe_exec_llvm)
+target_link_libraries(profilable_shell vdbe_exec_universal)
 target_link_libraries(profilable_shell sqlite_llvm)
 target_link_libraries(profilable_shell ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(profilable_shell ${CMAKE_DL_LIBS})
