@@ -40,14 +40,17 @@ namespace mlir::standalone::passes {
 
         /// pIn1->u.i = (int) (pOp - aOp);
         auto unionValueAddress = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0, 0);
-        auto intValueAddress = bitCast(LOC, unionValueAddress, T::i32PtrTy);
-        auto diff = constants(pc, 32);
+        auto intValueAddress = bitCast(LOC, unionValueAddress, T::i64PtrTy);
+        auto diff = constants(pc, 64);
         store(LOC, diff, intValueAddress);
 
         branch(LOC, endBlock);
 
         ip_start(endBlock);
-        print(LOCL, constants(vdbe->aOp[pc].p2, 32) ,"GoSub: Jumping to");
+
+        print(LOCL, constants(pc, 32), "GoSub: Jumping from");
+        print(LOCL, constants(vdbe->aOp[pc].p2, 32),"GoSub: Jumping to");
+
         branch(LOC, jumpToBlock);
         rewriter.eraseOp(gsOp);
 

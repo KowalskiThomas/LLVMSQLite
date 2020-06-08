@@ -70,7 +70,7 @@ namespace mlir::standalone::passes {
         // Call the advancer function
         auto rc = call(LOC, toCall, pCursorAsBtree, constants(hintsValue, 32)).getValue();
 
-        print(LOCL, rc, "Advancer result:");
+        // print(LOCL, rc, "Advancer result:");
 
         // Get &pC->nullRow (used later)
         auto nullRowAddr = getElementPtrImm(LOC, T::i8PtrTy, pCValue, 0, 2);

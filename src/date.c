@@ -974,6 +974,10 @@ static void dateFunc(
   int argc,
   sqlite3_value **argv
 ){
+    // qsdcount
+    // static size_t count = 0; count++;
+    // if (count == 1 || count % 10 == 0) printf("%zu\n", count);
+
   DateTime x;
   if( isDate(context, argc, argv, &x)==0 ){
     char zBuf[100];

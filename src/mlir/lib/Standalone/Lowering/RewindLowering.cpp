@@ -107,7 +107,7 @@ namespace mlir {
                     // Store the result in rc
                     rewriter.create<StoreOp>(LOC, tempRc, rc);
 
-                    print(LOCL, tempRc, "Returned by sqlite3BtreeFirst");
+                    // print(LOCL, tempRc, "Returned by sqlite3BtreeFirst");
 
                     /// pC->deferredMoveto = 0;
                     auto deferredMoveToAddr = rewriter.create<GEPOp>

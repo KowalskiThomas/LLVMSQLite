@@ -5,7 +5,7 @@
 PRINTER_USING
 USING_OPS
 
-#define ENABLE_PRINTER false
+// #define ENABLE_PRINTER true
 
 extern LLVMFuncOp f_printPtrAndValue;
 extern LLVMFuncOp f_progress;
@@ -17,7 +17,7 @@ size_t mlir::Printer::getBitWidth(Value x) const {
     auto rightSize = 0llu;
     for(auto size : possibleSizes)
         if (x.getType().isInteger(size)
-            || x.getType() == LLVMType::getIntNTy(d, size) ) {
+            || x.getType() == LLVMType::getIntNTy(d, size)) {
             rightSize = size;
             break;
         }
@@ -59,7 +59,7 @@ void mlir::Printer::printString(Location loc, size_t line, const char *msg) {
 }
 
 void mlir::Printer::printInt(Location loc, size_t line, Value v, const char *msg) {
-#if ENABLE_PINTER
+#if ENABLE_PRINTER
     auto extended = rewriter.create<ZExtOp>(loc, T::i64Ty, v);
     rewriter.create<mlir::LLVM::CallOp>(loc, f_printInt, ValueRange {
             rewriter.create<mlir::LLVM::PtrToIntOp>(loc, T::i64Ty, extended),

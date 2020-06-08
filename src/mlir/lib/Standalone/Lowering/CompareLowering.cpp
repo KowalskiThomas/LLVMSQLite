@@ -135,7 +135,7 @@ namespace mlir::standalone::passes {
 
         ip_start(blockAfterFor);
 
-        print(LOCL, "In block after for");
+        // print(LOCL, "In block after for");
 
         branch(LOC, endBlock);
 

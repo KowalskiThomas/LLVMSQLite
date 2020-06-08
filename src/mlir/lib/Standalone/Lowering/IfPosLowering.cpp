@@ -35,7 +35,7 @@ namespace mlir::standalone::passes {
 
         auto pIn = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[destReg]);
         auto unionAddress = getElementPtrImm(LOC, T::doublePtrTy, pIn, 0, 0, 0);
-        auto intAddress = bitCast(LOC, unionAddress, T::i32PtrTy);
+        auto intAddress = bitCast(LOC, unionAddress, T::i64PtrTy);
         auto value = load(LOC, intAddress);
 
         curBlock = rewriter.getBlock();
@@ -49,7 +49,7 @@ namespace mlir::standalone::passes {
             ip_start(blockValuePositive);
 
             /// pIn1->u.i -= pOp->p3;
-            auto newValue = rewriter.create<SRemOp>(LOC, value, constants(toSubtract, 32));
+            auto newValue = rewriter.create<SRemOp>(LOC, value, constants(toSubtract, 64));
             store(LOC, (Value)newValue, intAddress);
             print(LOCL, value, "IfPos: Number is > 0");
 

@@ -75,7 +75,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                  || vdbe->aOp[targetPc - 1].opcode == OP_Goto
                  || vdbe->aOp[targetPc - 1].opcode == OP_Gosub))
             ) {
-            continue;
+            // continue;
         }
 
         targetBlock = blocks.find(targetOpCode) != blocks.end() ? blocks[targetOpCode] : entryBlock;
@@ -94,6 +94,11 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         lastBlock = blockAfterJump;
     }
 
+    for(auto pc = 0llu; pc < vdbe->nOp; pc++) {
+        auto& op = vdbe->aOp[pc];
+        debug(pc << " - " << sqlite3OpcodeName(op.opcode))
+    }
+
     // Iterate over the VDBE programme
     bool writeBranchOut = true;
 
@@ -105,8 +110,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         auto block = func.addBlock();
         builder.setInsertionPointToStart(block);
         auto& op = vdbe->aOp[pc];
-
-        debug(pc << " - " << sqlite3OpcodeName(op.opcode))
 
         bool newWriteBranchOut = true;
         // Construct the adequate VDBE MLIR operation based on the instruction
@@ -732,7 +735,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
             }
             case OP_Once: {
-                break;
                 auto p1 = op.p1;
                 auto jumpTo = op.p2;
 
@@ -752,6 +754,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 if (blockFallthrough == entryBlock)
                     operations_to_update[pc + 1].emplace_back(op.getOperation(), 1);
 
+                newWriteBranchOut = false;
                 break;
             }
             case OP_If: {

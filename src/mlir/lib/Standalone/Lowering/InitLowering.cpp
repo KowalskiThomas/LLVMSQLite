@@ -20,26 +20,24 @@ namespace mlir {
 
                 auto jumpToAttr = initOp.jumpTo();
 
-                // The number 0
-                auto cst0 = rewriter.create<mlir::LLVM::ConstantOp>(LOC, T::i32Ty,
-                        rewriter.getIntegerAttr(rewriter.getIntegerType(32), 0));
-                auto cst1 = rewriter.create<mlir::LLVM::ConstantOp>(LOC, T::i32Ty,
-                                                                    rewriter.getIntegerAttr(rewriter.getIntegerType(32), 1));
-
                 // Rewrite the Once value for all Once instructions
                 for(auto i = 0; i < vdbe->nOp; i++) {
                     if (vdbe->aOp[i].opcode == OP_Once) {
                         auto ptr = PTR_TO_P1(i);
-                        rewriter.create<mlir::LLVM::StoreOp>(LOC, cst0, ptr);
+                        rewriter.create<mlir::LLVM::StoreOp>(LOC, constants(0, 32), ptr);
                     }
                 }
 
                 {
                     // Update the once value for the Init op
                     auto ptr = PTR_TO_P1(0);
-                    rewriter.create<mlir::LLVM::StoreOp>(LOC, cst0, ptr);
+                    auto val = rewriter.create<mlir::LLVM::LoadOp>(LOC, ptr);
+                    auto valPlus1 = rewriter.create<mlir::LLVM::AddOp>(LOC, val, constants(1, 32));
+                    rewriter.create<mlir::LLVM::StoreOp>(LOC, valPlus1, ptr);
                 }
 
+                if (vdbe->aOp[0].p2 > 0)
+                    print(LOCL, constants(vdbe->aOp[0].p2, 32), "Init: jumping to");
                 rewriter.create<mlir::BranchOp>(LOC, jumpToAttr);
 
                 rewriter.eraseOp(initOp);

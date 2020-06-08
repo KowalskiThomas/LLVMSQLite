@@ -23,6 +23,8 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
+        print(LOCL, "-- Once");
+
         auto firstBlock = rewriter.getBlock();
 
         auto pc = oOp.pcAttr().getUInt();
@@ -38,24 +40,33 @@ namespace mlir::standalone::passes {
 
         auto pVdbe = constants(T::VdbePtrTy, vdbe);
         auto pFrameAddr = getElementPtrImm(LOC, T::VdbeFramePtrTy.getPointerTo(), pVdbe, 0, 43);
+        // auto pFrameAddr = constants(T::VdbeFramePtrTy.getPointerTo(), (void*)nullptr);
         auto pFrameValue = load(LOC, pFrameAddr);
-        pFrameValue = ptrToInt(LOC, pFrameValue);
+        auto pFrameValueInt = ptrToInt(LOC, pFrameValue);
+
+        // Get p->aOp[0].p1
+        auto initValueAddress = constants(T::i32PtrTy, &vdbe->aOp[0].p1);
+        auto initValue = load(LOC, initValueAddress);
+
+        // Get &pOp->p1
+        auto p1Address = constants(T::i32PtrTy, &vdbe->aOp[pc].p1);
 
         curBlock = rewriter.getBlock();
         auto blockAfterFrameNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
         auto blockNotFrameNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
         auto blockFrameNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
-        auto pFrameNotNull = iCmp(LOC, Pred::ne, pFrameValue, 0);
+        auto pFrameNotNull = iCmp(LOC, Pred::ne, pFrameValueInt, 0);
         condBranch(LOC, pFrameNotNull, blockFrameNotNull, blockNotFrameNotNull);
         { // if (p->pFrame)
             ip_start(blockFrameNotNull);
 
             /// if ((p->pFrame->aOnce[iAddr / 8] & (1 << (iAddr & 7))) != 0)
             // Get p->pFrame->aOnce[iAddr / 8]
-            auto aOnceAddr = getElementPtrImm(LOC, T::i8PtrTy, pFrameValue, 0, 6);
+            auto aOnceAddr = getElementPtrImm(LOC, T::i8PtrPtrTy, pFrameValue, 0, 6);
+            auto aOnce = load(LOC, aOnceAddr);
             auto iAddrOver8 = constants(pc / 8, 32);
-            auto onceValueAddr = getElementPtrImm(LOC, T::i8PtrTy, aOnceAddr, iAddrOver8);
+            auto onceValueAddr = getElementPtr(LOC, T::i8PtrTy, aOnce, iAddrOver8);
             auto onceValue = load(LOC, onceValueAddr);
 
             auto rhs = (1 << (pc & 7));
@@ -78,33 +89,24 @@ namespace mlir::standalone::passes {
             ip_start(blockNotFrameNotNull);
 
             /// if (p->aOp[0].p1 == pOp->p1) goto jump_to_p2;
-            // Get pOp->p1
-            auto p1Address = constants(T::i32PtrTy, &vdbe->aOp[pc].p1);
             auto p1Value = load(LOC, p1Address);
-
-            // Get p->aOp[0].p1
-            auto initValueAddress = constants(T::i32PtrTy, &vdbe->aOp[0].p1);
-            auto initValue = load(LOC, initValueAddress);
 
             // Check whether pOp->p1 == p->aOp[0].p1
             auto p1IsInit = iCmp(LOC, Pred::eq, p1Value, initValue);
 
-            auto curBlock = rewriter.getBlock();
-            auto blockNotJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-
-            condBranch(LOC, p1IsInit, jumpTo, blockNotJump);
-
-            /// pOp->p1 = p->aOp[0].p1;
-            store(LOC, initValue, p1Address);
-
-            branch(LOC, blockAfterFrameNotNull);
+            ///
+            condBranch(LOC, p1IsInit, jumpTo, blockAfterFrameNotNull);
         } // end else of if (p->pFrame)
 
         ip_start(blockAfterFrameNotNull);
 
+        /// pOp->p1 = p->aOp[0].p1;
+        store(LOC, initValue, p1Address);
+
         branch(LOC, endBlock);
 
         ip_start(endBlock);
+
         branch(LOC, fallthrough);
         rewriter.eraseOp(oOp);
 

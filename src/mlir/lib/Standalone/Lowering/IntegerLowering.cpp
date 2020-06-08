@@ -37,7 +37,7 @@ namespace mlir::standalone::passes {
 
         // Get &pOut->u.i
         auto pOutUAddressBeforeCast = getElementPtrImm(LOC, T::doublePtrTy, pOutValue, 0, 0, 0);
-        auto pOutUAddress = bitCast(LOC, pOutUAddressBeforeCast, T::i32PtrTy);
+        auto pOutUAddress = bitCast(LOC, pOutUAddressBeforeCast, T::i64PtrTy);
 
         store(LOC, value, pOutUAddress);
 

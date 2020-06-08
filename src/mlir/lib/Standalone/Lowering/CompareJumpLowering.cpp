@@ -71,14 +71,14 @@ namespace mlir::standalone::passes {
         /// u16 flags1 = pIn1->flags
         auto in1FlagsAddr = constants(T::i16PtrTy, &pIn1Addr->flags);
         auto initialFlags1 = load(LOC, in1FlagsAddr);
-        print(LOCL, initialFlags1, "Init flags1");
+        // print(LOCL, initialFlags1, "Init flags1");
         auto flags1Addr = alloca(LOC, T::i16PtrTy);
         store(LOC, initialFlags1, flags1Addr);
 
         /// u16 flags3 = pIn3->flags
         auto in3FlagsAddr = constants(T::i16PtrTy, &pIn3Addr->flags);
         auto initialFlags3 = load(LOC, in3FlagsAddr);
-        print(LOCL, initialFlags3, "Init flags3");
+        // print(LOCL, initialFlags3, "Init flags3");
         auto flags3Addr = alloca(LOC, T::i16PtrTy);
         store(LOC, initialFlags3, flags3Addr);
 
@@ -87,8 +87,6 @@ namespace mlir::standalone::passes {
         auto flags1Or3 = bitOr(LOC, initialFlags1, initialFlags3);
         // (flags1 | flags3) & MEM_Null
         auto flags1Or3AndNull = bitAnd(LOC, flags1Or3, MEM_Null);
-
-        print(LOCL, flags1Or3AndNull, "Any null");
 
         auto blockAfterAnyNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
         auto blockNotAnyNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -100,7 +98,7 @@ namespace mlir::standalone::passes {
         { // if ((flags1 | flags3) & MEM_Null)
             ip_start(blockAnyNull);
 
-            print(LOCL, "One is null");
+            // print(LOCL, "One is null");
 
             if (flags & SQLITE_NULLEQ) {
                 // flags1 & flags3
@@ -174,11 +172,8 @@ namespace mlir::standalone::passes {
         { // else of if ((flags1 | flags3) & MEM_Null)
             ip_start(blockNotAnyNull);
 
-            print(LOCL, "None is null");
-
             auto affinity = flags & SQLITE_AFF_MASK;
             if (affinity >= SQLITE_AFF_NUMERIC) {
-                print(LOCL, "Affinity numeric");
                 auto curBlock = rewriter.getBlock();
                 auto blockAfterAnyIsString = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                 auto blockAnyIsString = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -192,8 +187,6 @@ namespace mlir::standalone::passes {
                 { // if ((flags1 | flags3) & MEM_Str)
                     ip_start(blockAnyIsString);
 
-                    print(LOCL, "One is string");
-
                     auto curBlock = rewriter.getBlock();
                     auto blockAfterIn1IsString = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     auto blockIn1IsString = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -206,7 +199,6 @@ namespace mlir::standalone::passes {
                     { // if ((flags1 & (MEM_Int | MEM_IntReal | MEM_Real | MEM_Str)) == MEM_Str)
                         ip_start(blockIn1IsString);
 
-                        print(LOCL, "Applying numeric affinity to 1");
                         /// applyNumericAffinity(pIn1, 0);
                         call(LOC, f_applyNumericAffinity,
                              pIn1,
@@ -236,7 +228,6 @@ namespace mlir::standalone::passes {
                     { // if ((flags3 & (MEM_Int | MEM_IntReal | MEM_Real | MEM_Str)) == MEM_Str)
                         ip_start(blockIn3IsString);
 
-                        print(LOCL, "Applying numeric affinity to 3");
                         /// applyNumericAffinity(pIn3, 0);
                         call(LOC, f_applyNumericAffinity,
                              pIn1,
@@ -262,7 +253,7 @@ namespace mlir::standalone::passes {
                 // pIn1->flags & pIn3->flags
                 auto flags1And3 = bitAnd(LOC, flags1Val, flags2Val);
                 // (pIn1->flags & pIn3->flags & MEM_Int)
-                print(LOCL, flags1And3, "flags1 & flags3");
+                // print(LOCL, flags1And3, "flags1 & flags3");
                 auto bothAreInt = bitAnd(LOC, flags1And3, MEM_Int);
 
                 curBlock = rewriter.getBlock();
@@ -272,11 +263,10 @@ namespace mlir::standalone::passes {
                 // // (pIn1->flags & pIn3->flags & MEM_Int) != 0
                 auto condBothAreInt = iCmp(LOC, Pred::ne, bothAreInt, 0);
 
-                print(LOCL, condBothAreInt, "Test");
                 condBranch(LOC, condBothAreInt, blockBothAreInt, blockAfterBothAreInt);
                 { // if ((pIn1->flags & pIn3->flags & MEM_Int) != 0)
                     ip_start(blockBothAreInt);
-                    print(LOCL, "Both are int");
+                    // print(LOCL, "Both are int");
                     auto int1Addr = constants(T::i64PtrTy, &pIn1Addr->u.i);
                     auto int3Addr = constants(T::i64PtrTy, &pIn3Addr->u.i);
 
@@ -408,7 +398,6 @@ namespace mlir::standalone::passes {
 
             }
 
-            print(LOCL, "Calling memCompare");
             /// res = sqlite3MemCompare(pIn3, pIn1, pOp->p4.pColl);
             auto result = call(LOC, f_sqlite3MemCompare,
                 pIn3,

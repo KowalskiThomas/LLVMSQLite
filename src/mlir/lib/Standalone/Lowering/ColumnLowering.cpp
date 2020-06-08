@@ -33,6 +33,8 @@ namespace mlir {
                 GetVarint32Operator generate_getVarint32(rewriter, constants, ctx);
                 Printer print(ctx, rewriter, __FILE_NAME__);
 
+                print(LOCL, "-- Column");
+
                 auto pVdbe = constants(T::VdbePtrTy, vdbe);
                 auto db = constants(T::sqlite3PtrTy, vdbe->db);
                 auto dbEnc = constants(vdbe->db->enc, 8);
@@ -178,9 +180,9 @@ namespace mlir {
                             );
                     auto nullRowOrNotPseudo = rewriter.create<OrOp>(LOC, notPseudo, nullRowNotNull);
                     myAssert(LOCL, nullRowOrNotPseudo);
-                    print(LOCL, nullRowOrNotPseudo, "NullRowOrNotPseudo");
-                    print(LOCL, nullRow, "NullRow");
-                    print(LOCL, notPseudo, "NotPseudo");
+                    // print(LOCL, nullRowOrNotPseudo, "NullRowOrNotPseudo");
+                    // print(LOCL, nullRow, "NullRow");
+                    // print(LOCL, notPseudo, "NotPseudo");
 
                     auto notSorter = rewriter.create<ICmpOp>
                             (LOC, ICmpPredicate::ne,
@@ -332,7 +334,7 @@ namespace mlir {
 
                         { // if (pC->eCurType == CURTYPE_PSEUDO)
                             rewriter.setInsertionPointToStart(blockCurTypePseudo);
-                            print(LOCL, "pC->eCurType == CURTYPE_PSEUDO");
+                            // print(LOCL, "pC->eCurType == CURTYPE_PSEUDO");
 
                             // pReg = &aMem[pC->seekResult];
                             auto seekResultAddress = rewriter.create<GEPOp>
@@ -488,27 +490,27 @@ namespace mlir {
                     { // After condition (but still in cacheStatus != cacheCtr)
                         rewriter.setInsertionPointToStart(blockEndCacheNeStatusCacheCtr);
 
-                        print(LOCL, "After if rowNull");
+                        // print(LOCL, "After if rowNull");
                         {
                             static size_t counter = 0;
                             auto counterAddr = constants(T::i64PtrTy, &counter);
                             auto curValue = rewriter.create<LoadOp>(LOC, counterAddr);
                             auto newValue = rewriter.create<AddOp>(LOC, curValue, constants(1, 64));
                             rewriter.create<StoreOp>(LOC, newValue, counterAddr);
-                            print(LOCL, constants(T::i64PtrTy, &counter), "Counter");
+                            // print(LOCL, constants(T::i64PtrTy, &counter), "Counter");
                         }
 
                         //// pC->cacheStatus = p->cacheCtr;
                         auto newCacheCtr = rewriter.create<LoadOp>(LOC, cacheCtrAddr);
                         rewriter.create<StoreOp>(LOC, newCacheCtr, cacheStatusAddr);
 
-                        print(LOCL, newCacheCtr, "CacheCtr");
+                        // print(LOCL, newCacheCtr, "CacheCtr");
 
                         /// pC->iHdrOffset = getVarint32(pC->aRow, aOffset[0]);
                         auto aRow = rewriter.create<LoadOp>(LOC, pCaRowAddress);
                         generate_getVarint32(/* A = */ aRow, /* B = */ aOffset, /* Result to */ iHdrOffsetAddr);
 
-                        print(LOCL, aRow, "varInt32");
+                        // print(LOCL, aRow, "varInt32");
 
                         rewriter.create<StoreOp>(LOC, constants(0, 16), nHdrParsedAddr);
 
@@ -531,7 +533,7 @@ namespace mlir {
 
                         { // if (pC->szRow < aOffset[0])
                             rewriter.setInsertionPointToStart(blockSzRowLessThanAOffset);
-                            print(LOCL, "pC->szRow < aOffset[0]");
+                            // print(LOCL, "pC->szRow < aOffset[0]");
 
                             /// pC->aRow = (u8*)nullptr;
                             rewriter.create<StoreOp>(LOC, constants(T::i8PtrTy, (u8 *) nullptr), pCaRowAddress);
@@ -544,7 +546,7 @@ namespace mlir {
                         } // end if (pC->szRow < aOffset[0])
                         { // else of if (pC->szRow < aOffset[0])
                             rewriter.setInsertionPointToStart(blockSzRowNotLessThanAOffset);
-                            print(LOCL, "NOT pC->szRow < aOffset[0]");
+                            // print(LOCL, "NOT pC->szRow < aOffset[0]");
 
                             // zData = pC->aRow;
                             // print(LOCL, aRow, "aRowContent");
@@ -673,10 +675,10 @@ namespace mlir {
                             // (i8*)zData + (u32)(aOffset[0]) <=> &zData[aOffset[0]]
                             auto zEndHdrValue = rewriter.create<GEPOp>(LOC, T::i8PtrTy, zData, ValueRange{aOffset0});
 
-                            print(LOCL, iInitialValue, "Initial i:");
-                            print(LOCL, offset64InitialValue, "initial offset64");
-                            print(LOCL, zHdrInitialValue, "zHdr");
-                            print(LOCL, zEndHdrValue, "zEndHdr");
+                            // print(LOCL, iInitialValue, "Initial i:");
+                            // print(LOCL, offset64InitialValue, "initial offset64");
+                            // print(LOCL, zHdrInitialValue, "zHdr");
+                            // print(LOCL, zEndHdrValue, "zEndHdr");
 
                             /* DO WHILE */
                             curBlock = rewriter.getBlock();
@@ -850,10 +852,10 @@ namespace mlir {
                             auto payloadSize_u32 = rewriter.create<LoadOp>(LOC, payloadSizeAddress);
                             auto payloadSize = rewriter.create<ZExtOp>(LOC, T::i64Ty, payloadSize_u32);
 
-                            print(LOCL, zHdrValue, "ZHdr");
-                            print(LOCL, zEndHdrValue, "ZEndHdr");
-                            print(LOCL, offset64Value, "offset64");
-                            print(LOCL, payloadSize, "payloadSize");
+                            // print(LOCL, zHdrValue, "ZHdr");
+                            // print(LOCL, zEndHdrValue, "ZEndHdr");
+                            // print(LOCL, offset64Value, "offset64");
+                            // print(LOCL, payloadSize, "payloadSize");
 
                             /* A */ auto zHdrGeZEndHdr = rewriter.create<ICmpOp>
                                     (LOC, ICmpPredicate::uge,
@@ -1407,7 +1409,6 @@ namespace mlir {
                 } // End after cacheStatus != cacheCtr
 
                 rewriter.setInsertionPointToStart(blockColumnEnd);
-                print(LOCL, "op_column_out: ending");
                 rewriter.create<mlir::LLVM::StackRestoreOp>(LOC, stackState);
                 rewriter.eraseOp(colOp);
                 return success();

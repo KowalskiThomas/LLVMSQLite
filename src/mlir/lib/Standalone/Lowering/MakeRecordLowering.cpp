@@ -199,10 +199,8 @@ namespace mlir::standalone::passes {
             { // if rec is Int
                 ip_start(blockRecInt);
 
-                print(LOCL, "Is Int");
                 /// i64 i = pRec->u.i;
-                auto i = load(LOC, constants(T::i64PtrTy, &pRecValue->u));
-                print(LOCL, i, "Integer is");
+                auto i = load(LOC, constants(T::i64PtrTy, &pRecValue->u.i));
 
                 auto uu = alloca(LOC, T::i64PtrTy);
 
@@ -228,7 +226,6 @@ print(LOCL, "is negative");
                 { // else of if (i < 0)
                     ip_start(blockNotINegative);
 
-print(LOCL, "is not negative");
                     store(LOC, i, uu);
 
                     branch(LOC, blockAfterINegative);
@@ -238,7 +235,6 @@ print(LOCL, "is not negative");
 
                 PlusPlus(LOC, nHdrAddr);
 
-printA(LOCL, uu, "uu:");
                 auto uuVal = load(LOC, uu);
                 auto uuSize1 = iCmp(LOC, Pred::slt, uuVal, 127);
                 auto uuSize2 = iCmp(LOC, Pred::slt, uuVal, 32767);
@@ -263,7 +259,6 @@ printA(LOCL, uu, "uu:");
                 { // if (uu <= 127)
                     ip_start(blockSize1);
 
-print(LOCL, "Size 1");
                     auto curBlock = rewriter.getBlock();
                     auto blockAfterCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     auto blockNotCondition = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -275,14 +270,10 @@ print(LOCL, "Size 1");
                     auto fileFormatGe4 = iCmp(LOC, Pred::sge, file_format, 4);
                     auto condCondition = bitAnd(LOC, iAnd1Is1, fileFormatGe4);
 
-                    print(LOCL, i, "i =");
-                    print(LOCL, file_format, "fileFormat = ");
-
                     condBranch(LOC, condCondition, blockCondition, blockNotCondition);
                     { // if ((i & 1) == i && file_format >= 4)
                         ip_start(blockCondition);
 
-print(LOCL, "First branch");
                         /// pRec->uTemp = 8 + (u32) uu;
                         auto val = load(LOC, uu);
                         val = rewriter.create<TruncOp>(LOC, T::i32Ty, val);
@@ -294,13 +285,12 @@ print(LOCL, "First branch");
                     { // else of if ((i & 1) == i && file_format >= 4)
                         ip_start(blockNotCondition);
 
-print(LOCL, "Other branch");
                         /// nData++
                         PlusPlus(LOC, nDataAddr);
 
                         /// pRec->uTemp = 1
                         store(LOC, 1, uTempAddress);
-printA(LOCL, uTempAddress, "uTemp");
+
                         branch(LOC, blockAfterCondition);
                     } // end else of if ((i & 1) == i && file_format >= 4)
 
@@ -315,7 +305,7 @@ printA(LOCL, uTempAddress, "uTemp");
                 { // if (uu <= 32767)
                     ip_start(blockSize2);
 
-print(LOCL, "Size 2");
+// print(LOCL, "Size 2");
                     addInPlace(LOC, nDataAddr, 2);
                     store(LOC, 2, uTempAddress);
 
@@ -328,7 +318,7 @@ print(LOCL, "Size 2");
                 { // if (uu <= 8388607)
                     ip_start(blockSize3);
 
-print(LOCL, "Size 3");
+// print(LOCL, "Size 3");
                     addInPlace(LOC, nDataAddr, 3);
                     store(LOC, 3, uTempAddress);
 
@@ -341,7 +331,7 @@ print(LOCL, "Size 3");
                 { // if (uu <= 2147483647)
                     ip_start(blockSize4);
 
-print(LOCL, "Size 4");
+// print(LOCL, "Size 4");
                     addInPlace(LOC, nDataAddr, 4);
                     store(LOC, 4, uTempAddress);
 
@@ -354,7 +344,7 @@ print(LOCL, "Size 4");
                 { // if (uu <= 140737488355327LL)
                     ip_start(blockSize5);
 
-print(LOCL, "Size 5");
+// print(LOCL, "Size 5");
                     addInPlace(LOC, nDataAddr, 6);
                     store(LOC, 5, uTempAddress);
 
@@ -363,7 +353,7 @@ print(LOCL, "Size 5");
                 { // else of if (uu <= 140737488355327LL)
                     ip_start(blockNotSize5);
 
-print(LOCL, "Size BIG");
+// print(LOCL, "Size BIG");
                     addInPlace(LOC, nDataAddr, 8);
 
                     auto curBlock = rewriter.getBlock();
