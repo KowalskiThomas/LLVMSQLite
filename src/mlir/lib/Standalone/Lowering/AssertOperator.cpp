@@ -1,9 +1,9 @@
 #include "Standalone/Lowering/AssertOperator.h"
 
-#define DISABLE_JIT_ASSERT
+#define ENABLE_JIT_ASSERT false
 
 void MyAssertOperator::operator()(const mlir::Location loc, const size_t line, mlir::Value val) {
-#ifndef DISABLE_JIT_ASSERT
+#if ENABLE_JIT_ASSERT
     auto d = ctx->getRegisteredDialect<LLVMDialect>();
     if (val.getType().isInteger(1) || val.getType() == LLVMType::getIntNTy(d, 1))
         rewriter.template create<CallOp>(loc, f_assert, ValueRange{
