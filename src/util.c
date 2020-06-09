@@ -385,7 +385,6 @@ static LONGDOUBLE_TYPE sqlite3Pow10(int E){
 ** returns FALSE but it still converts the prefix and writes the result
 ** into *pResult.
 */
-extern size_t top_of_stack;
 #if defined(_MSC_VER)
 #pragma warning(disable : 4756)
 #endif
@@ -430,13 +429,6 @@ int sqlite3AtoF(const char *z, double *pResult, int length, u8 enc){
     z += (enc&1);
   }
 
-  // TODO: Remove
-  /*char* zz = z;
-  while(zz < zEnd) {
-      *zz = *zz;
-      zz++;
-  }*/
-  // TODO: Remove End
   /* skip leading spaces */
   while( z<zEnd && sqlite3Isspace(*z) ) z+=incr;
   if( z>=zEnd ) return 0;

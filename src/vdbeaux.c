@@ -4198,11 +4198,11 @@ static int vdbeCompareMemString(
   if( pMem1->enc==pColl->enc ){
     /* The strings are already in the correct encoding.  Call the
      ** comparison function directly */
-    if (pColl->xCmp != &binCollFunc)
+    if (pColl->xCmp != &binCollFunc) {
         printf("Not binCollFunc!\n");
+        exit(129);
+    }
     else {
-        // printf("BinCollFunc\n");
-        return 0;
         return binCollFunc(pColl->pUser,pMem1->n,pMem1->z,pMem2->n,pMem2->z);
     }
     return pColl->xCmp(pColl->pUser,pMem1->n,pMem1->z,pMem2->n,pMem2->z);

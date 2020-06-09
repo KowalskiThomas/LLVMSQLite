@@ -696,6 +696,7 @@ static int sqlite3Step(Vdbe *p){
   {
     db->nVdbeExec++;
     rc = sqlite3VdbeExec(p);
+    db->nVdbeExec--;
 
     // The following allows to print the content of registers after sqlite3VdbeExec
     /*
@@ -726,8 +727,6 @@ static int sqlite3Step(Vdbe *p){
       }
     }
     */
-
-  db->nVdbeExec--;
   }
 
   if( rc!=SQLITE_ROW ){
