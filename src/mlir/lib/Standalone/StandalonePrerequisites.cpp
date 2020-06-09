@@ -197,22 +197,18 @@ uint32_t add(uint32_t a, uint32_t b) {
 }
 
 #define HIDE_OPCODE_START true
-#define HUNTED_MESSAGE true
 
 uint64_t printProgress(const char* s, uint32_t line, const char* fileName) {
-#if HUNTED_MESSAGE
-    static const char* huntedMessage = "once";
-    if (huntedMessage != nullptr && strstr(s, huntedMessage) != nullptr) {
-        out("Found hunted message!" << s);
+    static const char* huntedMessage = nullptr;
+    if (huntedMessage && strstr(s, huntedMessage) != nullptr) {
+        out("Found hunted message! " << s);
     }
-#endif
 #if HIDE_OPCODE_START
     if (strstr(s, "-- ") == s)
         return 1;
 #endif
     static auto& outs = llvm::outs();
-    char* msg = (char *) s;
-    outs << "[" << fileName << ":" << line << "] " << msg << /* " (" << (uint64_t) (s) << ")" << */ "\n";
+    outs << "[" << fileName << ":" << line << "] " << s << /* " (" << (uint64_t) (s) << ")" << */ "\n";
     outs.flush();
 
     if(strstr(s, "TODO")) {

@@ -2690,9 +2690,6 @@ static void *vdbeSorterRowkey(
 /*
 ** Copy the current sorter key into the memory cell pOut.
 */
-#ifdef NDEBUG
-#undef NDEBUG
-#endif
 int sqlite3VdbeSorterRowkey(const VdbeCursor *pCsr, Mem *pOut){
   VdbeSorter *pSorter;
   void *pKey; int nKey;           /* Sorter key to copy into pOut */

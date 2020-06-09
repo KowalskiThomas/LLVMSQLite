@@ -105,5 +105,7 @@ void mlir::Printer::operator()(Location loc, size_t line, Value v, const char *m
 }
 
 void mlir::Printer::operator()(Location loc, size_t line, const char *msg) {
+#if ENABLE_PRINTER
     printString(loc, line, msg);
+#endif
 }
