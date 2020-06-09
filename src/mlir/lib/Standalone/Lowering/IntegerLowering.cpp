@@ -1,10 +1,10 @@
 #include <llvm/Support/DynamicLibrary.h>
+#include <src/mlir/include/Standalone/Lowering/OutToPrerelease.h>
 
-#include <src/mlir/include/Standalone/ConstantManager.h>
-#include <src/mlir/include/Standalone/Lowering/MyBuilder.h>
+#include "Standalone/ConstantManager.h"
+#include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
-
 #include "Standalone/StandalonePasses.h"
 
 
@@ -33,7 +33,9 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(intOp); GO_BACK_TO(curBlock);
 
-        auto pOutValue = call(LOC, f_out2Prerelease, constants(T::VdbePtrTy, vdbe), pOp).getValue();
+        // auto pOutValue = call(LOC, f_out2Prerelease, constants(T::VdbePtrTy, vdbe), pOp).getValue();
+        auto outToPrerelease = mlir::standalone::Lowering::OutToPrerelease(context, rewriter, print, constants);
+        auto pOutValue = outToPrerelease(vdbe, &vdbe->aOp[pc]);
 
         // Get &pOut->u.i
         auto pOutUAddressBeforeCast = getElementPtrImm(LOC, T::doublePtrTy, pOutValue, 0, 0, 0);

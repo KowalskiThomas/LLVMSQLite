@@ -4,6 +4,7 @@
 #include <src/mlir/include/Standalone/Lowering/MyBuilder.h>
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
+#include "Standalone/Lowering/OutToPrerelease.h"
 
 #include "Standalone/StandalonePasses.h"
 
@@ -38,14 +39,11 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(strOp); GO_BACK_TO(curBlock);
 
+        auto outToPrerelease = mlir::standalone::Lowering::OutToPrerelease(context, rewriter, print, constants);
+        auto pOut = outToPrerelease(vdbe, pOp);
+
         branch(LOC, endBlock);
-
         ip_start(endBlock);
-
-        auto pOut = call(LOC, f_out2Prerelease,
-            constants(T::VdbePtrTy, vdbe),
-            constants(T::VdbeOpPtrTy, pOp)
-        ).getValue();
 
         auto pOutFlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
         auto pOutEncAddr = getElementPtrImm(LOC, T::i8PtrTy, pOut, 0, 2);

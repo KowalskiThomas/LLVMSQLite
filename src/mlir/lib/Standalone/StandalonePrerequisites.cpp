@@ -44,7 +44,7 @@ LLVMFuncOp f_sqlite3VdbeHalt;
 LLVMFuncOp f_sqlite3BtreeBeginTrans;
 LLVMFuncOp f_sqlite3VtabSavepoint;
 LLVMFuncOp f_sqlite3BtreeBeginStmt;
-LLVMFuncOp f_out2Prerelease;
+// LLVMFuncOp f_out2Prerelease;
 LLVMFuncOp f_sqlite3VdbeMemInit;
 LLVMFuncOp f_sqlite3DbMallocRawNN;
 LLVMFuncOp f_sqlite3VdbeMemSetInt64;
@@ -80,6 +80,7 @@ LLVMFuncOp f_sqlite3VdbeMemTooBig;
 LLVMFuncOp f_sqlite3VdbeBooleanValue;
 LLVMFuncOp f_sqlite3_value_text;
 LLVMFuncOp f_sqlite3VdbeError;
+LLVMFuncOp f_out2PrereleaseWithClear;
 
 LLVMFuncOp f_memCpy;
 
@@ -118,6 +119,7 @@ public:
     DECLARE_FUNCTION(sqlite3VtabSavepoint);
     DECLARE_FUNCTION(sqlite3BtreeBeginStmt);
     DECLARE_FUNCTION(out2Prerelease);
+    DECLARE_FUNCTION(out2PrereleaseWithClear);
     DECLARE_FUNCTION(sqlite3VdbeMemInit);
     DECLARE_FUNCTION(sqlite3DbMallocRawNN);
     DECLARE_FUNCTION(sqlite3VdbeMemSetInt64);
@@ -593,6 +595,7 @@ void Prerequisites::generateReferenceTosqlite3BtreeBeginStmt(ModuleOp m, LLVMDia
 
 extern "C" {
     Mem *out2Prerelease(Vdbe *p, VdbeOp *pOp);
+    Mem *out2PrereleaseWithClear(Vdbe *p, VdbeOp *pOp);
 }
 
 void Prerequisites::generateReferenceToout2Prerelease(ModuleOp m, LLVMDialect* d) {
@@ -602,7 +605,12 @@ void Prerequisites::generateReferenceToout2Prerelease(ModuleOp m, LLVMDialect* d
                 T::VdbeOpPtrTy
             }, false);
 
-    GENERATE_SYMBOL(f_out2Prerelease, out2Prerelease, "out2Prerelease");
+    // { // Generate f_out2Prerelease
+    //     GENERATE_SYMBOL(f_out2Prerelease, out2Prerelease, "out2Prerelease");
+    // }
+
+    // Generate f_out2PrereleaseWithClear
+    GENERATE_SYMBOL(f_out2PrereleaseWithClear, out2PrereleaseWithClear, "out2PrereleaseWithClear");
 }
 
 void Prerequisites::generateReferenceTosqlite3VdbeMemInit(ModuleOp m, LLVMDialect* d) {

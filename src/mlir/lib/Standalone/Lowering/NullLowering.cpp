@@ -2,6 +2,7 @@
 
 #include <src/mlir/include/Standalone/ConstantManager.h>
 #include <src/mlir/include/Standalone/Lowering/MyBuilder.h>
+#include <src/mlir/include/Standalone/Lowering/OutToPrerelease.h>
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
 
@@ -34,10 +35,18 @@ namespace mlir::standalone::passes {
         auto setMemCleared = setMemClearedAttr.getSInt();
         auto pc = nullOp.pcAttr().getUInt();
 
+        auto curBlock = rewriter.getBlock();
+        auto endBlock = curBlock->splitBlock(nullOp); GO_BACK_TO(curBlock);
+
         auto pOp = &vdbe->aOp[pc];
-        auto pOut = call(LOC, f_out2Prerelease,
-            constants(T::VdbePtrTy, vdbe), constants(T::VdbeOpPtrTy, pOp)
-        ).getValue();
+        // auto pOut2 = call(LOC, f_out2Prerelease,
+        //      constants(T::VdbePtrTy, vdbe), constants(T::VdbeOpPtrTy, pOp)
+        // ).getValue();
+        auto outToPrerelease = mlir::standalone::Lowering::OutToPrerelease(context, rewriter, print, constants);
+        auto pOut = outToPrerelease(vdbe, &vdbe->aOp[pc]);
+
+        branch(LOC, endBlock);
+        rewriter.setInsertionPointToStart(endBlock);
 
         auto nullFlagValue = setMemClearedAttr ? (MEM_Null | MEM_Cleared) : MEM_Null;
         auto nullFlag = constants(nullFlagValue, 16);

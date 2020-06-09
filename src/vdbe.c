@@ -307,6 +307,7 @@ VdbeCursor *allocateCursor(
 ** integer value if the string is in range to be an integer.  Otherwise,
 ** return false.
 */
+// TODO: This will have to be inlined
 static int alsoAnInt(Mem *pRec, double rValue, i64 *piValue) {
     i64 iValue = (double) rValue;
     if (sqlite3RealSameAsInt(rValue, iValue)) {
@@ -638,7 +639,7 @@ static int checkSavepointCount(sqlite3 *db){
 ** Return the register of pOp->p2 after first preparing it to be
 ** overwritten with an integer value.
 */
-static SQLITE_NOINLINE Mem *out2PrereleaseWithClear(Mem *pOut) {
+/* static */ SQLITE_NOINLINE Mem *out2PrereleaseWithClear(Mem *pOut) {
     sqlite3VdbeMemSetNull(pOut);
     pOut->flags = MEM_Int;
     return pOut;

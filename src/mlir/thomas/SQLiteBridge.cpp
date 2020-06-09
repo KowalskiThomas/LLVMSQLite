@@ -105,9 +105,9 @@ struct VdbeRunner {
         llvmModule = mlir::translateModuleToLLVMIR(mlirModule);
 
 #ifdef DEBUG_MACHINE
-        llvm::errs() << "\n\n--LLVM IR-Translated module";
-        llvmModule->dump();
-        llvm::errs() << "\n\n";
+        // llvm::errs() << "\n\n--LLVM IR-Translated module";
+        // llvmModule->dump();
+        // llvm::errs() << "\n\n";
 #endif
     }
 

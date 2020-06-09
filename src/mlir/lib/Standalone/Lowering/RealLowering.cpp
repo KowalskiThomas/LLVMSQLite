@@ -2,6 +2,7 @@
 
 #include <src/mlir/include/Standalone/ConstantManager.h>
 #include <src/mlir/include/Standalone/Lowering/MyBuilder.h>
+#include <src/mlir/include/Standalone/Lowering/OutToPrerelease.h>
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
 
@@ -38,13 +39,16 @@ namespace mlir::standalone::passes {
         auto valueAddr = constants(T::doublePtrTy, pointerToValue);
         auto value = load(LOC, valueAddr);
 
-        print(LOCL, value, "Loading OP_Real: ");
+        // print(LOCL, value, "Loading OP_Real: ");
 
-        // pOut = out2Prerelease(p, pOp);
-        auto pOut = call(LOC, f_out2Prerelease,
-            constants(T::VdbePtrTy, vdbe),
-            constants(T::VdbeOpPtrTy, pOp)
-        ).getValue();
+        /// pOut = out2Prerelease(p, pOp);
+        //auto pOut = call(LOC, f_out2Prerelease,
+        //    constants(T::VdbePtrTy, vdbe),
+        //    constants(T::VdbeOpPtrTy, pOp)
+        //).getValue();
+        auto outToPrerelease = mlir::standalone::Lowering::OutToPrerelease(context, rewriter, print, constants);
+        auto pOut = outToPrerelease(vdbe, &vdbe->aOp[pc]);
+
 
         // Get &pOut->flags
         auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
