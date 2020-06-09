@@ -46,7 +46,6 @@ namespace mlir::standalone::passes {
         auto pVdbe = constants(T::VdbePtrTy, vdbe);
         auto aMemAddress = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pVdbe, 0, 17);
         auto aMemValue = load(LOC, aMemAddress);
-        CALL_DEBUG
         // auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, aMemValue, p3);
         // TODO: Fix that:
         auto pOut = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[p3]);

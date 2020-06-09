@@ -81,6 +81,7 @@ LLVMFuncOp f_sqlite3VdbeBooleanValue;
 LLVMFuncOp f_sqlite3_value_text;
 LLVMFuncOp f_sqlite3VdbeError;
 LLVMFuncOp f_out2PrereleaseWithClear;
+LLVMFuncOp f_computeNumericType;
 
 LLVMFuncOp f_memCpy;
 
@@ -155,6 +156,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeBooleanValue);
     DECLARE_FUNCTION(sqlite3VdbeError);
     DECLARE_FUNCTION(sqlite3_value_text);
+    DECLARE_FUNCTION(computeNumericType);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1015,6 +1017,20 @@ void Prerequisites::generateReferenceTosqlite3_value_text(ModuleOp m, LLVMDialec
     GENERATE_SYMBOL(f_sqlite3_value_text, sqlite3_value_text_internal, "sqlite3_value_text");
 }
 
+extern "C" {
+    u16 computeNumericType(Mem*);
+}
+
+void Prerequisites::generateReferenceTocomputeNumericType(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i16Ty, {
+                T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_computeNumericType, computeNumericType, "computeNumericType");
+}
+
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, d)
 
@@ -1081,7 +1097,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeBooleanValue);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeError);
     CALL_SYMBOL_GENERATOR(sqlite3_value_text);
-
+    CALL_SYMBOL_GENERATOR(computeNumericType);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

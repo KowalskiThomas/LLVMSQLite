@@ -42,8 +42,8 @@ namespace mlir::standalone::passes {
         // auto pOut2 = call(LOC, f_out2Prerelease,
         //      constants(T::VdbePtrTy, vdbe), constants(T::VdbeOpPtrTy, pOp)
         // ).getValue();
-        auto outToPrerelease = mlir::standalone::Lowering::OutToPrerelease(context, rewriter, print, constants);
-        auto pOut = outToPrerelease(vdbe, &vdbe->aOp[pc]);
+        auto outToPrerelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
+        auto pOut = outToPrerelease(LOC, vdbe, &vdbe->aOp[pc]);
 
         branch(LOC, endBlock);
         rewriter.setInsertionPointToStart(endBlock);

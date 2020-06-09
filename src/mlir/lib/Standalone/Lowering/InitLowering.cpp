@@ -37,7 +37,7 @@ namespace mlir {
                 }
 
                 if (vdbe->aOp[0].p2 > 0)
-                    print(LOCL, constants(vdbe->aOp[0].p2, 32), "Init: jumping to");
+                    print(LOCL, constants(vdbe->aOp[0].p2, 32), "Init: Jumping to");
                 rewriter.create<mlir::BranchOp>(LOC, jumpToAttr);
 
                 rewriter.eraseOp(initOp);

@@ -46,8 +46,8 @@ namespace mlir::standalone::passes {
         //    constants(T::VdbePtrTy, vdbe),
         //    constants(T::VdbeOpPtrTy, pOp)
         //).getValue();
-        auto outToPrerelease = mlir::standalone::Lowering::OutToPrerelease(context, rewriter, print, constants);
-        auto pOut = outToPrerelease(vdbe, &vdbe->aOp[pc]);
+        auto outToPrerelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
+        auto pOut = outToPrerelease(LOC, vdbe, &vdbe->aOp[pc]);
 
 
         // Get &pOut->flags

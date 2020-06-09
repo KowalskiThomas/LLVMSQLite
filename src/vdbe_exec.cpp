@@ -26,17 +26,21 @@ int sqlite3VdbeExec(Vdbe *p) {
     assert(enableJit == -1);
     auto step_return = sqlite3VdbeExec2(p);
 #else
+#if ENABLE_DEFAULT && ENABLE_JIT
     int step_return;
     if (enableJit)
         step_return = jitVdbeStep(p);
     else
         step_return = sqlite3VdbeExec2(p);
+#else
+#error "Nothing is enabled"
+#endif
 #endif
 #endif
 
     auto tock = std::chrono::system_clock::now();
     auto diff = (unsigned long long)(std::chrono::duration_cast<std::chrono::milliseconds>(tock - tick).count());
-    printf("Total step time: %llu ms\n", diff);
+    printf("Total step time: %llu ms. RC = %d\n", diff, step_return);
 
     return step_return;
 }

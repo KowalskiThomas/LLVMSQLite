@@ -440,7 +440,7 @@ void sqlite3ValueApplyAffinity(
 ** numeric type, if has one.  Set the pMem->u.r and pMem->u.i fields
 ** accordingly.
 */
-static u16 SQLITE_NOINLINE computeNumericType(Mem *pMem) {
+/* static */ u16 SQLITE_NOINLINE computeNumericType(Mem *pMem) {
     int rc;
     sqlite3_int64 ix;
     assert((pMem->flags & (MEM_Int | MEM_Real | MEM_IntReal)) == 0);
@@ -669,7 +669,7 @@ int sqlite3VdbeExec2(
         Vdbe *p                    /* The VDBE */
 ) {
     Op *aOp = p->aOp;          /* Copy of p->aOp */
-    Op *pOp = &aOp[p->pc];             /* Current operation */
+    Op *pOp = aOp;             /* Current operation */
 #if defined(SQLITE_DEBUG) || defined(VDBE_PROFILE)
     Op *pOrigOp;               /* Value of pOp at the top of the loop */
 #endif

@@ -2,6 +2,7 @@
 
 #include <src/mlir/include/Standalone/ConstantManager.h>
 #include <src/mlir/include/Standalone/Lowering/MyBuilder.h>
+#include <src/mlir/include/Standalone/Lowering/NumericType.h>
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
 
@@ -54,19 +55,23 @@ namespace mlir::standalone::passes {
         }
         auto stackState = saveStack(LOC);
 
+        auto numericType = Inlining::NumericType(context, rewriter, print, constants);
+
         /// pIn1 = &aMem[pOp->p1];
         auto pIn1Addr = &vdbe->aMem[p1];
         auto pIn1 = constants(T::sqlite3_valuePtrTy, pIn1Addr);
 
         /// type1 = numericType(pIn1);
-        auto type1 = call(LOC, f_numericType, pIn1).getValue();
+        // auto type1 = call(LOC, f_numericType, pIn1).getValue();
+        auto type1 = numericType(LOC, pIn1);
 
         /// pIn2 = &aMem[pOp->p2];
         auto pIn2Addr = &vdbe->aMem[p2];
         auto pIn2 = constants(T::sqlite3_valuePtrTy, pIn2Addr);
 
         /// type2 = numericType(pIn2);
-        auto type2 = call(LOC, f_numericType, pIn2).getValue();
+        // auto type2 = call(LOC, f_numericType, pIn2).getValue();
+        auto type2 = numericType(LOC, pIn2);
 
         /// pOut = &aMem[pOp->p3];
         auto pOutAddr = &vdbe->aMem[resultReg];

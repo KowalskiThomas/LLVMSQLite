@@ -18,14 +18,14 @@ namespace mlir::standalone::passes::Inlining {
      * Mem *out2Prerelease(Vdbe*, VdbeOp*);
      * ```
      */
-    struct OutToPrerelease {
+    struct NumericType {
         Printer& printer;
         ConstantManager& constantManager;
         MLIRContext& mlirContext;
         OpBuilder& rewriter;
 
-        OutToPrerelease(MLIRContext&, OpBuilder&, Printer&, ConstantManager&);
+        NumericType(MLIRContext&, OpBuilder&, Printer&, ConstantManager&);
 
-        Value operator()(Location, Vdbe*, VdbeOp*);
+        Value operator()(Location, Value);
     };
 }

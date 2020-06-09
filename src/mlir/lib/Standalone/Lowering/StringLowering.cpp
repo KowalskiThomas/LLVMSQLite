@@ -39,8 +39,8 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(strOp); GO_BACK_TO(curBlock);
 
-        auto outToPrerelease = mlir::standalone::Lowering::OutToPrerelease(context, rewriter, print, constants);
-        auto pOut = outToPrerelease(vdbe, pOp);
+        auto outToPrerelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
+        auto pOut = outToPrerelease(LOC, vdbe, pOp);
 
         branch(LOC, endBlock);
         ip_start(endBlock);

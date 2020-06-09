@@ -25,7 +25,7 @@ namespace mlir {
                 {
                     auto operand = constants(noopOp.pcAttr().getUInt(), 64);
                     // Macro needs a variable named "builder" so we give it one
-                    print(LOCL, operand, "Noop at line");
+                    // print(LOCL, operand, "Noop at line");
                 }
 
                 rewriter.eraseOp(noopOp);

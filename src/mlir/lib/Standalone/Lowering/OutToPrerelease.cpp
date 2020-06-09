@@ -16,20 +16,20 @@ extern "C" {
 
 extern mlir::LLVM::LLVMFuncOp f_out2PrereleaseWithClear;
 
-namespace mlir::standalone::Lowering {
+namespace mlir::standalone::passes::Inlining {
 
     OutToPrerelease::OutToPrerelease(MLIRContext& context, OpBuilder& rewriter, Printer& print, ConstantManager& constants)
         : mlirContext(context), rewriter(rewriter), printer(print), constantManager(constants)
     {
     }
 
-    Value OutToPrerelease::operator()(Vdbe* vdbe, VdbeOp* pOp) {
+    Value OutToPrerelease::operator()(Location loc, Vdbe* vdbe, VdbeOp* pOp) {
         auto& constants = constantManager;
         auto& context = mlirContext;
         auto ctx = &context;
         LOWERING_NAMESPACE
 
-        auto stackState = rewriter.create<mlir::LLVM::StackSaveOp>(LOC, T::i8PtrTy);
+        auto stackState = rewriter.create<mlir::LLVM::StackSaveOp>(loc, T::i8PtrTy);
 
         /// assert(pOp->p2 > 0);
         /// assert(pOp->p2 <= (p->nMem + 1 - p->nCursor));
@@ -42,59 +42,59 @@ namespace mlir::standalone::Lowering {
         // #define VdbeMemDynamic(X) (((X)->flags&(MEM_Agg|MEM_Dyn))!=0)
 
         /// if (VdbeMemDynamic(pOut))
-        auto flagsAddr = rewriter.create<GEPOp>(LOC, T::i16PtrTy, pOut, ValueRange{
+        auto flagsAddr = rewriter.create<GEPOp>(loc, T::i16PtrTy, pOut, ValueRange{
                 constants(0, 32),
                 constants(1, 32)
         });
 
-        auto flagsValue = rewriter.create<LoadOp>(LOC, flagsAddr);
-        auto memDynamic = rewriter.create<AndOp>(LOC, flagsValue, constants(MEM_Agg | MEM_Dyn, 16));
+        auto flagsValue = rewriter.create<LoadOp>(loc, flagsAddr);
+        auto memDynamic = rewriter.create<AndOp>(loc, flagsValue, constants(MEM_Agg | MEM_Dyn, 16));
 
         auto curBlock = rewriter.getBlock();
         auto blockAfterMemDynamic = SPLIT_BLOCK; GO_BACK_TO(curBlock);
         auto blockNotMemDynamic = SPLIT_BLOCK; GO_BACK_TO(curBlock);
         auto blockMemDynamic = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
-        auto condMemDynamic = rewriter.create<ICmpOp>(LOC, Pred::ne,
+        auto condMemDynamic = rewriter.create<ICmpOp>(loc, Pred::ne,
             memDynamic,
             constants(0, 16)
         );
 
         auto pOutResult = rewriter.create<AllocaOp>
-            (LOC, T::sqlite3_valuePtrPtrTy, constants(1, 32), 0);
+            (loc, T::sqlite3_valuePtrPtrTy, constants(1, 32), 0);
 
-        rewriter.create<CondBrOp>(LOC, condMemDynamic, blockMemDynamic, blockNotMemDynamic);
+        rewriter.create<CondBrOp>(loc, condMemDynamic, blockMemDynamic, blockNotMemDynamic);
         { // if (VdbeMemDynamic(pOut))
             rewriter.setInsertionPointToStart(blockMemDynamic);
 
             /// return out2PrereleaseWithClear(pOut);
             auto callResult = rewriter.create<CallOp>
-                (LOC, f_out2PrereleaseWithClear, ValueRange {
+                (loc, f_out2PrereleaseWithClear, ValueRange {
                     constants(T::VdbePtrTy, vdbe),
                     constants(T::VdbeOpPtrTy, pOp)
                 }).getResult(0);
 
-            rewriter.create<StoreOp>(LOC, callResult, pOutResult);
+            rewriter.create<StoreOp>(loc, callResult, pOutResult);
 
-            rewriter.create<BranchOp>(LOC, blockAfterMemDynamic);
+            rewriter.create<BranchOp>(loc, blockAfterMemDynamic);
         } // end if (VdbeMemDynamic(pOut))
         { // else of if (VdbeMemDynamic(pOut))
             rewriter.setInsertionPointToStart(blockNotMemDynamic);
 
             /// pOut->flags = MEM_Int;
-            rewriter.create<StoreOp>(LOC, constants(MEM_Int, 16), flagsAddr);
+            rewriter.create<StoreOp>(loc, constants(MEM_Int, 16), flagsAddr);
 
             /// return pOut;
-            rewriter.create<StoreOp>(LOC, pOut, pOutResult);
+            rewriter.create<StoreOp>(loc, pOut, pOutResult);
 
-            rewriter.create<BranchOp>(LOC, blockAfterMemDynamic);
+            rewriter.create<BranchOp>(loc, blockAfterMemDynamic);
         } // end else of if (VdbeMemDynamic(pOut))
 
         rewriter.setInsertionPointToStart(blockAfterMemDynamic);
 
-        auto resultingPOut = rewriter.create<LoadOp>(LOC, pOutResult);
+        auto resultingPOut = rewriter.create<LoadOp>(loc, pOutResult);
 
-        rewriter.create<mlir::LLVM::StackRestoreOp>(LOC, stackState);
+        rewriter.create<mlir::LLVM::StackRestoreOp>(loc, stackState);
 
         return resultingPOut;
     }

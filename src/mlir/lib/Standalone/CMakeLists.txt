@@ -41,6 +41,7 @@ set(LOWERING_FILES
     Lowering/OnceLowering.cpp
     Lowering/FunctionLowering.cpp
     Lowering/OutToPrerelease.cpp
+    Lowering/NumericType.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone
