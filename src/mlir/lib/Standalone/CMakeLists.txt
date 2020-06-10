@@ -1,7 +1,9 @@
 set(LOWERING_FILES
-    Lowering/MyBuilder.cpp
-    Lowering/Printer.cpp
-    Lowering/AssertOperator.cpp
+    Lowering/Operators/MyBuilder.cpp
+    Lowering/Operators/Printer.cpp
+    Lowering/Operators/AssertOperator.cpp
+    Lowering/Operators/OutToPrerelease.cpp
+    Lowering/Operators/NumericType.cpp
 
     Lowering/AggFinalLowering.cpp
     Lowering/AggStepLowering.cpp
@@ -40,8 +42,6 @@ set(LOWERING_FILES
     Lowering/IfLowering.cpp
     Lowering/OnceLowering.cpp
     Lowering/FunctionLowering.cpp
-    Lowering/OutToPrerelease.cpp
-    Lowering/NumericType.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone
