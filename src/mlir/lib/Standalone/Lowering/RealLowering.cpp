@@ -10,8 +10,8 @@
 
 
 namespace mlir::standalone::passes {
-    LogicalResult RealLowering::matchAndRewrite(Real txnOp, PatternRewriter &rewriter) const {
-        auto op = &txnOp;
+    LogicalResult RealLowering::matchAndRewrite(Real realOp, PatternRewriter &rewriter) const {
+        auto op = &realOp;
         LOWERING_PASS_HEADER
         LOWERING_NAMESPACE
 
@@ -24,13 +24,13 @@ namespace mlir::standalone::passes {
         auto firstBlock = rewriter.getBlock();
 
         // pc = Programme Counter
-        auto pc = txnOp.pcAttr().getUInt();
+        auto pc = realOp.pcAttr().getUInt();
         auto* pOp = &vdbe->aOp[pc];
 
         // regTo = p2
-        auto regTo = txnOp.regToAttr().getSInt();
+        auto regTo = realOp.regToAttr().getSInt();
         // pointerToValueAttr = p4
-        auto pointerToValue = (double*)txnOp.pointerToValueAttr().getUInt();
+        auto pointerToValue = (double*)realOp.pointerToValueAttr().getUInt();
 
         print(LOCL, "-- Real");
         if (false) { // call to default
@@ -43,7 +43,7 @@ namespace mlir::standalone::passes {
         }
 
         auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
+        auto endBlock = curBlock->splitBlock(realOp); GO_BACK_TO(curBlock);
 
         // Get the real value pointed by P4
         auto valueAddr = constants(T::doublePtrTy, pointerToValue);
@@ -72,7 +72,7 @@ namespace mlir::standalone::passes {
 
         ip_start(endBlock);
 
-        rewriter.eraseOp(txnOp);
+        rewriter.eraseOp(realOp);
 
         return success();
     } // matchAndRewrite

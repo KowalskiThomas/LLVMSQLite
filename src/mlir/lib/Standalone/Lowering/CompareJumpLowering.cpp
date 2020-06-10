@@ -15,8 +15,8 @@ ExternFuncOp f_sqlite3VdbeMemStringify;
 ExternFuncOp f_sqlite3MemCompare;
 
 namespace mlir::standalone::passes {
-    LogicalResult CompareJumpLowering::matchAndRewrite(CompareJump txnOp, PatternRewriter &rewriter) const {
-        auto op = &txnOp;
+    LogicalResult CompareJumpLowering::matchAndRewrite(CompareJump cjOp, PatternRewriter &rewriter) const {
+        auto op = &cjOp;
         LOWERING_PASS_HEADER
         LOWERING_NAMESPACE
 
@@ -28,14 +28,14 @@ namespace mlir::standalone::passes {
 
         auto firstBlock = rewriter.getBlock();
 
-        auto pc = txnOp.pcAttr().getUInt();
+        auto pc = cjOp.pcAttr().getUInt();
         auto* pOp = &vdbe->aOp[pc];
 
-        auto lhs = txnOp.lhsAttr().getSInt();
-        auto p2 = txnOp.p2Attr().getSInt();
-        auto rhs = txnOp.rhsAttr().getSInt();
-        auto collSeq = (CollSeq *) txnOp.comparatorAttr().getUInt();
-        auto flags = txnOp.flagsAttr().getUInt();
+        auto lhs = cjOp.lhsAttr().getSInt();
+        auto p2 = cjOp.p2Attr().getSInt();
+        auto rhs = cjOp.rhsAttr().getSInt();
+        auto collSeq = (CollSeq *) cjOp.comparatorAttr().getUInt();
+        auto flags = cjOp.flagsAttr().getUInt();
 
         if (false) { // call to default
             // TODO: Use our own implementation
@@ -53,11 +53,11 @@ namespace mlir::standalone::passes {
 
         ALWAYS_ASSERT(lhs == pOp->p1 && rhs == pOp->p3 && "Attributes don't match VDBE operation");
 
-        auto jumpTo = txnOp.ifTrue();
-        auto fallthrough = txnOp.ifFalse();
+        auto jumpTo = cjOp.ifTrue();
+        auto fallthrough = cjOp.ifFalse();
 
         auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
+        auto endBlock = curBlock->splitBlock(cjOp); GO_BACK_TO(curBlock);
         auto compareOpBlock = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
         auto stackState = rewriter.create<mlir::LLVM::StackSaveOp>(LOC, T::i8PtrTy);
@@ -512,7 +512,7 @@ namespace mlir::standalone::passes {
         ip_start(endBlock);
         rewriter.create<mlir::LLVM::StackRestoreOp>(LOC, stackState);
         branch(LOC, jumpTo);
-        rewriter.eraseOp(txnOp);
+        rewriter.eraseOp(cjOp);
 
         return success();
     } // matchAndRewrite

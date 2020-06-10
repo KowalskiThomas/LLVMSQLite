@@ -9,8 +9,8 @@
 
 
 namespace mlir::standalone::passes {
-    LogicalResult CopyLowering::matchAndRewrite(Copy txnOp, PatternRewriter &rewriter) const {
-        auto op = &txnOp;
+    LogicalResult CopyLowering::matchAndRewrite(Copy copyOp, PatternRewriter &rewriter) const {
+        auto op = &copyOp;
         LOWERING_PASS_HEADER
         LOWERING_NAMESPACE
 
@@ -24,14 +24,14 @@ namespace mlir::standalone::passes {
 
         auto firstBlock = rewriter.getBlock();
 
-        auto firstFromRegAttr = txnOp.firstFromRegAttr();
-        auto nFromRegAttr = txnOp.nFromRegAttr();
-        auto firstToRegAttr = txnOp.firstToRegAttr();
+        auto firstFromRegAttr = copyOp.firstFromRegAttr();
+        auto nFromRegAttr = copyOp.nFromRegAttr();
+        auto firstToRegAttr = copyOp.firstToRegAttr();
 
         auto firstFromReg = firstFromRegAttr.getSInt();
         auto nReg = nFromRegAttr.getSInt() + 1;
         auto firstToReg = firstToRegAttr.getSInt();
-        auto pc = txnOp.pcAttr().getUInt();
+        auto pc = copyOp.pcAttr().getUInt();
 
         if (false) { // call to default
             // TODO: Use our own implementation
@@ -44,7 +44,7 @@ namespace mlir::standalone::passes {
 
 
         auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
+        auto endBlock = curBlock->splitBlock(copyOp); GO_BACK_TO(curBlock);
 
         for(size_t i = 0; i < nReg; i++) {
             auto pIn = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[firstFromReg + i]);
@@ -56,7 +56,7 @@ namespace mlir::standalone::passes {
         branch(LOC, endBlock);
 
         ip_start(endBlock);
-        rewriter.eraseOp(txnOp);
+        rewriter.eraseOp(copyOp);
 
         return success();
     } // matchAndRewrite

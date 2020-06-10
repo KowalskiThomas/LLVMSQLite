@@ -10,8 +10,8 @@
 ExternFuncOp f_sqlite3VdbeMemTooBig;
 
 namespace mlir::standalone::passes {
-    LogicalResult AggFinalLowering::matchAndRewrite(AggFinal txnOp, PatternRewriter &rewriter) const {
-        auto op = &txnOp;
+    LogicalResult AggFinalLowering::matchAndRewrite(AggFinal afOp, PatternRewriter &rewriter) const {
+        auto op = &afOp;
         LOWERING_PASS_HEADER
         LOWERING_NAMESPACE
 
@@ -23,10 +23,10 @@ namespace mlir::standalone::passes {
 
         auto firstBlock = rewriter.getBlock();
 
-        auto functionAttr = txnOp.functionAttr();
-        auto nArgsAttr = txnOp.nArgsAttr();
-        auto toRegAttr = txnOp.toRegAttr();
-        auto pc = txnOp.pcAttr().getUInt();
+        auto functionAttr = afOp.functionAttr();
+        auto nArgsAttr = afOp.nArgsAttr();
+        auto toRegAttr = afOp.toRegAttr();
+        auto pc = afOp.pcAttr().getUInt();
 
         auto accumReg = toRegAttr.getSInt();
         auto pFunc = constants(T::FuncDefPtrTy, (void*)functionAttr.getUInt());
@@ -45,7 +45,7 @@ namespace mlir::standalone::passes {
         auto stackState = saveStack(LOC);
 
         auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
+        auto endBlock = curBlock->splitBlock(afOp); GO_BACK_TO(curBlock);
 
         auto pMem = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[accumReg]);
 
@@ -70,7 +70,7 @@ namespace mlir::standalone::passes {
 
         ip_start(endBlock);
         restoreStack(LOC, stackState);
-        rewriter.eraseOp(txnOp);
+        rewriter.eraseOp(afOp);
 
         return success();
     } // matchAndRewrite
