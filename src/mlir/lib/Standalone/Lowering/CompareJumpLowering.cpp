@@ -26,13 +26,6 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
-        auto memSetTypeFlag = [&](Value flagsAddr, int flag) {
-            auto flagsOut = load(LOC, flagsAddr);
-            flagsOut = bitAnd(LOC, flagsOut, ~(MEM_Zero | MEM_TypeMask));
-            flagsOut = bitOr(LOC, flagsOut, flag);
-            store(LOC, flagsOut, flagsAddr);
-        };
-
         auto firstBlock = rewriter.getBlock();
 
         auto pc = txnOp.pcAttr().getUInt();
@@ -164,6 +157,7 @@ namespace mlir::standalone::passes {
                     auto pOut = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[p2]);
                     store(LOC, 1, vdbeCtx->iCompare);
 
+                    /// MemSetTypeFlag(pOut, MEM_Null);
                     memSetTypeFlag(pOut, MEM_Null);
 
                     branch(LOC, endBlock);

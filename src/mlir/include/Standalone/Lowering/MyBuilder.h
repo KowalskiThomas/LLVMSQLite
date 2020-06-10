@@ -205,3 +205,10 @@ auto saveStack = [&](Location loc) { \
 auto restoreStack = [&](Location loc, Value state) { \
     builder.insertRestoreStack(loc, state); \
 }; \
+auto memSetTypeFlag = [&](Value flagsAddr, int flag) { \
+    auto flagsOut = load(LOC, flagsAddr); \
+    flagsOut = bitAnd(LOC, flagsOut, ~(MEM_Zero | MEM_TypeMask)); \
+    flagsOut = bitOr(LOC, flagsOut, flag); \
+    store(LOC, flagsOut, flagsAddr); \
+}; \
+

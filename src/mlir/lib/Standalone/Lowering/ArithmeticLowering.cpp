@@ -217,10 +217,7 @@ namespace mlir::standalone::passes {
             store(LOC, iBValue, constants(T::i64PtrTy, &pOutAddr->u.i));
 
             /// MemSetTypeFlag(pOut, MEM_Int);
-            auto flagsOut = load(LOC, flagsOutAddr);
-            flagsOut = bitAnd(LOC, flagsOut, ~(MEM_Zero | MEM_TypeMask));
-            flagsOut = bitOr(LOC, flagsOut, MEM_Int);
-            store(LOC, flagsOut, flagsOutAddr);
+            memSetTypeFlag(flagsOutAddr, MEM_Int);
 
             branch(LOC, blockAfterType);
         } // end if ((type1 & type2 & MEM_Int) != 0)
@@ -297,10 +294,7 @@ namespace mlir::standalone::passes {
             store(LOC, rB, constants(T::doublePtrTy, &pOutAddr->u.r));
 
             /// MemSetTypeFlag(pOut, MEM_Real);
-            auto flagsOut = load(LOC, flagsOutAddr);
-            flagsOut = bitAnd(LOC, flagsOut, ~(MEM_Zero | MEM_TypeMask));
-            flagsOut = bitOr(LOC, flagsOut, MEM_Real);
-            store(LOC, flagsOut, flagsOutAddr);
+            memSetTypeFlag(flagsOutAddr, MEM_Real);
 
             branch(LOC, blockAfterType);
         } // end else of if ((flags & MEM_Null) != 0) "BothNotNull"
