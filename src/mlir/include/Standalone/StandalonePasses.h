@@ -22,69 +22,15 @@ namespace mlir {
             LogicalResult matchAndRewrite(InitOp op, PatternRewriter& rewriter) const override;
         };
 
-        class NoopLowering : public mlir::OpRewritePattern<Noop> {
-        public:
-            using OpRewritePattern<Noop>::OpRewritePattern;
-
-            LogicalResult matchAndRewrite(Noop op, PatternRewriter& rewriter) const override;
-        };
-
-        class GotoLowering : public mlir::OpRewritePattern<Goto> {
-        public:
-            using mlir::OpRewritePattern<Goto>::OpRewritePattern;
-
-            LogicalResult matchAndRewrite(Goto gotoOp, PatternRewriter& rewriter) const override;
-        };
-
-        class HaltLowering : public mlir::OpRewritePattern<Halt> {
-        public:
-            using mlir::OpRewritePattern<Halt>::OpRewritePattern;
-
-            LogicalResult matchAndRewrite(Halt op, PatternRewriter& rewriter) const override;
-        };
-
-        class OpenReadLowering : public mlir::OpRewritePattern<OpenRead> {
-        public:
-            using mlir::OpRewritePattern<OpenRead>::OpRewritePattern;
-
-            LogicalResult matchAndRewrite(OpenRead orOp, PatternRewriter& rewriter) const override;
-        };
-
-        class RewindLowering : public mlir::OpRewritePattern<Rewind> {
-        public:
-            using mlir::OpRewritePattern<Rewind>::OpRewritePattern;
-
-            LogicalResult matchAndRewrite(Rewind rewindOp, PatternRewriter& rewriter) const override;
-        };
-
-        class ColumnLowering : public mlir::OpRewritePattern<Column> {
-        public:
-            using mlir::OpRewritePattern<Column>::OpRewritePattern;
-
-            LogicalResult matchAndRewrite(Column rewindOp, PatternRewriter& rewriter) const override;
-        };
-
-        class ResultRowLowering : public mlir::OpRewritePattern<ResultRow> {
-        public:
-            using mlir::OpRewritePattern<ResultRow>::OpRewritePattern;
-
-            LogicalResult matchAndRewrite(ResultRow rewindOp, PatternRewriter& rewriter) const override;
-        };
-
-        class NextLowering : public mlir::OpRewritePattern<Next> {
-        public:
-            using mlir::OpRewritePattern<Next>::OpRewritePattern;
-
-            LogicalResult matchAndRewrite(Next rewindOp, PatternRewriter& rewriter) const override;
-        };
-
-        class TransactionLowering : public mlir::OpRewritePattern<Transaction> {
-        public:
-            using mlir::OpRewritePattern<Transaction>::OpRewritePattern;
-
-            LogicalResult matchAndRewrite(Transaction txnOp, PatternRewriter& rewriter) const override;
-        };
-
+        DECLARE_LOWERING(Noop)
+        DECLARE_LOWERING(Goto)
+        DECLARE_LOWERING(Halt)
+        DECLARE_LOWERING(OpenRead)
+        DECLARE_LOWERING(Rewind)
+        DECLARE_LOWERING(Column)
+        DECLARE_LOWERING(ResultRow)
+        DECLARE_LOWERING(Next)
+        DECLARE_LOWERING(Transaction)
         DECLARE_LOWERING(Null)
         DECLARE_LOWERING(AggFinal)
         DECLARE_LOWERING(AggStep)
