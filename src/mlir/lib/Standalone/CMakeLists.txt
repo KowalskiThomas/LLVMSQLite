@@ -3,6 +3,7 @@ set(LOWERING_FILES
     Lowering/Operators/Printer.cpp
     Lowering/Operators/AssertOperator.cpp
     Lowering/Operators/OutToPrerelease.cpp
+    Lowering/Operators/GetVarint32.cpp
     Lowering/Operators/NumericType.cpp
 
     Lowering/AggFinalLowering.cpp
