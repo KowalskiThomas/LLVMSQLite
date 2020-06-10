@@ -207,6 +207,7 @@ uint64_t printProgress(const char* s, uint32_t line, const char* fileName) {
     if (strstr(s, "-- ") == s)
         return 1;
 #endif
+
     static auto& outs = llvm::outs();
     outs << "[" << fileName << ":" << line << "] " << s << /* " (" << (uint64_t) (s) << ")" << */ "\n";
     outs.flush();
@@ -219,7 +220,7 @@ uint64_t printProgress(const char* s, uint32_t line, const char* fileName) {
     return 0;
 }
 
-uint64_t printInt(void *i, void *s, uint32_t line, const char* fileName) {
+uint64_t printInt(uint64_t i, char *s, uint32_t line, const char* fileName) {
     llvm::outs() << "[" << fileName << ":" << line << "] " << (char *) s << " " << (int64_t) (i) << " " << "\n";
     llvm::outs().flush();
     return 0;

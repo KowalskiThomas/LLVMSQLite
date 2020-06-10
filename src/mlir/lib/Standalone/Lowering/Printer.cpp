@@ -5,7 +5,7 @@
 PRINTER_USING
 USING_OPS
 
-#define ENABLE_PRINTER true
+#define ENABLE_PRINTER false
 
 extern LLVMFuncOp f_printPtrAndValue;
 extern LLVMFuncOp f_progress;
