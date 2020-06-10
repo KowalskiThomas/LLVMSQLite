@@ -14,24 +14,6 @@ ExternFuncOp f_applyNumericAffinity;
 ExternFuncOp f_sqlite3VdbeMemStringify;
 ExternFuncOp f_sqlite3MemCompare;
 
-
-#if 0
-if (false) { // Instruction counting (azecount)
-    static size_t count = 0;
-    store(LOC, add(LOC, load(LOC, constants(T::i64PtrTy, &count)), 1), constants(T::i64PtrTy, &count));
-    print(LOCL, load(LOC, constants(T::i64PtrTy, &count)), "CompareJump");
-}
-#endif
-
-#if 0
-{ // TODO Remove (qsdcount)
-    static size_t count = 0; count++;
-    if (count == 1 || count % 100 == 0)
-      printf("%s %zu\n", __PRETTY_FUNCTION__, count);
-  }
-#endif
-
-
 namespace mlir::standalone::passes {
     LogicalResult CompareJumpLowering::matchAndRewrite(CompareJump txnOp, PatternRewriter &rewriter) const {
         auto op = &txnOp;
