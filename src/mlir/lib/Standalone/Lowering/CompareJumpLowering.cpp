@@ -1,7 +1,7 @@
 #include <llvm/Support/DynamicLibrary.h>
 
-#include <src/mlir/include/Standalone/ConstantManager.h>
-#include <src/mlir/include/Standalone/Lowering/MyBuilder.h>
+#include "Standalone/ConstantManager.h"
+#include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/AllIncludes.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
@@ -13,6 +13,24 @@
 ExternFuncOp f_applyNumericAffinity;
 ExternFuncOp f_sqlite3VdbeMemStringify;
 ExternFuncOp f_sqlite3MemCompare;
+
+
+#if 0
+if (false) { // Instruction counting (azecount)
+    static size_t count = 0;
+    store(LOC, add(LOC, load(LOC, constants(T::i64PtrTy, &count)), 1), constants(T::i64PtrTy, &count));
+    print(LOCL, load(LOC, constants(T::i64PtrTy, &count)), "CompareJump");
+}
+#endif
+
+#if 0
+{ // TODO Remove (qsdcount)
+    static size_t count = 0; count++;
+    if (count == 1 || count % 100 == 0)
+      printf("%s %zu\n", __PRETTY_FUNCTION__, count);
+  }
+#endif
+
 
 namespace mlir::standalone::passes {
     LogicalResult CompareJumpLowering::matchAndRewrite(CompareJump txnOp, PatternRewriter &rewriter) const {
@@ -56,12 +74,6 @@ namespace mlir::standalone::passes {
             }
 
             return success();
-        }
-
-        if (false) { // Instruction counting (azecount)
-            static size_t count = 0;
-            store(LOC, add(LOC, load(LOC, constants(T::i64PtrTy, &count)), 1), constants(T::i64PtrTy, &count));
-            print(LOCL, load(LOC, constants(T::i64PtrTy, &count)), "CompareJump");
         }
 
         ALWAYS_ASSERT(lhs == pOp->p1 && rhs == pOp->p3 && "Attributes don't match VDBE operation");

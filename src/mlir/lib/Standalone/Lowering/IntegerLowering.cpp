@@ -1,5 +1,5 @@
 #include <llvm/Support/DynamicLibrary.h>
-#include <src/mlir/include/Standalone/Lowering/OutToPrerelease.h>
+#include "Standalone/Lowering/OutToPrerelease.h"
 
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"

@@ -1,5 +1,5 @@
 #include <unordered_map>
-#include <src/mlir/include/Standalone/ConstantManager.h>
+#include "Standalone/ConstantManager.h"
 #include "SQLiteBridge.h"
 
 #include "Standalone/StandalonePrerequisites.h"

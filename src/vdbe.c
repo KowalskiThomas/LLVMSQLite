@@ -2336,13 +2336,6 @@ int sqlite3VdbeExec2(
                 int bRev;          /* True for DESCENDING sort order */
                 int *aPermute;     /* The permutation */
 
-                if (0) {
-                    // TODO Remove
-                    // qsdcount
-                    static size_t count = 0; count++;
-                    printf_line("Compare %zu\n", count);
-                }
-
                 if ((pOp->p5 & OPFLAG_PERMUTE) == 0) {
                     aPermute = 0;
                 } else {
