@@ -5,10 +5,9 @@
 #include "Standalone/Lowering/GetVarint32Operator.h"
 
 namespace mlir::standalone::passes {
-void GetVarint32Operator::operator()(GetVarint32Operator::Value A, GetVarint32Operator::Value B,
-                                     GetVarint32Operator::Value writeResultTo) {
+void GetVarint32Operator::operator()(Value A, Value B, Value writeResultTo) {
     // #define getVarint32(A,B)  \
-        //   (u8)((*(A)<(u8)0x80)?((B)=(u32)*(A)),1:sqlite3GetVarint32((A),(u32 *)&(B)))
+    //   (u8)((*(A)<(u8)0x80)?((B)=(u32)*(A)),1:sqlite3GetVarint32((A),(u32 *)&(B)))
     //
     // Func getVarint32(A, B) as u8:
     //   If *A < 0x80 Then
