@@ -23,8 +23,22 @@ namespace mlir::standalone::passes {
         print(LOCL, "-- Return");
 
         auto firstBlock = rewriter.getBlock();
-        // auto goBackTo = retOp.continueAt();
         auto goBackToAddr = retOp.continueAtNextInstructionFromRegAttr().getSInt();
+        auto pc = retOp.pcAttr().getUInt();
+
+        if (false) { // call to default
+            // TODO: Use our own implementation
+            store(LOC, 1, constants(T::i64PtrTy, &maxVdbeSteps));
+            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+            call(LOC, f_sqlite3VdbeExec2, constants(T::VdbePtrTy, vdbe));
+            rewriter.eraseOp(*op);
+
+            if (op->getOperation()->isKnownTerminator()) {
+                rewriter.create<BranchOp>(LOC, vdbeCtx->jumpsBlock);
+            }
+
+            return success();
+        }
 
         /// pOp = &aOp[pIn1->u.i];
         // Get &pIn1
@@ -42,8 +56,8 @@ namespace mlir::standalone::passes {
         // Store target in &vdbe->pc
         store(LOC, target, pCAddr);
 
-        // Debug
-        print(LOCL, target, "Return: Returning to");
+        // TODO: Debug
+        // print(LOCL, target, "Return: Returning to");
 
         // Branch to jumpsBlock
         branch(LOC, vdbeCtx->jumpsBlock);

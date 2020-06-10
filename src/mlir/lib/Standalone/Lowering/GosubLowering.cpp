@@ -27,6 +27,19 @@ namespace mlir::standalone::passes {
         auto writeAddressTo = gsOp.writeAddressToAttr().getSInt();
         auto pc = gsOp.pcAttr().getUInt();
         auto jumpToBlock = gsOp.jumpTo();
+        if (false) { // call to default
+            // TODO: Use our own implementation
+            rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
+            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+            rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange {constants(T::VdbePtrTy, vdbe) });
+            rewriter.eraseOp(*op);
+
+            if (op->getOperation()->isKnownTerminator()) {
+                rewriter.create<BranchOp>(LOC, vdbeCtx->jumpsBlock);
+            }
+
+            return success();
+        }
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(gsOp); GO_BACK_TO(curBlock);
@@ -48,8 +61,9 @@ namespace mlir::standalone::passes {
 
         ip_start(endBlock);
 
-        print(LOCL, constants(pc, 32), "GoSub: Jumping from");
-        print(LOCL, constants(vdbe->aOp[pc].p2, 32),"GoSub: Jumping to");
+        // TODO: Debug
+        // print(LOCL, constants(pc, 32), "GoSub: Jumping from");
+        // print(LOCL, constants(vdbe->aOp[pc].p2, 32),"GoSub: Jumping to");
 
         branch(LOC, jumpToBlock);
         rewriter.eraseOp(gsOp);

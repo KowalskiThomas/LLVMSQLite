@@ -15,6 +15,8 @@
 #ifndef SQLITEINT_H
 #define SQLITEINT_H
 
+#define SQLITE_ENABLE_EXPLAIN_COMMENTS //TODO
+
 /* Special Comments:
 **
 ** Some comments have special meaning to the tools that measure test

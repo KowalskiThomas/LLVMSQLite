@@ -19,6 +19,21 @@ namespace mlir {
                 print(LOCL, "-- Init");
 
                 auto jumpToAttr = initOp.jumpTo();
+                auto pc = initOp.pcAttr().getUInt();
+                if (false) { // call to default
+                    // TODO: Use our own implementation
+                    rewriter.create<mlir::LLVM::StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
+                    rewriter.create<mlir::LLVM::StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+                    rewriter.create<mlir::LLVM::CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange {constants(T::VdbePtrTy, vdbe) });
+                    rewriter.eraseOp(*op);
+
+                    if (op->getOperation()->isKnownTerminator()) {
+                        rewriter.create<BranchOp>(LOC, vdbeCtx->jumpsBlock);
+                    }
+
+                    return success();
+                }
+
 
                 // Rewrite the Once value for all Once instructions
                 for(auto i = 0; i < vdbe->nOp; i++) {

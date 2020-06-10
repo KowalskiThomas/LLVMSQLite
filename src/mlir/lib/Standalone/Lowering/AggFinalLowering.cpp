@@ -26,11 +26,21 @@ namespace mlir::standalone::passes {
         auto functionAttr = txnOp.functionAttr();
         auto nArgsAttr = txnOp.nArgsAttr();
         auto toRegAttr = txnOp.toRegAttr();
+        auto pc = txnOp.pcAttr().getUInt();
 
         auto accumReg = toRegAttr.getSInt();
         auto pFunc = constants(T::FuncDefPtrTy, (void*)functionAttr.getUInt());
 
         print(LOCL, "-- AggFinal");
+
+        if (false) { // call to default
+            // TODO: Use our own implementation
+            rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
+            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+            rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange { constants(T::VdbePtrTy, vdbe) });
+            rewriter.eraseOp(*op);
+            return success();
+        }
 
         auto stackState = saveStack(LOC);
 

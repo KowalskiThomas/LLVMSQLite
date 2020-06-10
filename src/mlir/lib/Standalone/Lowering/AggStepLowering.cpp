@@ -43,6 +43,15 @@ namespace mlir::standalone::passes {
         auto pc = aggStepOp.pcAttr().getUInt();
         VdbeOp* pOp = &vdbe->aOp[pc];
 
+        if (false) { // call to default
+            // TODO: Use our own implementation
+            store(LOC, 1, constants(T::i64PtrTy, &maxVdbeSteps));
+            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+            call(LOC, f_sqlite3VdbeExec2, constants(T::VdbePtrTy, vdbe));
+            rewriter.eraseOp(aggStepOp);
+            return success();
+        }
+
         /// int rc = 0;
         auto rcAddr = alloca(LOC, T::i32PtrTy);
         store(LOC, 0, rcAddr);

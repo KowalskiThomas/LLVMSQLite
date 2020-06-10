@@ -43,6 +43,16 @@ namespace mlir::standalone::passes {
         auto pc = mrOp.pcAttr().getUInt();
 
         print(LOCL, "-- MakeRecord");
+        if (false) { // call to default
+            // TODO: Use our own implementation
+            store(LOC, 1, constants(T::i64PtrTy, &maxVdbeSteps));
+            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+            call(LOC, f_sqlite3VdbeExec2, constants(T::VdbePtrTy, vdbe));
+            rewriter.eraseOp(*op);
+            return success();
+        }
+
+
         auto stackState = saveStack(LOC);
 
         auto curBlock = rewriter.getBlock();

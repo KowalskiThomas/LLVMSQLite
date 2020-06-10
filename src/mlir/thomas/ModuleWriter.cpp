@@ -57,10 +57,12 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     builder.create<mlir::BranchOp>(LOC, jumpsBlock);
     builder.setInsertionPointToStart(jumpsBlock);
 
-    vdbeCtx->iCompare = builder.create<mlir::LLVM::AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
+    extern int iCompare;
+    vdbeCtx->iCompare = constants(T::i32PtrTy, &iCompare);
+    // vdbeCtx->iCompare = builder.create<mlir::LLVM::AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
     auto pcAddr = constants(T::i32PtrTy, (int*)&vdbe->pc);
     auto pcValue = builder.create<LoadOp>(LOCB, pcAddr);
-    print(LOCL, pcValue, "Current PC:");
+    // print(LOCL, pcValue, "Current PC:");
 
     Block* targetBlock = nullptr;
     Block* blockAfterJump = nullptr;
@@ -127,7 +129,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 auto initOp = builder.create<mlir::standalone::InitOp>
                         (LOCB,
-                         INTEGER_ATTR(64, true, initValue),
+                         INTEGER_ATTR(64, false, pc),
                          entryBlock
                         );
 
@@ -159,6 +161,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 // Create the jump
                 auto op = builder.create<mlir::standalone::Goto>(
                         LOCB,
+                        INTEGER_ATTR(64, false, pc),
                         toBlock
                 );
 
@@ -172,7 +175,10 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
             }
             case OP_Halt: {
-                builder.create<mlir::standalone::Halt>(LOCB);
+                builder.create<mlir::standalone::Halt>
+                    (LOCB,
+                        INTEGER_ATTR(64, false, pc)
+                    );
                 newWriteBranchOut = false;
                 break;
             }
@@ -203,6 +209,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 auto op = builder.create<mlir::standalone::Rewind>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          blockJumpTo,
                          blockFallthrough
@@ -264,6 +271,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 auto op = builder.create<mlir::standalone::Next>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, curHint),
                          INTEGER_ATTR(64, false, (uint64_t) p4.p),
@@ -288,6 +296,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 builder.create<mlir::standalone::Transaction>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, dbIdx),
                          INTEGER_ATTR(32, true, isWrite),
                          INTEGER_ATTR(32, true, p3),
@@ -338,6 +347,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 builder.create<mlir::standalone::AggFinal>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, false, nArgs),
                          INTEGER_ATTR(64, false, (uint64_t) funcDef)
@@ -352,6 +362,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 builder.create<mlir::standalone::Copy>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, firstRegTo),
                          INTEGER_ATTR(32, true, firstRegFrom),
                          INTEGER_ATTR(32, true, nRegs)
@@ -416,6 +427,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 rewriter.create<mlir::standalone::OpenPseudo>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, reg),
                          INTEGER_ATTR(32, true, nFields)
@@ -429,6 +441,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 rewriter.create<mlir::standalone::SorterInsert>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, reg)
                         );
@@ -443,6 +456,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 builder.create<mlir::standalone::SorterOpen>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, nCol),
                          INTEGER_ATTR(32, true, p3),
@@ -481,6 +495,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 auto op = builder.create<mlir::standalone::SorterData>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, regTo),
                          INTEGER_ATTR(32, true, p3)
@@ -498,6 +513,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 auto op = builder.create<mlir::standalone::SorterNext>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(16, false, p5),
                          jumpToBlock,
@@ -542,6 +558,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 auto op = builder.create<mlir::standalone::Jump>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          blockLess,
                          blockEq,
                          blockGreater
@@ -564,6 +581,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 rewriter.create<mlir::standalone::Move>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, true, p2),
                          INTEGER_ATTR(32, true, p3)
@@ -581,6 +599,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 auto op = rewriter.create<mlir::standalone::IfPos>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, true, p3),
                          blockTarget,
@@ -602,6 +621,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 auto op = rewriter.create<mlir::standalone::Return>
                         (LOCB,
+                         INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, returnToAddrReg)
                         );
 
@@ -767,6 +787,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 auto op = rewriter.create<mlir::standalone::If>
                     (LOCB,
+                     INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, true, p3),
                          blockJump,

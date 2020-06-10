@@ -21,6 +21,11 @@
 #include "sqliteInt.h"
 #include "vdbeInt.h"
 
+// TODO: Remove
+size_t top_of_stack;
+#define printf_line(message, number) //printf("[%s:%d] %s %llu\n", __FILE_NAME__, __LINE__, message, (long long)number)
+#define PRINT_STACK_SIZE char a; printf("Stack size: %f KB\n", ((double)(top_of_stack - (uint64_t)&a)) / 1024)
+
 // THOMAS KOWALSKI
 // #include "../opcodes.h"
 #define SQLITE_OMIT_TRACE
@@ -660,14 +665,26 @@ Mem *out2Prerelease(Vdbe *p, VdbeOp *pOp) {
 }
 
 int64_t maxVdbeSteps = -1;
+unsigned char pcHasBeenSet = 0;
 
 /*
 ** Execute as much of a VDBE program as we can.
 ** This is the core of sqlite3_step().
 */
+// TODO: This was at function level
+int iCompare = 0;
 int sqlite3VdbeExec2(
         Vdbe *p                    /* The VDBE */
 ) {
+    { // TODO: Remove
+        static size_t count = 0;
+        count++;
+        if (count % 100 == 0) {
+            // PRINT_STACK_SIZE;
+            // printf_line("Getting in exec", 0);
+        }
+    }
+    pcHasBeenSet = 0; // pc Thomas
     Op *aOp = p->aOp;          /* Copy of p->aOp */
     Op *pOp = aOp;             /* Current operation */
 #if defined(SQLITE_DEBUG) || defined(VDBE_PROFILE)
@@ -680,7 +697,8 @@ int sqlite3VdbeExec2(
     sqlite3 *db = p->db;       /* The database */
     u8 resetSchemaOnFault = 0; /* Reset schema after an error if positive */
     u8 encoding = ENC(db);     /* The database encoding */
-    int iCompare = 0;          /* Result of last comparison */
+    // TODO: This wasn't static
+    // static int iCompare = 0;   /* Result of last comparison */
     unsigned nVmStep = 0;      /* Number of virtual machine steps */
 #ifndef SQLITE_OMIT_PROGRESS_CALLBACK
     unsigned nProgressLimit;   /* Invoke xProgress() when nVmStep reaches this */
@@ -750,6 +768,9 @@ int sqlite3VdbeExec2(
   sqlite3EndBenignMalloc();
 #endif
     for (pOp = &aOp[p->pc]; 1; pOp++) {
+        // TODO: Remove
+        if (maxVdbeSteps == -1)
+            printf_line("Current PC: ", (int)(pOp - aOp));
         /* Errors are detected by individual opcodes, with an immediate
     ** jumps to abort_due_to_error. */
         assert(rc == SQLITE_OK);
@@ -826,6 +847,15 @@ int sqlite3VdbeExec2(
         pOrigOp = pOp;
 #endif
 
+        {
+            static Vdbe* firstVdbe = NULL;
+            if (firstVdbe && p != firstVdbe) {
+                printf("");
+            } else if (!firstVdbe) {
+                firstVdbe = p;
+            }
+        }
+
         switch (pOp->opcode) {
 
 /*****************************************************************************
@@ -892,6 +922,10 @@ int sqlite3VdbeExec2(
 
                 jump_to_p2_and_check_for_interrupt:
                 pOp = &aOp[pOp->p2 - 1];
+                { // pc Thomas
+                    p->pc = (int)(pOp - aOp) + 1;
+                    pcHasBeenSet = 1;
+                }
 
                 /* Opcodes that are used as the bottom of a loop (OP_Next, OP_Prev,
   ** OP_VNext, or OP_SorterNext) all jump here upon
@@ -942,8 +976,14 @@ int sqlite3VdbeExec2(
 
                 /* Most jump operations do a goto to this spot in order to update
   ** the pOp pointer. */
+                printf_line("OP_Gosub: Jumping from", (int)(pOp - aOp));
+                printf_line("OP_Gosub: Jumping to", pOp->p2);
                 jump_to_p2:
                 pOp = &aOp[pOp->p2 - 1];
+                { // pc Thomas
+                    p->pc = (int)(pOp - aOp) + 1;
+                    pcHasBeenSet = 1;
+                }
                 break;
             }
 
@@ -955,7 +995,12 @@ int sqlite3VdbeExec2(
             case OP_Return: {           /* in1 */
                 pIn1 = &aMem[pOp->p1];
                 assert(pIn1->flags == MEM_Int);
+                printf_line("Returning to", pIn1->u.i + 1);
                 pOp = &aOp[pIn1->u.i];
+                { // pc Thomas
+                    p->pc = (int)(pOp - aOp) + 1;
+                    pcHasBeenSet = 1;
+                }
                 pIn1->flags = MEM_Undefined;
                 break;
             }
@@ -1192,6 +1237,10 @@ int sqlite3VdbeExec2(
 
 #ifndef SQLITE_OMIT_UTF16
                 if (encoding != SQLITE_UTF8) {
+                    // TODO: Remove
+                    printf_line("Line 1238 hasn't been translated", 255);
+                    exit(255);
+
                     rc = sqlite3VdbeMemSetStr(pOut, pOp->p4.z, -1, SQLITE_UTF8, SQLITE_STATIC);
                     assert(rc == SQLITE_OK || rc == SQLITE_TOOBIG);
                     if (rc) goto too_big;
@@ -2287,6 +2336,13 @@ int sqlite3VdbeExec2(
                 int bRev;          /* True for DESCENDING sort order */
                 int *aPermute;     /* The permutation */
 
+                if (0) {
+                    // TODO Remove
+                    // qsdcount
+                    static size_t count = 0; count++;
+                    printf_line("Compare %zu\n", count);
+                }
+
                 if ((pOp->p5 & OPFLAG_PERMUTE) == 0) {
                     aPermute = 0;
                 } else {
@@ -2329,7 +2385,9 @@ int sqlite3VdbeExec2(
                                 ) {
                             iCompare = -iCompare;
                         }
-                        if (bRev) iCompare = -iCompare;
+                        if (bRev) {
+                            iCompare = -iCompare;
+                        }
                         break;
                     }
                 }
@@ -2343,6 +2401,7 @@ int sqlite3VdbeExec2(
 ** equal to, or greater than the P2 vector, respectively.
 */
             case OP_Jump: {             /* jump */
+                printf_line("OP_Jump: Value is", iCompare);
                 if (iCompare < 0) {
                     VdbeBranchTaken(0, 4);
                     pOp = &aOp[pOp->p1 - 1];
@@ -2353,6 +2412,7 @@ int sqlite3VdbeExec2(
                     VdbeBranchTaken(2, 4);
                     pOp = &aOp[pOp->p3 - 1];
                 }
+                p->pc = (int)(pOp - aOp) + 1;
                 break;
             }
 
@@ -5592,11 +5652,14 @@ case OP_ColumnsUsed: {
 #ifdef SQLITE_TEST
                     sqlite3_search_count++;
 #endif
+                    static size_t count_jump = 0; count_jump++;
+                    printf_line("Next: Jumping to P2:", pOp->p2);
                     goto jump_to_p2_and_check_for_interrupt;
                 }
                 if (rc != SQLITE_DONE) goto abort_due_to_error;
                 rc = SQLITE_OK;
                 pC->nullRow = 1;
+                printf_line("Next: Falling through to:", (int)(pOp - aOp) + 1);
                 goto check_for_interrupt;
             }
 
@@ -6639,6 +6702,7 @@ case OP_ColumnsUsed: {
                 assert(pIn1->flags & MEM_Int);
                 VdbeBranchTaken(pIn1->u.i > 0, 2);
                 if (pIn1->u.i > 0) {
+                    printf_line("IfPos: Number is > 0: ", pIn1->u.i);
                     pIn1->u.i -= pOp->p3;
                     goto jump_to_p2;
                 }
@@ -7821,6 +7885,7 @@ case OP_ColumnsUsed: {
                 }
                 pOp->p1++;
                 p->aCounter[SQLITE_STMTSTATUS_RUN]++;
+                printf_line("OP_init: jumping to", pOp->p2);
                 goto jump_to_p2;
             }
 
@@ -8016,9 +8081,18 @@ case OP_ReleaseReg: {
     p->aCounter[SQLITE_STMTSTATUS_VM_STEP] += (int) nVmStep;
     if (maxVdbeSteps == -1)
         sqlite3VdbeLeave(p);
+    else {
+        if (!pcHasBeenSet) {
+            { // pc Thomas
+                p->pc = (int)(pOp - aOp) + 1;
+                pcHasBeenSet = 1;
+            }
+        }
+    }
     assert(rc != SQLITE_OK || nExtraDelete == 0
            || sqlite3_strlike("DELETE%", p->zSql, 0) != 0
     );
+
     return rc;
 
     /* Jump to here if a string or blob larger than SQLITE_MAX_LENGTH

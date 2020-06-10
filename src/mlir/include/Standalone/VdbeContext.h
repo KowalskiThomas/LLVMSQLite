@@ -22,7 +22,7 @@ struct VdbeContext {
     std::unordered_map<size_t, mlir::BranchOp> outBranches;
 
     // The last result of OP_Compare
-    mlir::LLVM::AllocaOp iCompare;
+    mlir::Value iCompare;
 
     // The block with all the PC jumps
     mlir::Block* jumpsBlock;

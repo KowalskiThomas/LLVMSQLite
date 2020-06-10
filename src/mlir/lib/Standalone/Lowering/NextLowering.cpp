@@ -36,6 +36,22 @@ namespace mlir::standalone::passes {
         auto advancerValue = advancerAttr.getUInt();
         auto p5Value = p5Attr.getUInt();
 
+        auto pc = nxtOp.pcAttr().getUInt();
+        if (false) { // call to default
+            // TODO: Use our own implementation
+            rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
+            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+            rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange {constants(T::VdbePtrTy, vdbe) });
+            //rewriter.eraseOp(*op);
+
+            if (op->getOperation()->isKnownTerminator()) {
+                rewriter.create<BranchOp>(LOC, vdbeCtx->jumpsBlock);
+            }
+
+            return success();
+        }
+
+
         auto pCAddr = constants(T::VdbeCursorPtrPtrTy, &vdbe->apCsr[curIdxValue]);
         auto pCValue = load(LOC, pCAddr);
 

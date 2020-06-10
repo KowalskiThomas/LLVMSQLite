@@ -1,6 +1,8 @@
 #include "vdbe_exec.h"
 #include <chrono>
 
+using namespace std::chrono;
+
 extern "C" {
 
 #ifndef ENABLE_JIT
@@ -16,6 +18,14 @@ char enableJit = -1;
 int jitVdbeStep(Vdbe *);
 
 int sqlite3VdbeExec(Vdbe *p) {
+    static Vdbe* lastVdbe = nullptr;
+    static auto initialTick = decltype(system_clock::now()){};
+    if (lastVdbe != p) {
+        printf("Resetting initialTick\n");
+        initialTick = system_clock::now();
+        lastVdbe = p;
+    }
+
     auto tick = std::chrono::system_clock::now();
 
 #if ENABLE_JIT && !ENABLE_DEFAULT
@@ -38,9 +48,15 @@ int sqlite3VdbeExec(Vdbe *p) {
 #endif
 #endif
 
-    auto tock = std::chrono::system_clock::now();
-    auto diff = (unsigned long long)(std::chrono::duration_cast<std::chrono::milliseconds>(tock - tick).count());
+    auto tock = system_clock::now();
+    auto diff = (unsigned long long)(duration_cast<milliseconds>(tock - tick).count());
     printf("Total step time: %llu ms. RC = %d\n", diff, step_return);
+
+    if (step_return == SQLITE_DONE) {
+        auto initialDiff = (unsigned long long)(duration_cast<milliseconds>(tock - initialTick).count());
+        printf("Total Vdbe execution time: %llu ms\n", initialDiff);
+    }
+
 
     return step_return;
 }

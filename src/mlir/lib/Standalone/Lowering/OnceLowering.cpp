@@ -28,9 +28,20 @@ namespace mlir::standalone::passes {
         auto firstBlock = rewriter.getBlock();
 
         auto pc = oOp.pcAttr().getUInt();
+        if (false) { // call to default
+            // TODO: Use our own implementation
+            rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
+            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+            rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange {constants(T::VdbePtrTy, vdbe) });
+            rewriter.eraseOp(*op);
 
-        // TODO: Abolish this
-        // auto p1 = oOp.onceValueAttr().getSInt();
+            if (op->getOperation()->isKnownTerminator()) {
+                rewriter.create<BranchOp>(LOC, vdbeCtx->jumpsBlock);
+            }
+
+            return success();
+        }
+
 
         auto fallthrough = oOp.fallthrough();
         auto jumpTo = oOp.jumpTo();
@@ -40,7 +51,6 @@ namespace mlir::standalone::passes {
 
         auto pVdbe = constants(T::VdbePtrTy, vdbe);
         auto pFrameAddr = getElementPtrImm(LOC, T::VdbeFramePtrTy.getPointerTo(), pVdbe, 0, 43);
-        // auto pFrameAddr = constants(T::VdbeFramePtrTy.getPointerTo(), (void*)nullptr);
         auto pFrameValue = load(LOC, pFrameAddr);
         auto pFrameValueInt = ptrToInt(LOC, pFrameValue);
 

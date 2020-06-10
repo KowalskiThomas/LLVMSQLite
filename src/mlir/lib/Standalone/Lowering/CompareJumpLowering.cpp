@@ -44,6 +44,26 @@ namespace mlir::standalone::passes {
         auto collSeq = (CollSeq *) txnOp.comparatorAttr().getUInt();
         auto flags = txnOp.flagsAttr().getUInt();
 
+        if (false) { // call to default
+            // TODO: Use our own implementation
+            rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
+            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+            rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange {constants(T::VdbePtrTy, vdbe) });
+            rewriter.eraseOp(*op);
+
+            if (op->getOperation()->isKnownTerminator()) {
+                rewriter.create<BranchOp>(LOC, vdbeCtx->jumpsBlock);
+            }
+
+            return success();
+        }
+
+        if (false) { // Instruction counting (azecount)
+            static size_t count = 0;
+            store(LOC, add(LOC, load(LOC, constants(T::i64PtrTy, &count)), 1), constants(T::i64PtrTy, &count));
+            print(LOCL, load(LOC, constants(T::i64PtrTy, &count)), "CompareJump");
+        }
+
         ALWAYS_ASSERT(lhs == pOp->p1 && rhs == pOp->p3 && "Attributes don't match VDBE operation");
 
         auto jumpTo = txnOp.ifTrue();
@@ -315,7 +335,7 @@ namespace mlir::standalone::passes {
 
                     ip_start(blockAfter3Lt1);
 
-                    print(LOCL, "Both int, jumping to compareOpBlock");
+                    // print(LOCL, "Both int, jumping to compareOpBlock");
                     branch(LOC, compareOpBlock);
                  } // end if ((pIn1->flags & pIn3->flags & MEM_Int) != 0)
 

@@ -51,7 +51,7 @@ namespace mlir::standalone::passes {
             /// pIn1->u.i -= pOp->p3;
             auto newValue = rewriter.create<SRemOp>(LOC, value, constants(toSubtract, 64));
             store(LOC, (Value)newValue, intAddress);
-            print(LOCL, value, "IfPos: Number is > 0");
+            // print(LOCL, value, "IfPos: Number is > 0");
 
             branch(LOC, blockAfterValuePositive);
          } // end if (pIn1->u.i > 0)

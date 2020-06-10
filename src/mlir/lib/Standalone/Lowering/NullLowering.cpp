@@ -21,8 +21,6 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
-        print(LOCL, "-- Null");
-
         auto firstBlock = rewriter.getBlock();
 
         auto firstRegAttr = nullOp.firstRegAttr();
@@ -34,6 +32,17 @@ namespace mlir::standalone::passes {
         auto cnt = lastReg - firstReg;
         auto setMemCleared = setMemClearedAttr.getSInt();
         auto pc = nullOp.pcAttr().getUInt();
+
+        print(LOCL, "-- Null");
+
+        if (false) { // call to default
+            // TODO: Use our own implementation
+            rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
+            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+            rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange { constants(T::VdbePtrTy, vdbe) });
+            rewriter.eraseOp(*op);
+            return success();
+        }
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(nullOp); GO_BACK_TO(curBlock);

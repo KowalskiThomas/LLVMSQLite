@@ -30,6 +30,7 @@ namespace mlir::standalone::passes {
         auto firstBlock = rewriter.getBlock();
 
         auto curIdx = ssOp.curIdxAttr().getSInt();
+        auto pc = ssOp.pcAttr().getUInt();
 
         auto jumpToIfEmpty = ssOp.jumpToIfEmpty();
         auto fallthrough = ssOp.fallthrough();
@@ -45,6 +46,7 @@ namespace mlir::standalone::passes {
 
         rewriter.create<mlir::standalone::Rewind>
             (LOC,
+                 INTEGER_ATTR(64, false, pc),
                  INTEGER_ATTR(32, true, curIdx),
                  jumpToIfEmpty,
                  fallthrough
