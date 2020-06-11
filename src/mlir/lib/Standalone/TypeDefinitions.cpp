@@ -6,6 +6,7 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
 
     T::voidTy = t::getVoidTy(d);
 
+
     T::Sqlite3ConfigTy = t::createStructTy(d, Optional<StringRef>("Sqlite3Config"));
     T::sqlite3_mem_methodsTy = t::createStructTy(d, Optional<StringRef>("sqlite3_mem_methods"));
     T::sqlite3_mutex_methodsTy = t::createStructTy(d, Optional<StringRef>("sqlite3_mutex_methods"));
@@ -133,7 +134,7 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::sqlite3_filePtrTy = T::sqlite3_fileTy.getPointerTo();
     T::VTablePtrTy = T::VTableTy.getPointerTo();
     T::KeyInfoPtrTy = T::KeyInfoTy.getPointerTo();
-    T::VoidTy = t::getVoidTy(d);
+    T::VoidTy = T::voidTy;
     T::sqlite3_index_constraintPtrTy = T::sqlite3_index_constraintTy.getPointerTo();
     T::TriggerPrgPtrTy = T::TriggerPrgTy.getPointerTo();
     T::VdbeFramePtrTy = T::VdbeFrameTy.getPointerTo();
@@ -164,7 +165,7 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::ExprListPtrTy = T::ExprListTy.getPointerTo();
     T::Arr_1_sqlite3_valuePtrTy = t::getArrayTy(T::sqlite3_valueTy.getPointerTo(), 1);
     T::i32_Of_sqlite3_vtab_cursorPtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vtab_cursorPtrTy}, false);
-    T::Void_Of_VoidTy = t::getFunctionTy(t::getVoidTy(d), {}, false);
+    T::Void_Of_VoidTy = t::getFunctionTy(T::voidTy, {}, false);
     T::i64PtrTy = T::i64Ty.getPointerTo();
     T::Arr_3_i32Ty = t::getArrayTy(t::getIntNTy(d, 32), 3);
     T::Arr_1_i32Ty = t::getArrayTy(t::getIntNTy(d, 32), 1);
@@ -172,7 +173,7 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::Arr_7_i32Ty = t::getArrayTy(t::getIntNTy(d, 32), 7);
     T::Arr_8_i32Ty = t::getArrayTy(t::getIntNTy(d, 32), 8);
     T::RenameTokenPtrTy = T::RenameTokenTy.getPointerTo();
-    T::Void_Of_sqlite3_contextPtrTy = t::getFunctionTy(t::getVoidTy(d), {T::sqlite3_contextPtrTy}, false);
+    T::Void_Of_sqlite3_contextPtrTy = t::getFunctionTy(T::voidTy, {T::sqlite3_contextPtrTy}, false);
     T::BtreePtrTy = T::BtreeTy.getPointerTo();
     T::i32PtrTy = T::i32Ty.getPointerTo();
     T::i32_Of_sqlite3_filePtr_i32Ty = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_filePtrTy, T::i32Ty}, false);
@@ -189,7 +190,7 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::i32_Of_sqlite3_vtabPtr_i32Ty = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vtabPtrTy, T::i32Ty}, false);
     T::TableLockPtrTy = T::TableLockTy.getPointerTo();
     T::i16PtrTy = T::i16Ty.getPointerTo();
-    T::Void_Of_sqlite3_filePtrTy = t::getFunctionTy(t::getVoidTy(d), {T::sqlite3_filePtrTy}, false);
+    T::Void_Of_sqlite3_filePtrTy = t::getFunctionTy(T::voidTy, {T::sqlite3_filePtrTy}, false);
     T::WindowPtrPtrTy = T::WindowPtrTy.getPointerTo();
     T::VdbeCursorPtrPtrTy = T::VdbeCursorPtrTy.getPointerTo();
     T::Arr_1_CollSeqPtrTy = t::getArrayTy(T::CollSeqTy.getPointerTo(), 1);
@@ -210,17 +211,17 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::Arr_3_i8Ty = t::getArrayTy(t::getIntNTy(d, 8), 3);
     T::i32_Of_sqlite3_vtabPtrPtrTy = T::i32_Of_sqlite3_vtabPtrTy.getPointerTo();
     T::i8PtrPtrTy = T::i8PtrTy.getPointerTo();
-    T::Void_Of_Void_Of_Sqlite3_Vfs_i8Ptr_i8PtrTy = t::getFunctionTy(t::getFunctionTy(t::getVoidTy(d), {}, false).getPointerTo(), { T::sqlite3_vfsPtrTy, T::i8PtrTy, T::i8PtrTy }, false).getPointerTo();;
+    T::Void_Of_Void_Of_Sqlite3_Vfs_i8Ptr_i8PtrTy = t::getFunctionTy(t::getFunctionTy(T::voidTy, {}, false).getPointerTo(), { T::sqlite3_vfsPtrTy, T::i8PtrTy, T::i8PtrTy }, false).getPointerTo();;
     T::i32_Of_sqlite3_vtab_cursorPtr_i64PtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vtab_cursorPtrTy, T::i64PtrTy}, false);
     T::i32_Of_sqlite3_vfsPtr_i8Ptr_i32Ty = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vfsPtrTy, T::i8PtrTy, T::i32Ty}, false);
     T::i32_Of_sqlite3_vtab_cursorPtr_i32_i8Ptr_i32_sqlite3_valuePtrPtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vtab_cursorPtrTy, T::i32Ty, T::i8PtrTy, T::i32Ty, T::sqlite3_valuePtrPtrTy}, false);
-    T::Void_Of_sqlite3_pcachePtr_sqlite3_pcache_pagePtr_i32_i32Ty = t::getFunctionTy(t::getVoidTy(d), {T::sqlite3_pcachePtrTy, T::sqlite3_pcache_pagePtrTy, T::i32Ty, T::i32Ty}, false);
-    T::Void_Of_sqlite3_pcachePtr_sqlite3_pcache_pagePtr_i32Ty = t::getFunctionTy(t::getVoidTy(d), {T::sqlite3_pcachePtrTy, T::sqlite3_pcache_pagePtrTy, T::i32Ty}, false);
+    T::Void_Of_sqlite3_pcachePtr_sqlite3_pcache_pagePtr_i32_i32Ty = t::getFunctionTy(T::voidTy, {T::sqlite3_pcachePtrTy, T::sqlite3_pcache_pagePtrTy, T::i32Ty, T::i32Ty}, false);
+    T::Void_Of_sqlite3_pcachePtr_sqlite3_pcache_pagePtr_i32Ty = t::getFunctionTy(T::voidTy, {T::sqlite3_pcachePtrTy, T::sqlite3_pcache_pagePtrTy, T::i32Ty}, false);
     T::i32_Of_sqlite3_vtabPtr_i32_sqlite3_valuePtrPtr_i64PtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vtabPtrTy, T::i32Ty, T::sqlite3_valuePtrPtrTy, T::i64PtrTy}, false);
     T::Void_Of_sqlite3_contextPtrPtrTy = T::Void_Of_sqlite3_contextPtrTy.getPointerTo();
     T::i32_Of_i8PtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::i8PtrTy}, false);
     T::i32_Of_sqlite3_vtab_cursorPtr_sqlite3_contextPtr_i32PtrTy = T::i32_Of_sqlite3_vtab_cursorPtr_sqlite3_contextPtr_i32Ty.getPointerTo();
-    T::Void_Of_i8PtrTy = t::getFunctionTy(t::getVoidTy(d), {T::i8PtrTy}, false);
+    T::Void_Of_i8PtrTy = t::getFunctionTy(T::voidTy, {T::i8PtrTy}, false);
     T::i32_Of_sqlite3_filePtr_i8Ptr_i32_i64Ty = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_filePtrTy, T::i8PtrTy, T::i32Ty, T::i64Ty}, false);
     T::i32_Of_sqlite3_vtabPtr_sqlite3_vtab_cursorPtrPtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vtabPtrTy, T::sqlite3_vtab_cursorPtrPtrTy}, false);
     T::i8Ptr_Of_i8Ptr_i32Ty = t::getFunctionTy(T::i8Ty.getPointerTo(), {T::i8PtrTy, T::i32Ty}, false);
@@ -230,15 +231,15 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::i32_Of_sqlite3_pcachePtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_pcachePtrTy}, false);
     T::i32_Of_sqlite3_vfsPtr_i32_i8PtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vfsPtrTy, T::i32Ty, T::i8PtrTy}, false);
     T::sqlite3_pcachePtr_Of_i32_i32_i32Ty = t::getFunctionTy(T::sqlite3_pcacheTy.getPointerTo(), {T::i32Ty, T::i32Ty, T::i32Ty}, false);
-    T::Void_Of_i8Ptr_i8Ptr_i64Ty = t::getFunctionTy(t::getVoidTy(d), {T::i8PtrTy, T::i8PtrTy, T::i64Ty}, false);
-    T::Void_Of_sqlite3_mutexPtrTy = t::getFunctionTy(t::getVoidTy(d), {T::sqlite3_mutexPtrTy}, false);
+    T::Void_Of_i8Ptr_i8Ptr_i64Ty = t::getFunctionTy(T::voidTy, {T::i8PtrTy, T::i8PtrTy, T::i64Ty}, false);
+    T::Void_Of_sqlite3_mutexPtrTy = t::getFunctionTy(T::voidTy, {T::sqlite3_mutexPtrTy}, false);
     T::i32_Of_i8Ptr_sqlite3Ptr_i8Ptr_i32Ty = t::getFunctionTy(t::getIntNTy(d, 32), {T::i8PtrTy, T::sqlite3PtrTy, T::i8PtrTy, T::i32Ty}, false);
     T::i32_Of_sqlite3_filePtr_i64PtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_filePtrTy, T::i64PtrTy}, false);
     T::Void_Of_VoidPtrTy = T::Void_Of_VoidTy.getPointerTo();
-    T::Void_Of_sqlite3_vfsPtr_i32_i8PtrTy = t::getFunctionTy(t::getVoidTy(d), {T::sqlite3_vfsPtrTy, T::i32Ty, T::i8PtrTy}, false);
+    T::Void_Of_sqlite3_vfsPtr_i32_i8PtrTy = t::getFunctionTy(T::voidTy, {T::sqlite3_vfsPtrTy, T::i32Ty, T::i8PtrTy}, false);
     T::i32_Of_sqlite3_filePtr_i32_i32_i32PtrTy = T::i32_Of_sqlite3_filePtr_i32_i32_i32Ty.getPointerTo();
-    T::Void_Of_i8Ptr_i32_i8PtrTy = t::getFunctionTy(t::getVoidTy(d), {T::i8PtrTy, T::i32Ty, T::i8PtrTy}, false);
-    T::Void_Of_sqlite3_vfsPtr_i8PtrTy = t::getFunctionTy(t::getVoidTy(d), {T::sqlite3_vfsPtrTy, T::i8PtrTy}, false);
+    T::Void_Of_i8Ptr_i32_i8PtrTy = t::getFunctionTy(T::voidTy, {T::i8PtrTy, T::i32Ty, T::i8PtrTy}, false);
+    T::Void_Of_sqlite3_vfsPtr_i8PtrTy = t::getFunctionTy(T::voidTy, {T::sqlite3_vfsPtrTy, T::i8PtrTy}, false);
     T::i32_Of_i32_i8Ptr_i8Ptr_i8PtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::i32Ty, T::i8PtrTy, T::i8PtrTy, T::i8PtrTy}, false);
     T::Void_Of_sqlite3_filePtrPtrTy = T::Void_Of_sqlite3_filePtrTy.getPointerTo();
     T::i32_Of_i32PtrTy = T::i32_Of_i32Ty.getPointerTo();
@@ -253,20 +254,20 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::i32_Of_sqlite3_filePtr_i32_i8PtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_filePtrTy, T::i32Ty, T::i8PtrTy}, false);
     T::i32_Of_sqlite3_mutexPtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_mutexPtrTy}, false);
     T::i32_Of_sqlite3_vtab_cursorPtrPtrTy = T::i32_Of_sqlite3_vtab_cursorPtrTy.getPointerTo();
-    T::Void_Of_i8Ptr_i32_i8Ptr_i8Ptr_i64Ty = t::getFunctionTy(t::getVoidTy(d), {T::i8PtrTy, T::i32Ty, T::i8PtrTy, T::i8PtrTy, T::i64Ty}, false);
+    T::Void_Of_i8Ptr_i32_i8Ptr_i8Ptr_i64Ty = t::getFunctionTy(T::voidTy, {T::i8PtrTy, T::i32Ty, T::i8PtrTy, T::i8PtrTy, T::i64Ty}, false);
     T::i32_Of_sqlite3_vtabPtr_i32PtrTy = T::i32_Of_sqlite3_vtabPtr_i32Ty.getPointerTo();
     T::i32_Of_sqlite3_vfsPtr_i8Ptr_sqlite3_filePtr_i32_i32PtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vfsPtrTy, T::i8PtrTy, T::sqlite3_filePtrTy, T::i32Ty, T::i32PtrTy}, false);
     T::PxFunctionPtrTy = t::getFunctionTy(T::i8PtrTy, { T::sqlite3_contextPtrTy, T::i32Ty, T::sqlite3_valuePtrTy }, false).getPointerTo();
-    T::Void_Of_sqlite3_contextPtr_i32_sqlite3_valuePtrPtrTy = t::getFunctionTy(t::getVoidTy(d), {T::sqlite3_contextPtrTy, T::i32Ty, T::sqlite3_valuePtrPtrTy}, false);
+    T::Void_Of_sqlite3_contextPtr_i32_sqlite3_valuePtrPtrTy = t::getFunctionTy(T::voidTy, {T::sqlite3_contextPtrTy, T::i32Ty, T::sqlite3_valuePtrPtrTy}, false);
     T::i32_Of_sqlite3_vtabPtr_i8PtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vtabPtrTy, T::i8PtrTy}, false);
-    T::Void_Of_sqlite3_pcachePtr_i32Ty = t::getFunctionTy(t::getVoidTy(d), {T::sqlite3_pcachePtrTy, T::i32Ty}, false);
-    T::Void_Of_i8Ptr_sqlite3Ptr_i32_i8PtrTy = t::getFunctionTy(t::getVoidTy(d), {T::i8PtrTy, T::sqlite3PtrTy, T::i32Ty, T::i8PtrTy}, false);
-    T::Void_Of_Void_Of_Sqlite3_Vfs_i8PtrTy = t::getFunctionTy(t::getFunctionTy(t::getVoidTy(d), {}, false).getPointerTo(), { T::sqlite3_vfsPtrTy, T::i8PtrTy }, false).getPointerTo();
+    T::Void_Of_sqlite3_pcachePtr_i32Ty = t::getFunctionTy(T::voidTy, {T::sqlite3_pcachePtrTy, T::i32Ty}, false);
+    T::Void_Of_i8Ptr_sqlite3Ptr_i32_i8PtrTy = t::getFunctionTy(T::voidTy, {T::i8PtrTy, T::sqlite3PtrTy, T::i32Ty, T::i8PtrTy}, false);
+    T::Void_Of_Void_Of_Sqlite3_Vfs_i8PtrTy = t::getFunctionTy(t::getFunctionTy(T::voidTy, {}, false).getPointerTo(), { T::sqlite3_vfsPtrTy, T::i8PtrTy }, false).getPointerTo();
     T::i32_Of_sqlite3_filePtr_i64_i8PtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_filePtrTy, T::i64Ty, T::i8PtrTy}, false);
     T::i32_Of_sqlite3_vfsPtr_i32PtrTy = T::i32_Of_sqlite3_vfsPtr_i32Ty.getPointerTo();
     T::i32_Of_sqlite3_vfsPtr_i8Ptr_i32_i8PtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vfsPtrTy, T::i8PtrTy, T::i32Ty, T::i8PtrTy}, false);
     T::i32_Of_sqlite3_vfsPtr_doublePtrTy = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vfsPtrTy, T::doublePtrTy}, false);
-    T::Void_Of_sqlite3_pcachePtrTy = t::getFunctionTy(t::getVoidTy(d), {T::sqlite3_pcachePtrTy}, false);
+    T::Void_Of_sqlite3_pcachePtrTy = t::getFunctionTy(T::voidTy, {T::sqlite3_pcachePtrTy}, false);
     T::i8Ptr_Of_i32Ty = t::getFunctionTy(T::i8Ty.getPointerTo(), {T::i32Ty}, false);
     T::i32_Of_sqlite3_filePtr_i32PtrTy = T::i32_Of_sqlite3_filePtr_i32Ty.getPointerTo();
     T::Void_Of_sqlite3_contextPtr_i32_sqlite3_valuePtrPtrPtrTy = T::Void_Of_sqlite3_contextPtr_i32_sqlite3_valuePtrPtrTy.getPointerTo();

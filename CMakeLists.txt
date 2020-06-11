@@ -6,10 +6,16 @@ if (APPLE)
 endif()
 
 if (SANITIZE)
-    message("Building with sanitizer on")
+    # Possible sanitize values: undefined address memory thread
     set(sanitize "undefined")
+    message("Building with sanitizer on '${sanitize}'")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${sanitize}  -fno-omit-frame-pointer -fsanitize-memory-track-origins -g")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=${sanitize}  -fno-omit-frame-pointer -fsanitize-memory-track-origins -g")
+endif()
+
+if (OPTIMIZE_O1)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O1")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O1")
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
