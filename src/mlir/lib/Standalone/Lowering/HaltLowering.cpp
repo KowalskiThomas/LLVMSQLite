@@ -8,34 +8,30 @@
 #include "Standalone/Lowering/Printer.h"
 
 
-namespace mlir {
-    namespace standalone {
-        namespace passes {
-            LogicalResult HaltLowering::matchAndRewrite(Halt haltOp, PatternRewriter& rewriter) const {
-                auto op = &haltOp;
-                LOWERING_PASS_HEADER
-                ConstantManager constants(rewriter, ctx);
-                MyBuilder builder(ctx, constants, rewriter);
-                MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
-                Printer print(ctx, rewriter, __FILE_NAME__);
+namespace mlir::standalone::passes {
+    LogicalResult HaltLowering::matchAndRewrite(Halt haltOp, PatternRewriter& rewriter) const {
+        auto op = &haltOp;
+        LOWERING_PASS_HEADER
+        USING_OPS
+        ConstantManager constants(rewriter, ctx);
+        MyBuilder builder(ctx, constants, rewriter);
+        MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
+        Printer print(ctx, rewriter, __FILE_NAME__);
 
-                print(LOCL, "-- Halt");
-                // TODO: This is not complete at all (in comparison with the vdbe.c implementation)
+        // TODO: This is not complete at all (in comparison with the vdbe.c implementation)
+        print(LOCL, "-- Halt");
 
-                print(LOCL, "Halting execution");
-                {
-                    auto& builder = rewriter;
-                    auto p = CONSTANT_PTR(T::VdbePtrTy, vdbe);
-                    rewriter.create<mlir::LLVM::CallOp>(LOC, f_sqlite3VdbeHalt, ValueRange {
-                        p
-                    });
-                    rewriter.create<mlir::ReturnOp>(LOC, (mlir::Value)CONSTANT_INT(SQLITE_DONE, 32));
-                }
+        print(LOCL, "Halting execution");
+        {
+            auto& builder = rewriter;
+            rewriter.create<CallOp>(LOC, f_sqlite3VdbeHalt, ValueRange {
+                vdbeCtx->p
+            });
+            rewriter.create<ReturnOp>(LOC, (Value)constants(SQLITE_DONE, 32));
+        }
 
-// je suis le commentaire de MATHILDE LA PLUS BELLE DE LA TERRE
-                rewriter.eraseOp(haltOp);
-                return success();
-            } // matchAndRewrite
-        } // namespace passes
-    } // namespace standalone
-} // namespace mlir
+        // je suis le commentaire de MATHILDE LA PLUS BELLE DE LA TERRE
+        rewriter.eraseOp(haltOp);
+        return success();
+    } // matchAndRewrite
+} // namespace mlir::standalone::passes
