@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
@@ -49,14 +47,15 @@ namespace mlir::standalone::passes {
 
         auto pInValue = &vdbe->aMem[firstFromReg];
         auto pOutValue = &vdbe->aMem[firstToReg];
+        auto pIn = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstFromReg);
+        auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstToReg);
         do {
-            auto pIn = constants(T::sqlite3_valuePtrTy, pInValue);
-            auto pOut = constants(T::sqlite3_valuePtrTy, pOutValue);
-
             call(LOC, f_sqlite3VdbeMemMove, pOut, pIn);
 
             pInValue++;
             pOutValue++;
+            pIn = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, pIn, 1);
+            pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, pOut, 1);
         } while (--nReg);
 
         rewriter.eraseOp(mvOp);
