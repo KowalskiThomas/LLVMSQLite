@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
@@ -70,6 +68,7 @@ namespace mlir::standalone::passes {
             assert(pOp[-1].opcode == OP_Permutation);
             assert(pOp[-1].p4type == P4_INTARRAY);
             /// aPermute = pOp[-1].p4.ai + 1;
+            // This can't be changed to a simple GEP easily
             aPermuteInitValue = pOp[-1].p4.ai + 1;
             store(LOC, constants(T::i32PtrTy, aPermuteInitValue), aPermuteAddr);
         }
@@ -84,8 +83,8 @@ namespace mlir::standalone::passes {
             auto pColl = pKeyInfo->aColl[i];
             auto bRev = (pKeyInfo->aSortFlags[i] & KEYINFO_ORDER_DESC);
 
-            auto lhs = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[firstLhs + idx]);
-            auto rhs = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[firstRhs + idx]);
+            auto lhs = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstLhs + idx);
+            auto rhs = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstRhs + idx);
             auto iCompareValue = call(LOC, f_sqlite3MemCompare, lhs, rhs, constants(T::CollSeqPtrTy, pColl)).getValue();
             store(LOC, iCompareValue, vdbeCtx->iCompare);
             auto iCompareNotNull = iCmp(LOC, Pred::ne, iCompareValue, 0);
@@ -99,19 +98,18 @@ namespace mlir::standalone::passes {
                 ip_start(blockICompareNotNull);
 
                 if (pKeyInfo->aSortFlags[i] & KEYINFO_ORDER_BIGNULL) {
-                    out("BigNull");
                     curBlock = rewriter.getBlock();
                     auto blockAfterAnyNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     auto blockAnyNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                     mlir::Value anyNull;
                     { // Determine ((aMem[p1 + idx].flags & MEM_Null) || (aMem[p2 + idx].flags & MEM_Null))
-                        auto lhsFlagsAddr = constants(T::i16PtrTy, &vdbe->aMem[firstLhs + idx].flags);
+                        auto lhsFlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, vdbeCtx->aMem, firstLhs + idx, 1);
                         auto lhsFlags = load(LOC, lhsFlagsAddr);
                         auto lhsNull16 = bitAnd(LOC, lhsFlags, MEM_Null);
                         auto lhsNull = iCmp(LOC, Pred::ne, lhsNull16, 0);
 
-                        auto rhsFlagsAddr = constants(T::i16PtrTy, &vdbe->aMem[firstRhs + idx].flags);
+                        auto rhsFlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, vdbeCtx->aMem, firstRhs + idx, 1);
                         auto rhsFlags = load(LOC, rhsFlagsAddr);
                         auto rhsNull16 = bitAnd(LOC, rhsFlags, MEM_Null);
                         auto rhsNull = iCmp(LOC, Pred::ne, rhsNull16, 0);
