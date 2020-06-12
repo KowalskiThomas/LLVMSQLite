@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/AllIncludes.h"
@@ -68,22 +66,20 @@ namespace mlir::standalone::passes {
         auto res2Addr = alloca(LOC, T::i32PtrTy);
 
         /// pIn1 = &aMem[pOp->p1];
-        auto pIn1Addr = &vdbe->aMem[lhs];
-        auto pIn1 = constants(T::sqlite3_valuePtrTy, pIn1Addr);
+        auto pIn1 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, lhs);
 
         /// pIn3 = &aMem[pOp->p3];
-        auto pIn3Addr = &vdbe->aMem[rhs];
-        auto pIn3 = constants(T::sqlite3_valuePtrTy, pIn3Addr);
+        auto pIn3 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, rhs);
 
         /// u16 flags1 = pIn1->flags
-        auto in1FlagsAddr = constants(T::i16PtrTy, &pIn1Addr->flags);
+        auto in1FlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn1, 0, 1);
         auto initialFlags1 = load(LOC, in1FlagsAddr);
         // print(LOCL, initialFlags1, "Init flags1");
         auto flags1Addr = alloca(LOC, T::i16PtrTy);
         store(LOC, initialFlags1, flags1Addr);
 
         /// u16 flags3 = pIn3->flags
-        auto in3FlagsAddr = constants(T::i16PtrTy, &pIn3Addr->flags);
+        auto in3FlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn3, 0, 1);
         auto initialFlags3 = load(LOC, in3FlagsAddr);
         // print(LOCL, initialFlags3, "Init flags3");
         auto flags3Addr = alloca(LOC, T::i16PtrTy);
@@ -154,7 +150,7 @@ namespace mlir::standalone::passes {
 
                 if (flags & SQLITE_STOREP2) {
 
-                    auto pOut = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[p2]);
+                    auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p2);
                     store(LOC, 1, vdbeCtx->iCompare);
 
                     /// MemSetTypeFlag(pOut, MEM_Null);
@@ -275,8 +271,10 @@ namespace mlir::standalone::passes {
                 { // if ((pIn1->flags & pIn3->flags & MEM_Int) != 0)
                     ip_start(blockBothAreInt);
                     // print(LOCL, "Both are int");
-                    auto int1Addr = constants(T::i64PtrTy, &pIn1Addr->u.i);
-                    auto int3Addr = constants(T::i64PtrTy, &pIn3Addr->u.i);
+                    auto u1Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0);
+                    auto int1Addr = bitCast(LOC, u1Addr, T::i64PtrTy);
+                    auto u3Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn3, 0, 0);
+                    auto int3Addr = bitCast(LOC, u3Addr, T::i64PtrTy);
 
                     auto int1 = load(LOC, int1Addr);
                     auto int3 = load(LOC, int3Addr);
@@ -480,10 +478,10 @@ namespace mlir::standalone::passes {
 
         if (pOp->p5 & SQLITE_STOREP2) {
             /// pOut = &aMem[pOp->p2];
-            auto pOutAddr = &vdbe->aMem[p2];
-            auto pOut = constants(T::sqlite3_valuePtrTy, pOutAddr);
-            auto pOutFlagsAddr = constants(T::i16PtrTy, &pOutAddr->flags);
-            auto pOutIntegerAddr = constants(T::i64PtrTy, &pOutAddr->u.i);
+            auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p2);
+            auto pOutFlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
+            auto pOutUAddr = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0);
+            auto pOutIntegerAddr = bitCast(LOC, pOutUAddr, T::i64PtrTy);
 
             /// iCompare = res;
             store(LOC, load(LOC, resAddr), vdbeCtx->iCompare);

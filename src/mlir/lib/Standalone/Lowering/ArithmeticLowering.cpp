@@ -68,8 +68,6 @@ namespace mlir::standalone::passes {
         auto numericType = Inlining::NumericType(context, rewriter, print, constants);
 
         /// pIn1 = &aMem[pOp->p1];
-        auto pIn1Addr = &vdbe->aMem[p1];
-        // auto pIn1 = constants(T::sqlite3_valuePtrTy, pIn1Addr);
         auto pIn1 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p1);
 
         /// type1 = numericType(pIn1);
@@ -77,8 +75,6 @@ namespace mlir::standalone::passes {
         auto type1 = numericType(LOC, pIn1);
 
         /// pIn2 = &aMem[pOp->p2];
-        auto pIn2Addr = &vdbe->aMem[p2];
-        // auto pIn2 = constants(T::sqlite3_valuePtrTy, pIn2Addr);
         auto pIn2 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p2);
 
         /// type2 = numericType(pIn2);
