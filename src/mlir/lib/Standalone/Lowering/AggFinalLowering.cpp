@@ -47,7 +47,8 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(afOp); GO_BACK_TO(curBlock);
 
-        auto pMem = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[accumReg]);
+        // Get pMem, which is &aMem[accumReg]
+        auto pMem = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, accumReg);
 
         auto rcAddr = alloca(LOC, T::i32PtrTy);
         auto rcTemp = call(LOC, f_sqlite3VdbeMemFinalize, pMem, pFunc).getValue();

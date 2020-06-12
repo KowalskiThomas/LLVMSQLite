@@ -1,6 +1,7 @@
 #include <unordered_map>
 #include "AllIncludes.h"
 #include "Utils.h"
+#include "TypeDefinitions.h"
 
 #pragma once
 
@@ -62,27 +63,7 @@ public:
      * @param width the constant width
      * @return the mlir::Value that has been created
      */
-    mlir::Value insertConstant(uint64_t x, size_t width) {
-        /*
-        if (constants.find(width) == constants.end()) {
-            constants[width] = std::unordered_map<size_t, mlir::Value>{};
-        }
-        auto& c = constants[width];
-        if (c.find(x) != c.end()) {
-            return c[x];
-        }
-        */
-
-        auto ty = mlir::LLVM::LLVMType::getIntNTy(ctx->getRegisteredDialect<mlir::LLVM::LLVMDialect>(), width);
-        auto attr = rewriter.getIntegerAttr(rewriter.getIntegerType(width), x);
-        // c[x] = rewriter.template create<mlir::LLVM::ConstantOp>(LOC, ty, attr);
-        // return c[x];
-        return rewriter.template create<mlir::LLVM::ConstantOp>(LOC, ty, attr);
-
-        // Old version using mlir::ConstantIntOp
-        // c[x] = rewriter.template create<mlir::ConstantIntOp>(LOC, (uint64_t)(x), width);
-        // return c[x];
-    }
+    mlir::Value insertConstant(uint64_t x, size_t width);
 
     /**
      * Inserts a constant pointer at call site
@@ -104,8 +85,9 @@ public:
         }
         */
 
-        return rewriter.template create<mlir::LLVM::IntToPtrOp>(LOC, type,
-                                                                rewriter.template create<mlir::ConstantIntOp>(LOC, reinterpret_cast<uint64_t>(x), 64));
+        auto attr = rewriter.getI64IntegerAttr(reinterpret_cast<uint64_t>(x));
+        auto cst = rewriter.template create<mlir::LLVM::ConstantOp>(LOC, T::i64Ty, attr);
+        return rewriter.template create<mlir::LLVM::IntToPtrOp>(LOC, type, cst);
 
         /*
         p[x] = rewriter.template create<mlir::LLVM::IntToPtrOp>(LOC, type,

@@ -61,7 +61,14 @@ namespace mlir::standalone::passes {
 
         auto blockAfterFirstRun = SPLIT_BLOCK; GO_BACK_TO(curBlock);
         auto blockFirstRun = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-        auto p4TypeAddr = constants(T::i8PtrTy, &vdbe->aOp[pc].p4type);
+
+        const unsigned offset_vdbeOp_p4Type = 1;
+        auto p4TypeAddr = getElementPtr
+            (LOC, T::i8PtrTy, vdbeCtx->aOp,
+                constants(pc, 32),
+                constants(1, 32)
+            );
+
         auto p4TypeVal = load(LOC, p4TypeAddr);
         auto p4TypeIsCtx = iCmp(LOC, Pred::eq, p4TypeVal, P4_FUNCDEF);
 
@@ -75,7 +82,7 @@ namespace mlir::standalone::passes {
             auto pCtx = alloca(LOC, T::sqlite3_contextPtrTy.getPointerTo());
             auto pCtxValueVoidStar = call
                     (LOC, f_sqlite3DbMallocRawNN,
-                        constants(T::sqlite3PtrTy, vdbe->db),
+                        vdbeCtx->db,
                         constants(mallocSize, 64)
                     ).getValue();
             auto pCtxValue = bitCast(LOC, pCtxValueVoidStar, T::sqlite3_contextPtrTy);
@@ -99,13 +106,26 @@ namespace mlir::standalone::passes {
             auto argvAddr = bitCast(LOC, argvAddrArr, T::sqlite3_valuePtrPtrTy);
 
             {
-                auto p4TypeAddr = getElementPtrImm(LOC, T::i8PtrTy, constants(T::VdbeOpPtrTy, pOp), 0, 1);
-                auto p4UnionAddr = rewriter.create<GEPOp>
-                        (LOC, T::p4unionPtrTy, constants(T::VdbeOpPtrTy, pOp), ValueRange {
-                            constants(0, 32),
-                            constants(6, 32)
-                        });
-                auto p4UnionValueAddr = getElementPtrImm(LOC, T::i8PtrTy.getPointerTo(), p4UnionAddr, 0, 0);
+                auto p4TypeAddr = getElementPtrImm
+                    (LOC, T::i8PtrTy,
+                        vdbeCtx->aOp,
+                        (long long)pc, // Get pOp
+                        1   // Get &p4type
+                    );
+
+                // TODO: Merge these:
+                auto p4UnionAddr = getElementPtrImm
+                    (LOC, T::p4unionPtrTy,
+                        vdbeCtx->aOp,
+                        (long long)pc,
+                        6 // Get &u
+                    );
+                auto p4UnionValueAddr = getElementPtrImm
+                    (LOC, T::i8PtrTy.getPointerTo(),
+                        p4UnionAddr,
+                        0,
+                        0
+                    );
 
 
                 /// (Mem *) &(pCtx->argv[n]);
@@ -114,17 +134,17 @@ namespace mlir::standalone::passes {
 
                 call(LOC, f_sqlite3VdbeMemInit,
                      pOutValue, // Of type sqlite3_value*
-                     constants(T::sqlite3PtrTy, vdbe->db), // Of type sqlite3*
+                     vdbeCtx->db, // Of type sqlite3*
                      constants(MEM_Null, 16) // Of type u16
                 );
 
                 store(LOC, constants(T::sqlite3_valuePtrTy, (Mem*)nullptr), pMemAddr);
                 store(LOC, pOutValue, pOutAddr);
-                store(LOC, constants(T::FuncDefPtrTy, (void*)functionAddress), pFuncAddr);
+                store(LOC, constants(T::FuncDefPtrTy, (FuncDef*)functionAddress), pFuncAddr);
 
                 assert(pc == pOp - vdbe->aOp && "pc is assumed to be pOp - vdbe->aOp");
                 store(LOC, constants(pc, 32), iOpAddr);
-                store(LOC, constants(T::VdbePtrTy, vdbe), pVdbeAddr);
+                store(LOC, vdbeCtx->p, pVdbeAddr);
                 store(LOC, 0, skipFlagAddr);
                 store(LOC, 0, isErrorAddr);
                 store(LOC, nReg, argcAddr);
@@ -144,7 +164,14 @@ namespace mlir::standalone::passes {
 
         /** Fallthrough into OP_AggStep */
 
-        auto pCtxAddr = constants(T::sqlite3_contextPtrTy.getPointerTo(), &vdbe->aOp[pc].p4.pCtx);
+        auto pCtxAddrUncasted = getElementPtrImm
+            (LOC, T::i8PtrTy,
+                vdbeCtx->aOp,
+                (long long)pc, // Get &aOp[pc]
+                6, // Get &p4
+                0  // Get address of union value
+            );
+        auto pCtxAddr = bitCast(LOC, pCtxAddrUncasted, T::sqlite3_contextPtrTy.getPointerTo());
         auto pCtxValue = load(LOC, pCtxAddr);
         auto pOutAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pCtxValue, 0, 0);
         auto pFuncAddr = getElementPtrImm(LOC, T::FuncDefPtrTy.getPointerTo(), pCtxValue, 0, 1);
@@ -159,7 +186,13 @@ namespace mlir::standalone::passes {
 
         /// int i;
         auto iAddr = alloca(LOC, T::i32PtrTy);
-        auto pMemValue = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[accumulatorReg]);
+
+        /// pMem = p->aMem[accumulatorReg]
+        auto pMemValue = getElementPtrImm
+            (LOC, T::sqlite3_valuePtrTy,
+                vdbeCtx->aMem,
+                accumulatorReg
+            );
 
         auto pCtxPMemAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrPtrTy, pCtxValue, 0, 2);
         auto pCtxPMemVal = load(LOC, pCtxPMemAddr);
@@ -209,7 +242,7 @@ namespace mlir::standalone::passes {
                 // &aMem[pOp->p2 + i]
                 auto p2PlusI = add(LOC, iVal, firstReg);
                 auto newArgvIVal = getElementPtr(LOC, T::sqlite3_valuePtrTy,
-                        constants(T::sqlite3_valuePtrTy, vdbe->aMem),
+                        vdbeCtx->aMem,
                         p2PlusI
                     );
                 /// pCtx->argv[i] = &aMem[pOp->p2 + i];
@@ -281,7 +314,7 @@ namespace mlir::standalone::passes {
                 auto valueText = call(LOC, f_sqlite3_value_text, pOutValue).getValue();
 
                 call(LOC, f_sqlite3VdbeError,
-                    constants(T::VdbePtrTy, vdbe),
+                    vdbeCtx->p,
                     constants(T::i8PtrTy, (char*)"%s"),
                     valueText
                 );
@@ -316,7 +349,10 @@ namespace mlir::standalone::passes {
                 if (newIValue) {
                     ///
                     call(LOC, f_sqlite3VdbeMemSetInt64,
-                            constants(T::sqlite3_valuePtrTy, &vdbe->aMem[newIValue]),
+                            getElementPtrImm(LOC, T::sqlite3_valuePtrTy,
+                                vdbeCtx->aMem,
+                                newIValue
+                            ),
                             constants(1, 64)
                     );
                 }

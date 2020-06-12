@@ -1,15 +1,16 @@
 #include <unordered_map>
-#include "Standalone/ConstantManager.h"
-#include "SQLiteBridge.h"
 
-#include "Standalone/StandalonePrerequisites.h"
+#include "Standalone/Lowering/MyBuilder.h"
+#include "Standalone/Lowering/AssertOperator.h"
+#include "Standalone/ConstantManager.h"
 #include "Standalone/StandaloneDialect.h"
 #include "Standalone/StandaloneOps.h"
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/TypeDefinitions.h"
 #include "Standalone/Lowering/Printer.h"
-
 #include "Standalone/VdbeContext.h"
+
+#include "SQLiteBridge.h"
 
 #include "vdbe.h"
 
@@ -27,6 +28,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     auto ctx = &mlirContext;
     auto vdbeDialect = mlirContext.getRegisteredDialect<mlir::standalone::StandaloneDialect>();
     auto* vdbeCtx = &vdbeDialect->vdbeContext;
+    vdbeCtx->mainFunction = func;
     auto* vdbe = vdbeCtx->vdbe;
 
     // All the blocks / operations we have already translated
@@ -39,11 +41,66 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     // Create an OpBuilder and make it write in the (new) function's entryBlock
     auto builder = mlir::OpBuilder(ctx);
     auto* entryBlock = func.addEntryBlock();
+    vdbeCtx->entryBlock = entryBlock;
     builder.setInsertionPointToStart(entryBlock);
     ConstantManager constants(builder, ctx);
     mlir::Printer print(ctx, builder, __FILE_NAME__);
 
     auto& rewriter = builder;
+
+    { // Load "globals"
+        using namespace mlir;
+        auto builder = MyBuilder(ctx, constants, rewriter);
+        myOperators
+
+        /// Get the address of the VDBE
+        auto beg = vdbeCtx->entryBlock->args_begin();
+        auto end = vdbeCtx->entryBlock->args_end();
+        auto p = *beg;
+        vdbeCtx->p = p;
+
+        // aMem (an sqlite3_value*) is the 20-th element in the Clang-compiled Vdbe
+        auto aMemAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), p, 0, 19);
+        // Load the value of aMem (the actual start of the array)
+        auto aMem = load(LOC, aMemAddr);
+        vdbeCtx->aMem = aMem;
+
+        /// aOp (a VdbeOp*) is the 24-th element of the Clang-compiled Vdbe
+        auto aOpAddr = getElementPtrImm(LOC, T::VdbeOpPtrTy.getPointerTo(), p, 0, 23);
+        ALWAYS_ASSERT(vdbe->aOp);
+        auto aOp = load(LOC, aOpAddr);
+        vdbeCtx->aOp = aOp;
+
+        if (false) { // TODO: Remove this testing code
+            MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
+
+            // Get &aOp[1]
+            auto tmpAddress = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, 4);
+            auto tmpAddressInt = ptrToInt(LOC, tmpAddress);
+            auto compileTimeAddress = constants((uint64_t)&vdbe->aOp[4], 64);
+            auto addressesMatch = iCmp(LOC, ICmpPredicate::eq,
+                    compileTimeAddress,
+                    tmpAddressInt
+                );
+
+            myAssert(LOCL, addressesMatch);
+
+            tmpAddress = getElementPtrImm(LOC, T::i8PtrTy, vdbeCtx->aOp, 35, 1);
+            tmpAddressInt = ptrToInt(LOC, tmpAddress);
+            compileTimeAddress = constants((uint64_t)&vdbe->aOp[35].p4type, 64);
+            addressesMatch = iCmp(LOC, ICmpPredicate::eq,
+                compileTimeAddress,
+                tmpAddressInt
+            );
+
+            myAssert(LOCL, addressesMatch);
+        }
+
+        /// db (a sqlite3*)
+        auto dbAddr = getElementPtrImm(LOC, T::sqlite3PtrTy.getPointerTo(), p, 0, 0);
+        auto db = load(LOC, dbAddr);
+        vdbeCtx->db = db;
+    }
 
     // Each time we translate an instruction, we need to branch from its block to the next block
     // We store the last instruction's block to this end.

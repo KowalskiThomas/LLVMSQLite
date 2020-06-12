@@ -26,4 +26,22 @@ struct VdbeContext {
 
     // The block with all the PC jumps
     mlir::Block* jumpsBlock;
+
+    // The main JITted function
+    mlir::FuncOp mainFunction;
+
+    // The main JITted function's entry block
+    mlir::Block* entryBlock;
+
+    // The value of p (the VDBE instance)
+    mlir::Value p;
+
+    // The value of p->aMem
+    mlir::Value aMem;
+
+    // The value of p->aOp
+    mlir::Value aOp;
+
+    // The value of p->db
+    mlir::Value db;
 };

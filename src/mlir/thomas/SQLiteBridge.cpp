@@ -142,8 +142,10 @@ struct VdbeRunner {
             // llvm::InitializeNativeTargetDisassembler();
 
             llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
-            auto result = llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("my_assert");
-            ALWAYS_ASSERT(result);
+
+            // TODO: Remove
+            // auto result = llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("my_assert");
+            // ALWAYS_ASSERT(result);
 
             executionEngineCreated = true;
             {
@@ -164,13 +166,10 @@ struct VdbeRunner {
                                 .create();
 
                 ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");
-                jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(engine->getFunctionAddress(
-                        JIT_MAIN_FN_NAME));
-
-                {
-                    auto fn = engine->FindFunctionNamed(JIT_MAIN_FN_NAME);
-                    fn->addFnAttr(llvm::Attribute::NoUnwind);
-                }
+                jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(
+                    engine->getFunctionAddress(JIT_MAIN_FN_NAME)
+                );
+                ALWAYS_ASSERT(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
             }
 
 #ifdef DEBUG_MACHINE

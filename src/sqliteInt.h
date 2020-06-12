@@ -15,7 +15,7 @@
 #ifndef SQLITEINT_H
 #define SQLITEINT_H
 
-#define SQLITE_ENABLE_EXPLAIN_COMMENTS //TODO
+// #define SQLITE_ENABLE_EXPLAIN_COMMENTS /* TODO Comments */
 
 /* Special Comments:
 **
