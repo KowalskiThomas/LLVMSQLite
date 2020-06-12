@@ -69,7 +69,8 @@ namespace mlir::standalone::passes {
 
         /// pIn1 = &aMem[pOp->p1];
         auto pIn1Addr = &vdbe->aMem[p1];
-        auto pIn1 = constants(T::sqlite3_valuePtrTy, pIn1Addr);
+        // auto pIn1 = constants(T::sqlite3_valuePtrTy, pIn1Addr);
+        auto pIn1 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p1);
 
         /// type1 = numericType(pIn1);
         // auto type1 = call(LOC, f_numericType, pIn1).getValue();
@@ -77,7 +78,8 @@ namespace mlir::standalone::passes {
 
         /// pIn2 = &aMem[pOp->p2];
         auto pIn2Addr = &vdbe->aMem[p2];
-        auto pIn2 = constants(T::sqlite3_valuePtrTy, pIn2Addr);
+        // auto pIn2 = constants(T::sqlite3_valuePtrTy, pIn2Addr);
+        auto pIn2 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p2);
 
         /// type2 = numericType(pIn2);
         // auto type2 = call(LOC, f_numericType, pIn2).getValue();
@@ -85,8 +87,8 @@ namespace mlir::standalone::passes {
 
         /// pOut = &aMem[pOp->p3];
         auto pOutAddr = &vdbe->aMem[resultReg];
-        auto flagsOutAddr = constants(T::i16PtrTy, &pOutAddr->flags);
-        auto pOut = constants(T::sqlite3_valuePtrTy, pOutAddr);
+        auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, resultReg);
+        auto flagsOutAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
 
         /// flags = pIn1->flags | pIn2->flags;
         // Get pIn1->flags
@@ -120,10 +122,14 @@ namespace mlir::standalone::passes {
             auto blockAfterSwitch = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
             /// iA = pIn1->u.i;
-            auto iA = load(LOC, constants(T::i64PtrTy, &pIn1Addr->u.i));
+            auto iAUncasted = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0);
+            auto iAAddr = bitCast(LOC, iAUncasted, T::i64PtrTy);
+            auto iA = load(LOC, iAAddr);
 
             /// iB = pIn2->u.i;
-            auto iBValue = load(LOC, constants(T::i64PtrTy, &pIn2Addr->u.i));
+            auto iBValueAddrUncasted = getElementPtrImm(LOC, T::doublePtrTy, pIn2, 0, 0);
+            auto iBValueAddr = bitCast(LOC, iBValueAddrUncasted, T::i64PtrTy);
+            auto iBValue = load(LOC, iBValueAddr);
             auto iB = alloca(LOC, T::i64PtrTy);
             store(LOC, iBValue, iB);
 
@@ -215,7 +221,9 @@ namespace mlir::standalone::passes {
 
             /// pOut->u.i = iB;
             iBValue = load(LOC, iB);
-            store(LOC, iBValue, constants(T::i64PtrTy, &pOutAddr->u.i));
+            auto outputAddrUncasted = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0);
+            auto outputAddr = bitCast(LOC, outputAddrUncasted, T::i64PtrTy);
+            store(LOC, iBValue, outputAddr);
 
             /// MemSetTypeFlag(pOut, MEM_Int);
             memSetTypeFlag(flagsOutAddr, MEM_Int);
@@ -292,7 +300,9 @@ namespace mlir::standalone::passes {
             ip_start(blockAfterIsNaN);
 
             /// pOut->u.r = rB;
-            store(LOC, rB, constants(T::doublePtrTy, &pOutAddr->u.r));
+            auto pOut2 = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0);
+            auto pOutA = bitCast(LOC, pOut2, T::doublePtrTy);
+            store(LOC, rB, pOutA);
 
             /// MemSetTypeFlag(pOut, MEM_Real);
             memSetTypeFlag(flagsOutAddr, MEM_Real);
