@@ -103,6 +103,12 @@ Value MyBuilder::insertFRemOp(Location loc, Value a, Value b) {
     return rewriter.create<mlir::LLVM::FRemOp>(loc, a, b);
 }
 
+Value MyBuilder::insertFSubOp(Location loc, Value a, Value b) {
+    assert(isFloatingPointType(a.getType()));
+    assert(isFloatingPointType(b.getType()));
+
+    return rewriter.create<mlir::LLVM::FSubOp>(loc, a, b);
+}
 Value MyBuilder::insertFAddOp(Location loc, Value a, Value b) {
     assert(isFloatingPointType(a.getType()));
     assert(isFloatingPointType(b.getType()));

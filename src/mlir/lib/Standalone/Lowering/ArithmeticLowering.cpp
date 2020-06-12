@@ -140,6 +140,7 @@ namespace mlir::standalone::passes {
                     break;
                 }
                 case OP_Subtract: {
+                    /// if (sqlite3SubInt64(&iB, iA))
                     auto result = call(LOC, f_sqlite3SubInt64, iB, iA).getValue();
 
                     /// goto fp_math;
@@ -249,7 +250,7 @@ namespace mlir::standalone::passes {
                 }
                 case OP_Subtract: {
                     /// rB -= rA;
-                    rB = fRem(LOC, rB, rA);
+                    rB = fSub(LOC, rB, rA);
 
                     break;
                 }

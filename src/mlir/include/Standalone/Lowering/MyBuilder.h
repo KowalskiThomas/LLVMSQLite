@@ -82,6 +82,8 @@ struct MyBuilder {
 
     Value insertFRemOp(Location loc, Value a, Value b);
 
+    Value insertFSubOp(Location loc, Value a, Value b);
+
     Value insertFAddOp(Location loc, Value a, Value b);
 
     Value insertFMulOp(Location loc, Value a, Value b);
@@ -186,6 +188,9 @@ auto fAdd = [&](Location loc, auto a, auto b) { \
 }; \
 auto fRem = [&](Location loc, auto a, auto b) { \
     return builder.insertFRemOp(loc, a, b); \
+}; \
+auto fSub = [&](Location loc, auto a, auto b) { \
+    return builder.insertFSubOp(loc, a, b); \
 }; \
 auto fMul = [&](Location loc, auto a, auto b) { \
     return builder.insertFMulOp(loc, a, b); \
