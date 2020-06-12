@@ -6,23 +6,18 @@
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 
-namespace mlir {
-    namespace standalone {
-        namespace passes {
-            LogicalResult
-            GotoLowering::matchAndRewrite(Goto gotoOp, PatternRewriter &rewriter) const {
-                auto op = &gotoOp;
-                LOWERING_PASS_HEADER
-                ConstantManager constants(rewriter, ctx);
-                Printer print(ctx, rewriter, __FILE_NAME__);
+namespace mlir::standalone::passes {
+    LogicalResult GotoLowering::matchAndRewrite(Goto gotoOp, PatternRewriter &rewriter) const {
+        auto op = &gotoOp;
+        LOWERING_PASS_HEADER
+        ConstantManager constants(rewriter, ctx);
+        Printer print(ctx, rewriter, __FILE_NAME__);
 
-                print(LOCL, "-- GoTo");
+        print(LOCL, "-- GoTo");
 
-                rewriter.create<mlir::BranchOp>(LOC, gotoOp.dest());
+        rewriter.create<mlir::BranchOp>(LOC, gotoOp.dest());
 
-                rewriter.eraseOp(gotoOp);
-                return success();
-            } // matchAndRewrite
-        } // namespace passes
-    } // namespace standalone
-} // namespace mlir
+        rewriter.eraseOp(gotoOp);
+        return success();
+    } // matchAndRewrite
+} // namespace mlir::standalone::passes
