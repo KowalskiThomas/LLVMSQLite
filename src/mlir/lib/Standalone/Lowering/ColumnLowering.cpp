@@ -1061,7 +1061,7 @@ namespace mlir {
 
                     auto generateVdbeDynamic = [&ctx, &rewriter, llvmDialect, &constants](auto pDest) {
                         auto ty = LLVMType::getIntNTy(llvmDialect, 16);
-                        auto attr = rewriter.getIntegerAttr(rewriter.getIntegerType(16), MEM_Agg | MEM_Dyn);
+                        auto attr = rewriter.getIntegerAttr(rewriter.getIntegerType(16), MEM_Agg | MEM_Dyn);
                         auto memAggOrMemDyn = rewriter.create<LLVM::ConstantOp>(LOC, ty, attr);
                         auto flagsAddr = rewriter.create<GEPOp>
                                 (LOC, T::i16PtrTy, pDest, ValueRange{
