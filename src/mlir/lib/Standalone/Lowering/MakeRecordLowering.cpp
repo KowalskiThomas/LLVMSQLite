@@ -81,28 +81,28 @@ namespace mlir::standalone::passes {
 
         /// pData0 = &aMem[nField];
         auto pData0Value = &vdbe->aMem[nField];
-        auto pData0 = constants(T::sqlite3_valuePtrTy, pData0Value);
+        auto pData0 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, nField);
 
         /// nField = pOp->p2;
         nField = nReg;
 
         /// pLast = &pData0[nField - 1];
         auto pLastValue = &pData0Value[nField - 1];
-        auto pLast = constants(T::sqlite3_valuePtrTy, pLastValue);
+        auto pLast = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, pData0, nField - 1);
 
         /// file_format = p->minWriteFileFormat;
         auto file_format = constants(vdbe->minWriteFileFormat, 32);
 
         /// pOut = &aMem[pOp->p3];
         auto pOutInitialValue = &vdbe->aMem[dest];
-        auto pOut = constants(T::sqlite3_valuePtrTy, pOutInitialValue);
+        auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, dest);
 
         /// if (zAffinity)
         if (affinities) {
             print(LOCL, "Applying affinities");
             auto pRecValue = pData0Value;
+            auto pRec = pData0;
             do {
-                auto pRec = constants(T::sqlite3_valuePtrTy, pRecValue);
                 call(LOC, f_applyAffinity,
                     pRec,
                     constants(affinities[0], 8),
@@ -134,6 +134,7 @@ namespace mlir::standalone::passes {
 
                     affinities++;
                     pRecValue++;
+                    pRec = getElementPtrImm(LOC, T::i8PtrTy, pRec, 1);
                 }
             } while (affinities[0]);
         }
@@ -145,8 +146,8 @@ namespace mlir::standalone::passes {
         };
 
         auto pRecValue = pLastValue;
+        auto pRec = pLast;
         do {
-            auto pRec = constants(T::sqlite3_valuePtrTy, pRecValue);
             auto recFlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pRec, 0, 1);
             auto recFlagsValue = load(LOC, recFlagsAddr);
 
@@ -210,7 +211,9 @@ namespace mlir::standalone::passes {
                 ip_start(blockRecInt);
 
                 /// i64 i = pRec->u.i;
-                auto i = load(LOC, constants(T::i64PtrTy, &pRecValue->u.i));
+                auto pRecUnionAddr = getElementPtrImm(LOC, T::doublePtrTy, pRec, 0, 0);
+                auto pRecIntegerAddr = bitCast(LOC, pRecUnionAddr, T::i64PtrTy);
+                auto i = load(LOC, pRecIntegerAddr);
 
                 auto uu = alloca(LOC, T::i64PtrTy);
 
@@ -509,6 +512,7 @@ print(LOCL, "is negative");
             if (pRecValue == pData0Value)
                 break;
             pRecValue--;
+            pRec = getElementPtrImm(LOC, T::i8PtrTy, pRec, -1);
 
         } while (true);
 
@@ -562,8 +566,7 @@ print(LOCL, "is negative");
         auto nByte = add(LOC, nHdr64, load(LOC, nDataAddr));
 
         /// if (nByte + nZero <= pOut->szMalloc)
-        // auto szMallocAddr = getElementPtrImm(LOC, T::i32PtrTy, pOut, 0, 7);
-        auto szMallocAddr = constants(T::i32PtrTy, &pOutInitialValue->szMalloc);
+        auto szMallocAddr = getElementPtrImm(LOC, T::i32PtrTy, pOut, 0, 7);
         auto szMalloc = load(LOC, szMallocAddr);
         auto szMalloc64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, szMalloc);
         auto nZeroValue = load(LOC, nZeroAddr);
@@ -693,10 +696,10 @@ print(LOCL, "is negative");
 
         /// pRec = pData0
         pRecValue = pData0Value;
+        pRec = pData0;
         Value zPayloadValue = load(LOC, zPayloadAddr);
         do {
             /// serial_type = pRec->uTemp;
-            auto pRec = constants(T::sqlite3_valuePtrTy, pRecValue);
             auto uTempAddress = getElementPtrImm(LOC, T::i32PtrTy, pRec, 0, 8);
             auto serialType = load(LOC, uTempAddress);
             auto serialType64 = rewriter.create<ZExtOp>(LOC, T::i64Ty, serialType);
@@ -711,6 +714,7 @@ print(LOCL, "is negative");
             auto serialPutResult = call(LOC, f_sqlite3VdbeSerialPut, zPayloadValue, pRec, serialType).getValue();
             zPayloadValue = getElementPtr(LOC, T::i8PtrTy, zPayloadValue, serialPutResult);
 
+            pRec = getElementPtrImm(LOC, T::i8PtrTy, pRec, 1);
         } while ((++pRecValue) <= pLastValue);
 
         branch(LOC, endBlock);
