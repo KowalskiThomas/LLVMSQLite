@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
@@ -45,7 +43,7 @@ namespace mlir::standalone::passes {
         auto endBlock = curBlock->splitBlock(gsOp); GO_BACK_TO(curBlock);
 
         /// pIn1 = &aMem[pOp->p1];
-        auto pIn1 = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[writeAddressTo]);
+        auto pIn1 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, writeAddressTo);
 
         /// pIn1->flags = MEM_Int;
         auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn1, 0, 1);
