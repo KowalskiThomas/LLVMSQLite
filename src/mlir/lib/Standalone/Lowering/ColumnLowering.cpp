@@ -1,11 +1,11 @@
+#include "Standalone/ConstantManager.h"
+#include "Standalone/Lowering/AssertOperator.h"
+#include "Standalone/Lowering/MyBuilder.h"
+#include "Standalone/Lowering/GetVarint32Operator.h"
+#include "Standalone/Lowering/Printer.h"
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
-
-#include "Standalone/ConstantManager.h"
-#include "Standalone/Lowering/AssertOperator.h"
-#include "Standalone/Lowering/GetVarint32Operator.h"
-#include "Standalone/Lowering/Printer.h"
 
 ExternFuncOp f_sqlite3BtreeCursorIsValid;
 ExternFuncOp f_sqlite3VdbeExec2;
@@ -16,7 +16,6 @@ namespace mlir {
         namespace passes {
             LogicalResult ColumnLowering::matchAndRewrite(Column colOp, PatternRewriter &rewriter) const {
                 auto op = &colOp;
-                auto &builder = rewriter;
                 LOWERING_PASS_HEADER
                 LOWERING_NAMESPACE
 
@@ -32,12 +31,13 @@ namespace mlir {
                 MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
                 GetVarint32Operator generate_getVarint32(rewriter, constants, ctx);
                 Printer print(ctx, rewriter, __FILE_NAME__);
+                MyBuilder builder(ctx, constants, rewriter);
+                myOperators
 
                 print(LOCL, "-- Column");
 
-                auto pVdbe = constants(T::VdbePtrTy, vdbe);
-                auto db = constants(T::sqlite3PtrTy, vdbe->db);
-                auto dbEnc = constants(vdbe->db->enc, 8);
+                auto dbEncAddr = getElementPtrImm(LOC, T::i8PtrTy, vdbeCtx->db, 0, 16);
+                auto dbEnc = load(LOC, dbEncAddr);
 
                 auto curIdxAttr = colOp.getAttrOfType<mlir::IntegerAttr>("curIdx");
                 auto columnAttr = colOp.getAttrOfType<mlir::IntegerAttr>("column");
@@ -51,7 +51,6 @@ namespace mlir {
                 auto defaultValueValue = constants(defaultValueAttr.getUInt(), 64);
                 auto flagsValue = constants(flagsAttr.getUInt(), 16);
                 auto pc = colOp.counterAttr().getSInt();
-                auto pOp = &vdbe->aOp[pc];
 
                 if (false) { // call to default
                     // TODO: Use our own implementation
@@ -120,10 +119,9 @@ namespace mlir {
 
                 /// pDest = &aMem[pOp->p3];
                 // Initialise aMem with its actual value
-                auto aMem = constants(T::sqlite3_valuePtrTy, vdbe->aMem);
                 // Get the address of the P3'th (extractTo) element
                 auto pDest = rewriter.create<GEPOp>
-                        (LOC, T::sqlite3_valuePtrTy, aMem, ValueRange{
+                        (LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, ValueRange{
                             extractToValue
                         });
 
@@ -260,11 +258,10 @@ namespace mlir {
 
                 // Get the address of pC->cacheCtr
                 auto cacheCtrAddr = rewriter.create<GEPOp>
-                        (LOC, T::i32PtrTy, pVdbe,
-                         ValueRange{
-                                 constants(0, 32), // &*pVdbe
-                                 constants(9, 32)  // &pVdbe->cacheCtr
-                         });
+                    (LOC, T::i32PtrTy, vdbeCtx->p,ValueRange{
+                         constants(0, 32), // &*pVdbe
+                         constants(9, 32)  // &pVdbe->cacheCtr
+                    });
                 auto cacheCtr = rewriter.create<LoadOp>(LOC, cacheCtrAddr);
 
                 auto cacheStatusNeqCacheCtr = rewriter.create<ICmpOp>
@@ -356,10 +353,9 @@ namespace mlir {
                             auto seekResultValue = rewriter.create<LoadOp>(LOC, seekResultAddress);
 
                             auto pRegValue = rewriter.create<GEPOp>
-                                    (LOC, T::sqlite3_valuePtrTy, aMem,
-                                     ValueRange{
-                                             seekResultValue, // We want &aMem[pC->seekResult]
-                                     });
+                                    (LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, ValueRange{
+                                         seekResultValue, // We want &aMem[pC->seekResult]
+                                    });
 
                             { // assert(pReg->flags & MEM_Blob);
                                 auto flagsAddr = rewriter.create<GEPOp>
@@ -431,9 +427,9 @@ namespace mlir {
                         auto pCrsrAddress = rewriter.create<GEPOp>
                                 (LOC, T::VdbeCursorPtrPtrTy, pCValue,
                                  ValueRange{
-                                         CONSTANT_INT(0, 32),  // &pC
-                                         CONSTANT_INT(12, 32), // &pc->uc
-                                         CONSTANT_INT(0, 32)   // pCursor (first field of union-struct)
+                                         constants(0, 32),  // &pC
+                                         constants(12, 32), // &pc->uc
+                                         constants(0, 32)   // pCursor (first field of union-struct)
                                  });
 
                         // Load the value of the pointer (address of the cursor)
@@ -458,7 +454,7 @@ namespace mlir {
 
                             auto pCrsrNotNull = rewriter.create<ICmpOp>
                                     (LOC, ICmpPredicate::ne,
-                                            pCrsr, constants(T::BtCursorPtrTy, (i8*)0)
+                                            pCrsr, constants(T::BtCursorPtrTy, (BtCursor*)nullptr)
                                     );
                             myAssert(LOCL, pCrsrNotNull);
 
@@ -499,16 +495,6 @@ namespace mlir {
                     { // After condition (but still in cacheStatus != cacheCtr)
                         rewriter.setInsertionPointToStart(blockEndCacheNeStatusCacheCtr);
 
-                        // print(LOCL, "After if rowNull");
-                        {
-                            static size_t counter = 0;
-                            auto counterAddr = constants(T::i64PtrTy, &counter);
-                            auto curValue = rewriter.create<LoadOp>(LOC, counterAddr);
-                            auto newValue = rewriter.create<AddOp>(LOC, curValue, constants(1, 64));
-                            rewriter.create<StoreOp>(LOC, newValue, counterAddr);
-                            // print(LOCL, constants(T::i64PtrTy, &counter), "Counter");
-                        }
-
                         //// pC->cacheStatus = p->cacheCtr;
                         auto newCacheCtr = rewriter.create<LoadOp>(LOC, cacheCtrAddr);
                         rewriter.create<StoreOp>(LOC, newCacheCtr, cacheStatusAddr);
@@ -545,7 +531,7 @@ namespace mlir {
                             // print(LOCL, "pC->szRow < aOffset[0]");
 
                             /// pC->aRow = (u8*)nullptr;
-                            rewriter.create<StoreOp>(LOC, constants(T::i8PtrTy, (u8 *) nullptr), pCaRowAddress);
+                            rewriter.create<StoreOp>(LOC, constants(T::i8PtrTy, (u8*)nullptr), pCaRowAddress);
                             /// pC->szRow = 0;
                             rewriter.create<StoreOp>(LOC, constants(0, 32), szRowAddress);
 
@@ -618,7 +604,7 @@ namespace mlir {
 
                             // if (pC->aRow == 0)
                             auto aRow = rewriter.create<LoadOp>(LOC, pCaRowAddress);
-                            auto null = constants(T::i8PtrTy, (u8 *) nullptr);
+                            auto null = constants(T::i8PtrTy, (u8*)nullptr);
                             auto aRowIsNull = rewriter.create<ICmpOp>(LOC, ICmpPredicate::eq, aRow, null);
 
                             auto curBlock = rewriter.getBlock();
@@ -993,11 +979,12 @@ namespace mlir {
                         { // if (pC->nHdrParsed <= p2)
                             rewriter.setInsertionPointToStart(blockNHdrParsedLtP2_2);
 
+                            auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, pc);
                             auto p4TypeAddr = rewriter.create<GEPOp>
-                                    (LOC, T::i8PtrTy, constants(T::VdbeOpPtrTy, pOp), ValueRange {
-                                constants(0, 32),
-                                constants(1, 32)
-                            });
+                                (LOC, T::i8PtrTy, pOp, ValueRange {
+                                    constants(0, 32),
+                                    constants(1, 32)
+                                });
                             auto p4Type = rewriter.create<LoadOp>(LOC, p4TypeAddr);
                             auto p4IsMem = rewriter.create<ICmpOp>
                                 (LOC, Pred::eq,
@@ -1355,9 +1342,9 @@ namespace mlir {
                             auto pCrsrAddress = rewriter.create<GEPOp>
                                     (LOC, T::VdbeCursorPtrPtrTy, pCValue,
                                      ValueRange{
-                                             CONSTANT_INT(0, 32),  // &pC
-                                             CONSTANT_INT(12, 32), // &pc->uc
-                                             CONSTANT_INT(0, 32)   // pCursor (first item of union-struct)
+                                             constants(0, 32),  // &pC
+                                             constants(12, 32), // &pc->uc
+                                             constants(0, 32)   // pCursor (first item of union-struct)
                                      });
 
                             // Load the value of the pointer (address of the cursor)
