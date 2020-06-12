@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/AllIncludes.h"
@@ -45,12 +43,11 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(fnOp); GO_BACK_TO(curBlock);
 
-        auto pVdbe = constants(T::VdbePtrTy, vdbe);
-        auto aMemAddress = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pVdbe, 0, 17);
+        auto aMemAddress = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), vdbeCtx->p, 0, 17);
         auto aMemValue = load(LOC, aMemAddress);
         // auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, aMemValue, p3);
         // TODO: Fix that:
-        auto pOut = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[p3]);
+        auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p3);
 
 
         auto pCtx = constants(T::sqlite3_contextPtrTy, p4);
@@ -82,14 +79,14 @@ namespace mlir::standalone::passes {
 
             /// pCtx->pVdbe = p;
             auto pVdbeAddr = getElementPtrImm(LOC, T::VdbePtrTy.getPointerTo(), pCtx, 0, 3);
-            store(LOC, pVdbe, pVdbeAddr);
+            store(LOC, vdbeCtx->p, pVdbeAddr);
 
             /// pCtx->pOut = pOut;
             store(LOC, pOut, pCtxOutAddr);
 
             for(auto i = p4->argc - 1; i >= 0; i--) {
                 // auto memAddress = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, aMemValue, p2 + i);
-                auto memAddress = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[p2 + i]);
+                auto memAddress = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p2 + i);
                 auto argAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrPtrTy, argvAddr, i);
                 store(LOC, memAddress, argAddr);
             }
@@ -152,7 +149,7 @@ namespace mlir::standalone::passes {
                 auto valueText = call(LOC, f_sqlite3_value_text, pOut).getValue();
 
                 call(LOC, f_sqlite3VdbeError,
-                     constants(T::VdbePtrTy, vdbe),
+                     vdbeCtx->p,
                      constants(T::i8PtrTy, (char*)"%s"),
                      valueText
                 );
