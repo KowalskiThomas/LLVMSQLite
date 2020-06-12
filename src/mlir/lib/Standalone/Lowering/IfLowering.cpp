@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
@@ -28,8 +26,8 @@ namespace mlir::standalone::passes {
         auto conditionReg = ifOp.conditionAttr().getSInt();
         auto hints = ifOp.hintsAttr().getSInt();
         auto pc = ifOp.pcAttr().getUInt();
-        if (false) { // call to default
-            // TODO: Use our own implementation
+
+        if (false) { // TODO: Use our own implementation
             rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
             rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
             rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange {constants(T::VdbePtrTy, vdbe) });
@@ -42,13 +40,12 @@ namespace mlir::standalone::passes {
             return success();
         }
 
-
         auto jumpTo = ifOp.jumpTo();
         auto fallThrough = ifOp.fallthrough();
 
-        auto* pMem = &vdbe->aMem[conditionReg];
+        auto pMem = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, conditionReg);
         auto c = call(LOC, f_sqlite3VdbeBooleanValue,
-            constants(T::sqlite3_valuePtrTy, pMem),
+            pMem,
             constants(hints, 32)
         ).getValue();
 
