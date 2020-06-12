@@ -37,6 +37,10 @@ namespace mlir {
 
         void operator()(Location loc, size_t line, Value v, const char* msg);
 
+        void operator()(Location loc, size_t line, int v, const char* msg);
+
+        void operator()(Location loc, size_t line, size_t v, const char* msg);
+
         void operator()(Location loc, size_t line, const char* msg);
     };
 }
