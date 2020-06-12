@@ -1,6 +1,4 @@
-#include <llvm/Support/DynamicLibrary.h>
 #include "Standalone/Lowering/OutToPrerelease.h"
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
@@ -37,12 +35,11 @@ namespace mlir::standalone::passes {
             return success();
         }
 
-        auto pOp = constants(T::VdbeOpPtrTy, &vdbe->aOp[pc]);
+        auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(intOp); GO_BACK_TO(curBlock);
 
-        // auto pOutValue = call(LOC, f_out2Prerelease, constants(T::VdbePtrTy, vdbe), pOp).getValue();
         auto outToPrerelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
         auto pOutValue = outToPrerelease(LOC, vdbe, &vdbe->aOp[pc]);
 
