@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
@@ -46,9 +44,9 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(copyOp); GO_BACK_TO(curBlock);
 
-        for(size_t i = 0; i < nReg; i++) {
-            auto pIn = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[firstFromReg + i]);
-            auto pOut = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[firstToReg + i]);
+        for(int i = 0; i < nReg; i++) {
+            auto pIn = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstFromReg + i);
+            auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstToReg + i);
 
             call(LOC, f_sqlite3VdbeMemShallowCopy, pOut, pIn, constants(MEM_Ephem, 32));
         }
