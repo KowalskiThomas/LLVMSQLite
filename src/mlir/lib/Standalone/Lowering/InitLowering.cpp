@@ -4,60 +4,55 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
-namespace mlir {
-    namespace standalone {
-        namespace passes {
-            LogicalResult
-            InitLowering::matchAndRewrite(InitOp initOp, PatternRewriter &rewriter) const {
-                auto op = &initOp;
-                ModuleOp parentModule2 = op->getParentOfType<ModuleOp>();
-                int i = 2;
-                LOWERING_PASS_HEADER
-                ConstantManager constants(rewriter, ctx);
-                Printer print(ctx, rewriter, __FILE_NAME__);
+namespace mlir::standalone::passes {
+    LogicalResult InitLowering::matchAndRewrite(InitOp initOp, PatternRewriter &rewriter) const {
+        auto op = &initOp;
+        LOWERING_PASS_HEADER
+        USING_OPS
+        ConstantManager constants(rewriter, ctx);
+        Printer print(ctx, rewriter, __FILE_NAME__);
 
-                print(LOCL, "-- Init");
+        print(LOCL, "-- Init");
 
-                auto jumpToAttr = initOp.jumpTo();
-                auto pc = initOp.pcAttr().getUInt();
-                if (false) { // call to default
-                    // TODO: Use our own implementation
-                    rewriter.create<mlir::LLVM::StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
-                    rewriter.create<mlir::LLVM::StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
-                    rewriter.create<mlir::LLVM::CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange {constants(T::VdbePtrTy, vdbe) });
-                    rewriter.eraseOp(*op);
+        auto jumpToAttr = initOp.jumpTo();
+        auto pc = initOp.pcAttr().getUInt();
+        
+        if (false) { // call to default
+            // TODO: Use our own implementation
+            rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
+            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
+            rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange {constants(T::VdbePtrTy, vdbe) });
+            rewriter.eraseOp(*op);
 
-                    if (op->getOperation()->isKnownTerminator()) {
-                        rewriter.create<BranchOp>(LOC, vdbeCtx->jumpsBlock);
-                    }
+            if (op->getOperation()->isKnownTerminator()) {
+                rewriter.create<BranchOp>(LOC, vdbeCtx->jumpsBlock);
+            }
 
-                    return success();
-                }
+            return success();
+        }
 
+        // Rewrite the Once value for all Once instructions
+        for(auto i = 0; i < vdbe->nOp; i++) {
+            if (vdbe->aOp[i].opcode == OP_Once) {
+                auto ptr = PTR_TO_P1(i);
+                rewriter.create<StoreOp>(LOC, constants(0, 32), ptr);
+            }
+        }
 
-                // Rewrite the Once value for all Once instructions
-                for(auto i = 0; i < vdbe->nOp; i++) {
-                    if (vdbe->aOp[i].opcode == OP_Once) {
-                        auto ptr = PTR_TO_P1(i);
-                        rewriter.create<mlir::LLVM::StoreOp>(LOC, constants(0, 32), ptr);
-                    }
-                }
+        {
+            // Update the once value for the Init op
+            auto ptr = PTR_TO_P1(0);
+            auto val = rewriter.create<LoadOp>(LOC, ptr);
+            auto valPlus1 = rewriter.create<AddOp>(LOC, val, constants(1, 32));
+            rewriter.create<StoreOp>(LOC, valPlus1, ptr);
+        }
 
-                {
-                    // Update the once value for the Init op
-                    auto ptr = PTR_TO_P1(0);
-                    auto val = rewriter.create<mlir::LLVM::LoadOp>(LOC, ptr);
-                    auto valPlus1 = rewriter.create<mlir::LLVM::AddOp>(LOC, val, constants(1, 32));
-                    rewriter.create<mlir::LLVM::StoreOp>(LOC, valPlus1, ptr);
-                }
+        if (vdbe->aOp[0].p2 > 0)
+            print(LOCL, constants(vdbe->aOp[0].p2, 32), "Init: Jumping to");
 
-                if (vdbe->aOp[0].p2 > 0)
-                    print(LOCL, constants(vdbe->aOp[0].p2, 32), "Init: Jumping to");
-                rewriter.create<mlir::BranchOp>(LOC, jumpToAttr);
+        rewriter.create<BranchOp>(LOC, jumpToAttr);
 
-                rewriter.eraseOp(initOp);
-                return success();
-            } // matchAndRewrite
-        } // namespace passes
-    } // namespace standalone
-} // namespace mlir
+        rewriter.eraseOp(initOp);
+        return success();
+    } // matchAndRewrite
+} // namespace mlir::standalone::passes
