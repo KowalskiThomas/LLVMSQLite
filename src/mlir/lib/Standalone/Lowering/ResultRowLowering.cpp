@@ -26,7 +26,8 @@ namespace mlir::standalone::passes {
 
         auto i = alloca(LOC, T::i32PtrTy);
 
-        auto rc = call(LOC, f_sqlite3VdbeCheckFk, constants(T::VdbePtrTy, vdbe), constants(0, 32)).getValue();
+        auto p = vdbeCtx->p;
+        auto rc = call(LOC, f_sqlite3VdbeCheckFk, p, constants(0, 32)).getValue();
         auto sqliteOk = constants(SQLITE_OK, 32);
 
         auto rcNeOk = iCmp(LOC, Pred::ne, rc, sqliteOk);
@@ -51,10 +52,10 @@ namespace mlir::standalone::passes {
         ip_start(blockAfterRcNeOk);
 
         rc = call(LOC, f_sqlite3VdbeCloseStatement,
-            constants(T::VdbePtrTy, vdbe), constants(SAVEPOINT_RELEASE, 32)
+            vdbeCtx->p, constants(SAVEPOINT_RELEASE, 32)
         ).getValue();
 
-        auto cacheCtrAddr = getElementPtr(LOC, T::i32PtrTy, constants(T::VdbePtrTy, vdbe),
+        auto cacheCtrAddr = getElementPtr(LOC, T::i32PtrTy, vdbeCtx->p,
                 constants(0, 32), // &*p
                 constants(9, 32)  // cacheCtr is 10-th element
                 );
@@ -68,14 +69,14 @@ namespace mlir::standalone::passes {
         int nCol = rrOp.nColAttr().getSInt();
         // Out of JIT
         auto pMem = &vdbe->aMem[firstCol];
+        auto pMemJit = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstCol);
         // In JIT
         /// p->pResultSet = &aMem[pOp->p1];
-        auto aMemP1Addr = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[firstCol]);
-        auto pResultSetAddr = constants(T::sqlite3_valuePtrPtrTy, &vdbe->pResultSet);
+        auto aMemP1Addr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstCol);
+        auto pResultSetAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrPtrTy, p, 0, 27);
         store(LOC, aMemP1Addr, pResultSetAddr);
-        // auto pMem = pResultSetAddr;
         for(size_t it = 0; it < nCol; it++) {
-            auto pMemIAddr = constants(T::sqlite3_valuePtrTy, &pMem[i]);
+            auto pMemIAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, pMemJit, i);
             { // De-ephemeralize
                 auto pMemFlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pMemIAddr, 0, 1);
                 auto pMemFlagsValue = load(LOC, pMemFlagsAddr);
@@ -102,7 +103,7 @@ namespace mlir::standalone::passes {
 
         { // if (db->mallocFailed) goto no_mem;
             auto dbAddr = getElementPtrImm(LOC, T::sqlite3PtrTy.getPointerTo(),
-                constants(T::VdbePtrTy, vdbe),
+                vdbeCtx->p,
                 0,
                 0
             );
@@ -114,7 +115,8 @@ namespace mlir::standalone::passes {
         } // end if (db->mallocFailed) goto no_mem;
 
         /// p->pc = (int) (pOp - aOp) + 1;
-        auto pcAddr = constants(T::i32PtrTy, (int*)&vdbe->pc);
+        auto pcAddr = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->p, 0, 10);
+        // auto pcAddr = constants(T::i32PtrTy, &vdbe->pc);
         auto newPc = constants(rrOp.counterAttr().getSInt() + 1, 32);
         store(LOC, newPc, pcAddr);
 
@@ -122,10 +124,10 @@ namespace mlir::standalone::passes {
 
         ip_start(blockEndResultRow);
 
-        auto aCountAddr = constants(T::i32PtrTy, &vdbe->aCounter[SQLITE_STMTSTATUS_VM_STEP]);
-        auto aCountVal = rewriter.create<LoadOp>(LOC, aCountAddr);
-        auto newAcountVal = rewriter.create<AddOp>(LOC, aCountVal, constants(1, 32));
-        rewriter.create<StoreOp>(LOC, newAcountVal, aCountAddr);
+        // auto aCountAddr = constants(T::i32PtrTy, &vdbe->aCounter[SQLITE_STMTSTATUS_VM_STEP]);
+        // auto aCountVal = rewriter.create<LoadOp>(LOC, aCountAddr);
+        // auto newAcountVal = rewriter.create<AddOp>(LOC, aCountVal, constants(1, 32));
+        // rewriter.create<StoreOp>(LOC, newAcountVal, aCountAddr);
 
         restoreStack(LOC, stackState);
         rewriter.create<LLVM::ReturnOp>(LOC, constants(SQLITE_ROW, 32));
