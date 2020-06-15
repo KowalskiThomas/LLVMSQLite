@@ -31,30 +31,6 @@
 }
 
 /**
- * Creates a well-typed in-code pointer to a operation parameter (for operation at PC and parameter PARAMETER)
- */
-// TODO: Remove these
-#define PTR_TO_P1(PC) \
-    rewriter.create<mlir::LLVM::IntToPtrOp>(LOC, T::i32PtrTy, \
-        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p1, 64))
-
-#define PTR_TO_P2(PC) \
-    rewriter.create<mlir::LLVM::IntToPtrOp>(LOC, T::i32PtrTy, \
-        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p2, 64))
-
-#define PTR_TO_P3(PC) \
-    rewriter.create<mlir::LLVM::IntToPtrOp>(LOC, T::i32PtrTy, \
-        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p3, 64))
-
-#define PTR_TO_P4(PC) \
-    rewriter.create<mlir::LLVM::IntToPtrOp>(LOC, T::i32PtrTy, \
-        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p4, 64))
-
-#define PTR_TO_P5(PC) \
-    rewriter.create<mlir::LLVM::IntToPtrOp>(LOC, T::i32PtrTy, \
-        rewriter.create<mlir::ConstantIntOp>(LOC, (uint64_t)&vdbe->aOp[PC].p5, 64))
-
-/**
  * Macro used to define several variables widely used in rewriting passes, namely:
  * - vdbeDialect
  * - vdbeCtx
@@ -119,15 +95,6 @@
     using BitcastOp = mlir::LLVM::BitcastOp; \
     using ZExtOp = mlir::LLVM::ZExtOp; \
 
-
-
-
-#define WIDTH_TO(target_width, val) \
-    builder.create<mlir::LLVM::ZExtOp>(LOC, \
-    mlir::LLVM::LLVMType::getIntNTy(llvmDialect, target_width), \
-    val)
-
-#define TO_I64(val) WIDTH_TO(64, val)
 
 #define SPLIT_BLOCK rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
 #define GO_BACK_TO(b) rewriter.setInsertionPointToEnd(b)

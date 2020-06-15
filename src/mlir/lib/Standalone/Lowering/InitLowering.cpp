@@ -34,17 +34,23 @@ namespace mlir::standalone::passes {
         // Rewrite the Once value for all Once instructions
         for(auto i = 0; i < vdbe->nOp; i++) {
             if (vdbe->aOp[i].opcode == OP_Once) {
-                auto ptr = PTR_TO_P1(i);
-                rewriter.create<StoreOp>(LOC, constants(0, 32), ptr);
+                auto p1Addr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, vdbeCtx->aOp, ValueRange{
+                        constants(i, 32),
+                        constants(3, 32)
+                });
+                rewriter.create<StoreOp>(LOC, constants(0, 32), p1Addr);
             }
         }
 
         {
             // Update the once value for the Init op
-            auto ptr = PTR_TO_P1(0);
-            auto val = rewriter.create<LoadOp>(LOC, ptr);
+            auto p1Addr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, vdbeCtx->aOp, ValueRange{
+                    constants(0, 32),
+                    constants(3, 32)
+            });
+            auto val = rewriter.create<LoadOp>(LOC, p1Addr);
             auto valPlus1 = rewriter.create<AddOp>(LOC, val, constants(1, 32));
-            rewriter.create<StoreOp>(LOC, valPlus1, ptr);
+            rewriter.create<StoreOp>(LOC, valPlus1, p1Addr);
         }
 
         if (vdbe->aOp[0].p2 > 0)
