@@ -65,6 +65,11 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         auto aMem = load(LOC, aMemAddr);
         vdbeCtx->aMem = aMem;
 
+        // apCsr (an sqlite3_cursor*) is the 22-th element in the Clang-compiled Vdbe
+        auto apCsrAddr = getElementPtrImm(LOC, T::VdbeCursorPtrPtrTy.getPointerTo(), vdbeCtx->p, 0, 21);
+        auto apCsr = load(LOC, apCsrAddr);
+        vdbeCtx->apCsr = apCsr;
+
         /// aOp (a VdbeOp*) is the 24-th element of the Clang-compiled Vdbe
         auto aOpAddr = getElementPtrImm(LOC, T::VdbeOpPtrTy.getPointerTo(), p, 0, 23);
         ALWAYS_ASSERT(vdbe->aOp);

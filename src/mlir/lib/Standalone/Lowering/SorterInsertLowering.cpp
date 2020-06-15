@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/AllIncludes.h"
@@ -34,8 +32,8 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(siOp); GO_BACK_TO(curBlock);
 
-        auto pCValueAddr = constants(T::VdbeCursorPtrPtrTy, &vdbe->apCsr[curIdx]);
-        auto pIn = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[reg]);
+        auto pCValueAddr = getElementPtrImm(LOC, T::VdbeCursorPtrPtrTy, vdbeCtx->apCsr, curIdx);
+        auto pIn = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, reg);
 
         auto pC = load(LOC, pCValueAddr);
 

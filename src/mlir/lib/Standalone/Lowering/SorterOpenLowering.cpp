@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
@@ -49,7 +47,7 @@ namespace mlir::standalone::passes {
         auto endBlock = curBlock->splitBlock(soOp); GO_BACK_TO(curBlock);
 
         auto pCx = call(LOC, f_allocateCursor,
-                constants(T::VdbePtrTy, vdbe),
+                vdbeCtx->p,
                 constants(curIdx, 32),
                 constants(nCol, 32),
                 constants(-1, 32),
@@ -62,10 +60,10 @@ namespace mlir::standalone::passes {
         } // end if (pCx == 0) goto no_mem
 
         auto keyInfoAddr = getElementPtrImm(LOC, T::KeyInfoPtrTy.getPointerTo(), pCx, 0, 13);
-        store(LOC, constants(T::KeyInfoPtrTy, (void*)p4), keyInfoAddr);
+        store(LOC, constants(T::KeyInfoPtrTy, (KeyInfo*)p4), keyInfoAddr);
 
         auto rc = call(LOC, f_sqlite3VdbeSorterInit,
-                constants(T::sqlite3PtrTy, vdbe->db),
+                vdbeCtx->db,
                 constants(p3, 32),
                 pCx).getValue();
 

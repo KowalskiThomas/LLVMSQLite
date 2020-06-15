@@ -44,4 +44,7 @@ struct VdbeContext {
 
     // The value of p->db
     mlir::Value db;
+
+    // The value of p->apCsr
+    mlir::Value apCsr;
 };

@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
@@ -47,14 +45,13 @@ namespace mlir::standalone::passes {
         auto endBlock = curBlock->splitBlock(snOp); GO_BACK_TO(curBlock);
 
         /// pC = p->apCsr[pOp->p1];
-        auto pCValueAddrCpp = &vdbe->apCsr[curIdx];
-        auto pCValueAddr = constants(T::VdbeCursorPtrTy.getPointerTo(), pCValueAddrCpp);
+        auto pCValueAddr = getElementPtrImm(LOC, T::VdbeCursorPtrTy.getPointerTo(), vdbeCtx->apCsr, curIdx);
         auto pC = load(LOC, pCValueAddr);
 
         /// TODO assert(isSorter(pC));
 
         /// rc = sqlite3VdbeSorterNext(db, pC);
-        auto db = constants(T::sqlite3PtrTy, vdbe->db);
+        auto db = vdbeCtx->db;
         auto rc = call(LOC, f_sqlite3VdbeSorterNext, db, pC).getValue();
 
         /// goto next_tail;
@@ -74,10 +71,12 @@ namespace mlir::standalone::passes {
 
             store(LOC, 0, nullRowAddr);
 
+            /* TODO: Hints counter
             auto aCounterAddr = constants(T::i32PtrTy, &vdbe->aCounter[hints]);
             auto counterVal = load(LOC, aCounterAddr);
             auto counterValPlus1 = add(LOC, counterVal, 1);
             store(LOC, counterValPlus1, aCounterAddr);
+            */
 
             branch(LOC, jumpTo);
             // print(LOCL, "goto jump_to_p2_and_check_for_interrupt");
