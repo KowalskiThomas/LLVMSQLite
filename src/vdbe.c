@@ -676,14 +676,6 @@ int iCompare = 0;
 int sqlite3VdbeExec2(
         Vdbe *p                    /* The VDBE */
 ) {
-    { // TODO: Remove
-        static size_t count = 0;
-        count++;
-        if (count % 100 == 0) {
-            // PRINT_STACK_SIZE;
-            // printf_line("Getting in exec", 0);
-        }
-    }
     pcHasBeenSet = 0; // pc Thomas
     Op *aOp = p->aOp;          /* Copy of p->aOp */
     Op *pOp = aOp;             /* Current operation */
@@ -768,10 +760,7 @@ int sqlite3VdbeExec2(
   sqlite3EndBenignMalloc();
 #endif
     for (pOp = &aOp[p->pc]; 1; pOp++) {
-        // TODO: Remove
-        if (maxVdbeSteps == -1)
-            printf_line("Current PC: ", (int)(pOp - aOp));
-        /* Errors are detected by individual opcodes, with an immediate
+    /* Errors are detected by individual opcodes, with an immediate
     ** jumps to abort_due_to_error. */
         assert(rc == SQLITE_OK);
 
@@ -2935,6 +2924,16 @@ case OP_Offset: {          /* out3 */
                 op_column_out:
                 UPDATE_MAX_BLOBSIZE(pDest);
                 REGISTER_TRACE(pOp->p3, pDest);
+
+                /*
+                printf("Value and Integer %d, IntReal %d, Real %d, String %d\n",
+                        pDest->flags & MEM_Int,
+                        pDest->flags & MEM_IntReal,
+                        pDest->flags & MEM_Real,
+                        pDest->flags & MEM_Str);
+                */
+
+
                 break;
 
                 op_column_corrupt:

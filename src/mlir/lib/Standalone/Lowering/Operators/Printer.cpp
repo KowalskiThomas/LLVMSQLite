@@ -36,7 +36,7 @@ void mlir::Printer::printPtr(Location loc, size_t line, Value ptr, const char *m
     auto& builder = rewriter;
     auto value = loadPtr ?
                     (Value)rewriter.create<mlir::LLVM::LoadOp>(loc, ptr) :
-                    CONSTANT_INT(0, 64);
+                    rewriter.create<mlir::LLVM::ConstantOp>(loc, T::i64Ty, rewriter.getI64IntegerAttr(0));
     auto extendedValue = rewriter.create<ZExtOp>(loc, T::i64Ty, value);
 
     auto msgAttr = rewriter.getI64IntegerAttr(reinterpret_cast<const uint64_t>(msg));

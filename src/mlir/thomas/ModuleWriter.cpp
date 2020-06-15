@@ -119,12 +119,14 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     builder.create<mlir::BranchOp>(LOC, jumpsBlock);
     builder.setInsertionPointToStart(jumpsBlock);
 
+    // vdbeCtx->iCompare = builder.create<mlir::LLVM::AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
     extern int iCompare;
     vdbeCtx->iCompare = constants(T::i32PtrTy, &iCompare);
-    // vdbeCtx->iCompare = builder.create<mlir::LLVM::AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
-    auto pcAddr = constants(T::i32PtrTy, (int*)&vdbe->pc);
+    auto pcAddr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, vdbeCtx->p, mlir::ValueRange {
+        constants(0, 32),
+        constants(10, 32)
+    });
     auto pcValue = builder.create<LoadOp>(LOCB, pcAddr);
-    // print(LOCL, pcValue, "Current PC:");
 
     Block* targetBlock = nullptr;
     Block* blockAfterJump = nullptr;
@@ -158,10 +160,12 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         lastBlock = blockAfterJump;
     }
 
+#ifdef PRINT_VDBE_PROGRAMME
     for(auto pc = 0llu; pc < vdbe->nOp; pc++) {
         auto& op = vdbe->aOp[pc];
         debug(pc << " - " << sqlite3OpcodeName(op.opcode))
     }
+#endif
 
     // Iterate over the VDBE programme
     bool writeBranchOut = true;

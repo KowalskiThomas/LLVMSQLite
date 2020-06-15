@@ -17,6 +17,12 @@
 #include "llvm/ExecutionEngine/OrcMCJITReplacement.h"
 #include "llvm/ExecutionEngine/MCJIT.h"
 #include "llvm/IR/Instructions.h"
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/Support/Debug.h>
+#include <llvm/ExecutionEngine/Orc/Core.h>
+#include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
+#include <llvm/Support/Error.h>
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
@@ -28,19 +34,34 @@
 #include <cassert>
 #include <memory>
 
+template<typename T>
+void write_to_file(const T& x, const char* fileName) {
+    std::string s;
+    auto temp = llvm::raw_string_ostream(s);
+    x.print(temp, nullptr);
+    auto fd = fopen(fileName, "w");
+    fwrite(s.c_str(), sizeof(char), s.size(), fd);
+    fclose(fd);
+}
+
 bool enableOpt = true;
 const char* const JIT_MAIN_FN_NAME = "jittedFunction";
 
 class VdbeRunner;
 static auto runners = std::unordered_map<Vdbe*, VdbeRunner*>{};
 
+using namespace std::chrono;
+
+unsigned long long functionPreparationTime;
+unsigned long long functionOptimisationTime;
+
 template<typename T>
-void printTimeDifference(std::chrono::time_point<T> tick, std::string msg) {
-    auto tock = std::chrono::system_clock::now();
+void printTimeDifference(time_point<T> tick, std::string msg) {
+    auto tock = system_clock::now();
     auto diff = tock - tick;
     printf("%s time difference: %llu ms\n",
            msg.c_str(),
-           std::chrono::duration_cast<std::chrono::milliseconds>(diff).count());
+           duration_cast<milliseconds>(diff).count());
 }
 
 static void initRuntime() {
@@ -58,7 +79,7 @@ struct VdbeRunner {
     MLIRContext context;
     MLIRContext* ctx;
 
-    mlir::LLVM::LLVMDialect* llvmDialect;
+    LLVMDialect* llvmDialect;
     VdbeDialect* vdbeDialect;
 
     mlir::OpBuilder builder;
@@ -92,23 +113,24 @@ struct VdbeRunner {
     void prepareFunction() {
         ::prepareFunction(context, llvmDialect, mlirModule);
 
+#ifdef DEBUG_MACHINE
         // llvm::errs() << "-- Original module";
         // theModule.dump();
+#endif
 
         mlir::PassManager pm(ctx);
         pm.addPass(std::make_unique<VdbeToLLVM>());
         pm.run(mlirModule);
 
+#ifdef DEBUG_MACHINE
         // llvm::errs() << "\n\n-- Intermediate module";
         // theModule.dump();
+#endif
 
         llvmModule = mlir::translateModuleToLLVMIR(mlirModule);
 
 #ifdef DEBUG_MACHINE
-        // llvm::errs() << "\n\n--LLVM IR-Translated module";
-        // llvmModule->dump();
-        // llvm::errs() << "\n\n";
-        printf("");
+        // write_to_file(*llvmModule, "unoptimised_ir.ll");
 #endif
     }
 
@@ -118,9 +140,10 @@ struct VdbeRunner {
 
     int run() {
         if (!functionPrepared) {
-            auto tick = std::chrono::system_clock::now();
+            auto tick = system_clock::now();
             prepareFunction();
-            printTimeDifference(tick, "Function preparation");
+            auto tock = system_clock::now();
+            functionPreparationTime = (unsigned long long)(duration_cast<milliseconds>(tock - tick).count());
             functionPrepared = true;
         }
         return runJit();
@@ -143,10 +166,6 @@ struct VdbeRunner {
 
             llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
 
-            // TODO: Remove
-            // auto result = llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("my_assert");
-            // ALWAYS_ASSERT(result);
-
             executionEngineCreated = true;
             {
                 auto &tempLlvmModule = *llvmModule;
@@ -157,6 +176,20 @@ struct VdbeRunner {
                 }
 #endif
                 ALWAYS_ASSERT(!broken && "Generated IR Module is invalid");
+
+                auto passManagerBuilder = llvm::PassManagerBuilder();
+                llvm::legacy::FunctionPassManager functionPassManager(&*llvmModule);
+                passManagerBuilder.populateFunctionPassManager(functionPassManager);
+
+                functionPassManager.doInitialization();
+                for (llvm::Function &f : *llvmModule)
+                    functionPassManager.run(f);
+                functionPassManager.doFinalization();
+
+                llvm::legacy::PassManager modulePassManager;
+                passManagerBuilder.populateModulePassManager(modulePassManager);
+                modulePassManager.run(*llvmModule);
+                // write_to_file(*llvmModule, "after.ll");
 
                 auto builder = llvm::EngineBuilder(std::move(llvmModule));
                 auto engine = builder
@@ -172,9 +205,8 @@ struct VdbeRunner {
                 ALWAYS_ASSERT(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
             }
 
-#ifdef DEBUG_MACHINE
-            printTimeDifference(tick, "Optimisation and ExecutionEngine creation");
-#endif
+            auto tock = system_clock::now();
+            functionOptimisationTime = duration_cast<milliseconds>(tock - tick).count();
         } // if (!executionEngineCreated)
 
         sqlite3VdbeEnter(vdbe);

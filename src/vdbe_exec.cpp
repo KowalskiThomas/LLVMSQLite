@@ -12,6 +12,11 @@ extern "C" {
 #error("Please define ENABLE_DEFAULT")
 #endif
 
+#if !ENABLE_JIT
+    unsigned long long functionPreparationTime = 0;
+    unsigned long long functionOptimisationTime = 0;
+#endif
+
 // Whether to use JIT for queries. Should be -1 if ENABLE_JIT && !ENABLE_DEFAULT or !ENABLE_JIT && ENABLE_DEFAULT
 char enableJit = -1;
 
@@ -21,12 +26,16 @@ int sqlite3VdbeExec(Vdbe *p) {
     static Vdbe* lastVdbe = nullptr;
     static auto initialTick = decltype(system_clock::now()){};
     if (lastVdbe != p) {
+#ifdef DEBUG_MACHINE
         printf("Resetting initialTick\n");
+#endif
         initialTick = system_clock::now();
         lastVdbe = p;
     }
 
+#ifdef DEBUG_MACHINE
     auto tick = std::chrono::system_clock::now();
+#endif
 
 #if ENABLE_JIT && !ENABLE_DEFAULT
     assert(enableJit == -1);
@@ -48,13 +57,25 @@ int sqlite3VdbeExec(Vdbe *p) {
 #endif
 #endif
 
+#ifdef DEBUG_MACHINE
     auto tock = system_clock::now();
     auto diff = (unsigned long long)(duration_cast<milliseconds>(tock - tick).count());
     printf("Total step time: %llu ms. RC = %d\n", diff, step_return);
+#endif
 
     if (step_return == SQLITE_DONE) {
+        extern unsigned long long functionPreparationTime;
+        extern unsigned long long functionOptimisationTime;
         auto initialDiff = (unsigned long long)(duration_cast<milliseconds>(tock - initialTick).count());
+#if ENABLE_JIT
+        printf("Preparation time: %llu ms\n", functionPreparationTime);
+        printf("Optimisation time: %llu ms\n", functionOptimisationTime);
+#endif
         printf("Total Vdbe execution time: %llu ms\n", initialDiff);
+#if ENABLE_JIT
+        printf("Vdbe execution time without compilation: %llu ms\n",
+                initialDiff - functionPreparationTime - functionOptimisationTime);
+#endif
     }
 
 
