@@ -45,7 +45,12 @@ namespace mlir {
 
                 /// pC = p->apCsr[pOp->p1];
                 // The address of the array of (pointers to) cursors in the VDBE
-                auto apCsr = constants(T::VdbeCursorPtrPtrTy, vdbe->apCsr);
+                auto apCsrAddr = rewriter.create<GEPOp>
+                        (LOC, T::VdbeCursorPtrPtrTy.getPointerTo(), vdbeCtx->p, ValueRange{
+                                constants(0, 32),
+                                constants(21, 32)
+                        });
+                auto apCsr = rewriter.create<LoadOp>(LOC, apCsrAddr);
                 // The address of this particular pointer-to-cursor
                 auto pCAddr = rewriter.create<mlir::LLVM::GEPOp>(LOC, T::VdbeCursorPtrPtrTy, apCsr, ValueRange{ curIdx });
                 // The address of the cursor
