@@ -38,15 +38,21 @@ namespace mlir {
                     return success();
                 }
 
-                auto pVdbe = constants(T::VdbePtrTy, vdbe);
-                // rewriter.create<IntToPtrOp>(LOC, T::VdbePtrTy, constants(vdbe, 64));
+                auto p = vdbeCtx->p;
 
-                auto aDb = vdbe->db->aDb;
-                auto _aDb = constants(T::DbPtrTy, aDb);
-                // rewriter.create<IntToPtrOp>(LOC, T::DbPtrTy, constants(aDb, 64));
+                auto dbAddr = rewriter.create<GEPOp>(LOC, T::sqlite3PtrTy.getPointerTo(), p, ValueRange{
+                        constants(0, 32),
+                        constants(0, 32)
+                });
+                auto db = rewriter.create<LoadOp>(LOC, dbAddr);
+                auto aDbAddr = rewriter.create<GEPOp>(LOC, T::DbPtrTy.getPointerTo(), db, ValueRange {
+                    constants(0, 32),
+                    constants(4, 32)
+                });
+                auto aDb = rewriter.create<LoadOp>(LOC, aDbAddr);
 
                 auto pDb = rewriter.create<GEPOp>
-                    (LOC, T::DbPtrTy, _aDb, mlir::ValueRange{
+                    (LOC, T::DbPtrTy, aDb, mlir::ValueRange{
                         constants(orOp.databaseAttr().getSInt(), 32)
                     });
 
@@ -66,7 +72,7 @@ namespace mlir {
                 // If P5 says that P2 is a register (and not an integer)
                 if (p5Value & OPFLAG_P2ISREG) {
                     // Get the address at which the array of sqlite3_value (aMem) starts
-                    auto addressOfRegisters = constants(T::sqlite3_valuePtrTy, vdbe->aMem);
+                    auto addressOfRegisters = vdbeCtx->aMem;
                     // Get the address of the value we're looking for
                     auto adressOfValue = rewriter.create<GEPOp>
                             (LOC,
@@ -108,7 +114,7 @@ namespace mlir {
 
                 auto pCur = rewriter.create<CallOp>
                         (LOC, f_allocateCursor, mlir::ValueRange{
-                            pVdbe,
+                            p,
                             curIdx,
                             nField,
                             databaseIdx,
