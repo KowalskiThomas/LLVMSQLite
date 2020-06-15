@@ -12,9 +12,6 @@ namespace {
         auto &val = *(mlir::Value *)(nullptr);
         auto *vdbe = (Vdbe *)(nullptr);
         auto *vdbeCtx = (VdbeContext *)(nullptr);
-        PROGRESSB("__unused__")
-        PROGRESS("__unused__")
-        PROGRESS_PRINT_PTR(val, "__unused__")
         {
             out("__unused__")
         }
@@ -28,13 +25,6 @@ namespace {
             PTR_TO_P3(0);
             PTR_TO_P4(0);
             PTR_TO_P5(0);
-            PTR_TO_REGISTER(0);
-        }
-        {
-            LLVM_CONSTANT_INT(T::i32Ty, 32, 0);
-        }
-        {
-            CONSTANT_INT(32, 0);
         }
     }
 } // namespace
