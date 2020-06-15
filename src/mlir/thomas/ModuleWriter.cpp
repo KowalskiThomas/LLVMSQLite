@@ -821,7 +821,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
             }
             case OP_Once: {
-                auto p1 = op.p1;
                 auto jumpTo = op.p2;
 
                 Block *blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
@@ -830,7 +829,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto op = rewriter.create<mlir::standalone::Once>
                     (LOCB,
                         INTEGER_ATTR(64, false, pc),
-                        INTEGER_ATTR(32, true, p1),
                         blockJumpTo,
                         blockFallthrough
                     );

@@ -44,6 +44,15 @@ set(LOWERING_FILES
     Lowering/IfLowering.cpp
     Lowering/OnceLowering.cpp
     Lowering/FunctionLowering.cpp
+    Lowering/OpenEphemeralLowering.cpp
+    Lowering/DeferredSeekLowering.cpp
+    Lowering/SeekRowidLowering.cpp
+    Lowering/SequenceLowering.cpp
+    Lowering/IfNotZeroLowering.cpp
+    Lowering/LastLowering.cpp
+    Lowering/IdxCompareLowering.cpp
+    Lowering/DeleteLowering.cpp
+    Lowering/IdxInsertLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

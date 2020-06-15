@@ -55,7 +55,15 @@ namespace mlir::standalone::passes {
     DECLARE_LOWERING(CompareJump)
     DECLARE_LOWERING(Once)
     DECLARE_LOWERING(Function)
-
+    DECLARE_LOWERING(OpenEphemeral)
+    DECLARE_LOWERING(DeferredSeek)
+    DECLARE_LOWERING(SeekRowid)
+    DECLARE_LOWERING(Sequence)
+    DECLARE_LOWERING(IfNotZero)
+    DECLARE_LOWERING(Last)
+    DECLARE_LOWERING(IdxCompare)
+    DECLARE_LOWERING(Delete)
+    DECLARE_LOWERING(IdxInsert)
 } // namespace mlir::standalone::passes
 
 #undef DECLARE_LOWERING

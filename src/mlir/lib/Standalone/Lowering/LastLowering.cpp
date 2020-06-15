@@ -10,8 +10,8 @@
 
 
 namespace mlir::standalone::passes {
-    LogicalResult Lowering::matchAndRewrite(TO_REPLACE txnOp, PatternRewriter &rewriter) const {
-        auto op = &txnOp;
+    LogicalResult LastLowering::matchAndRewrite(Last lstOp, PatternRewriter &rewriter) const {
+        auto op = &lstOp;
         LOWERING_PASS_HEADER
         LOWERING_NAMESPACE
 
@@ -23,20 +23,19 @@ namespace mlir::standalone::passes {
 
         auto firstBlock = rewriter.getBlock();
 
-        auto pc = txnOp.pcAttr().getUInt();
-        auto p1 = txnOp.p1Attr().getSInt();
-        auto p2 = txnOp.p2Attr().getSInt();
-        auto p3 = txnOp.p3Attr().getSInt();
-        auto p4 = txnOp.p4Attr().getSInt();
-        auto p5 = txnOp.p5Attr().getSInt();
+        auto pc = lstOp.pcAttr().getUInt();
+        auto p1 = lstOp.curIdxAttr().getSInt();
+
+        auto jumpTo = lstOp.jumpTo();
+        auto fallThrough = lstOp.fallThrough();
 
         auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
+        auto endBlock = curBlock->splitBlock(lstOp); GO_BACK_TO(curBlock);
 
         branch(LOC, endBlock);
 
         ip_start(endBlock);
-        rewriter.eraseOp(txnOp);
+        rewriter.eraseOp(lstOp);
 
         return success();
     } // matchAndRewrite

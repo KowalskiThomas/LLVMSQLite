@@ -208,13 +208,57 @@ def Standalone_CompareJump : Standalone_Op<"CompareJump", [Terminator]> {
 
 
 def Standalone_Once : Standalone_Op<"Once", [Terminator]> {
-    let arguments = (ins I64Attr:$pc, I32Attr:$onceValue);
+    let arguments = (ins I64Attr:$pc);
 
     let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
 }
 
 def Standalone_Function : Standalone_Op<"FunctionOp"> {
     let arguments = (ins I64Attr:$pc, I32Attr:$constantBitmask, I32Attr:$firstInReg, I32Attr:$outReg, I64Attr:$function);
+}
+
+def Standalone_OpenEphemeral : Standalone_Op<"OpenEphemeral"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$curIdx, I32Attr:$nColumn, I64Attr:$btIndex, I16Attr:$flags);
+}
+
+def Standalone_DeferredSeek : Standalone_Op<"DeferredSeek"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$curTarget, I32Attr:$curToMove, I64Attr:$array);
+}
+
+def Standalone_SeekRowid : Standalone_Op<"SeekRowid", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$curIdx, I32Attr:$reg);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallThrough);
+}
+
+def Standalone_Sequence : Standalone_Op<"Sequence"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$curIdx, I32Attr:$reg);
+}
+
+def Standalone_IfNotZero : Standalone_Op<"IfNotZero", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$reg);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallThrough);
+}
+
+def Standalone_Last : Standalone_Op<"Last", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$curIdx);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallThrough);
+}
+
+def Standalone_IdxCompare : Standalone_Op<"IdxCompare", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$curIdx, I32Attr:$firstReg, I64Attr:$nReg, I16Attr:$flags);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallThrough);
+}
+
+def Standalone_Delete : Standalone_Op<"Delete"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$curIdx, I32Attr:$p2, I32Attr:$p3, I64Attr:$p4, I16Attr:$p5);
+}
+
+def Standalone_IdxInsert : Standalone_Op<"IdxInsert"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$curIdx, I32Attr:$reg, I32Attr:$p3, I64Attr:$p4, I16Attr:$flags);
 }
 
 /*
