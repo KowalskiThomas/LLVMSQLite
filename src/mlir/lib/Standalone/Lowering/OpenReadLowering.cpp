@@ -38,11 +38,11 @@ namespace mlir {
                     return success();
                 }
 
-                auto pVdbe = CONSTANT_PTR(T::VdbePtrTy, vdbe);
+                auto pVdbe = constants(T::VdbePtrTy, vdbe);
                 // rewriter.create<IntToPtrOp>(LOC, T::VdbePtrTy, constants(vdbe, 64));
 
                 auto aDb = vdbe->db->aDb;
-                auto _aDb = CONSTANT_PTR(T::DbPtrTy, aDb);
+                auto _aDb = constants(T::DbPtrTy, aDb);
                 // rewriter.create<IntToPtrOp>(LOC, T::DbPtrTy, constants(aDb, 64));
 
                 auto pDb = rewriter.create<GEPOp>
