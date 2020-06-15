@@ -57,8 +57,9 @@ int sqlite3VdbeExec(Vdbe *p) {
 #endif
 #endif
 
-#ifdef DEBUG_MACHINE
     auto tock = system_clock::now();
+
+#ifdef DEBUG_MACHINE
     auto diff = (unsigned long long)(duration_cast<milliseconds>(tock - tick).count());
     printf("Total step time: %llu ms. RC = %d\n", diff, step_return);
 #endif
