@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
@@ -46,9 +44,11 @@ namespace mlir::standalone::passes {
         auto endBlock = curBlock->splitBlock(sdOp); GO_BACK_TO(curBlock);
 
         /// pOut = &aMem[pOp->p2];
-        auto pOut = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[reg]);
+        auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, reg);
         /// pC = p->apCsr[pOp->p1];
-        auto pCValueAddr = constants(T::VdbeCursorPtrTy.getPointerTo(), &vdbe->apCsr[curIdx]);
+        auto apCsrAddr = getElementPtrImm(LOC, T::VdbeCursorPtrPtrTy.getPointerTo(), vdbeCtx->p, 0, 21);
+        auto apCsr = load(LOC, apCsrAddr);
+        auto pCValueAddr = getElementPtrImm(LOC, T::VdbeCursorPtrTy.getPointerTo(), apCsr, curIdx);
         auto pC = load(LOC, pCValueAddr);
         // TODO
         /// assert(isSorter(pC));
@@ -68,7 +68,7 @@ namespace mlir::standalone::passes {
         } // end if (rc) goto abort_due_to_error;
 
         /// p->apCsr[pOp->p3]->cacheStatus = CACHE_STALE;
-        auto otherCursorPointerValueAddress = constants(T::VdbeCursorPtrTy.getPointerTo(), &vdbe->apCsr[curClearHeader]);
+        auto otherCursorPointerValueAddress = getElementPtrImm(LOC, T::VdbeCursorPtrTy.getPointerTo(), apCsr, curClearHeader);
         auto otherCursorPointer = load(LOC, otherCursorPointerValueAddress);
         auto cacheStatusAddr = getElementPtrImm(LOC, T::i32PtrTy, otherCursorPointer, 0, 9);
         store(LOC, CACHE_STALE, cacheStatusAddr);
