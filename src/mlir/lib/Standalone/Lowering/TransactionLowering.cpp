@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/AllIncludes.h"
@@ -46,9 +44,15 @@ namespace mlir::standalone::passes {
         auto rc = SQLITE_READONLY;
         // TODO: goto abort_due_to_error
 
-
-        auto pBtValue = constants(T::BtreePtrTy, vdbe->db->aDb[dbIdx].pBt);
-        auto pBtValueInt = constants(T::i64Ty, vdbe->db->aDb[dbIdx].pBt);
+        auto db = vdbeCtx->db;
+        auto aDbAddr = rewriter.create<GEPOp>(LOC, T::DbPtrTy.getPointerTo(), db, ValueRange {
+                constants(0, 32),
+                constants(4, 32)
+        });
+        auto aDb = rewriter.create<LoadOp>(LOC, aDbAddr);
+        auto pBtAddr = getElementPtrImm(LOC, T::BtreePtrTy.getPointerTo(), aDb, dbIdx, 1);
+        auto pBtValue = load(LOC, pBtAddr);
+        auto pBtValueInt = ptrToInt(LOC, pBtValue);
 
         auto metaAddr = alloca(LOC, T::i32PtrTy);
         auto rcAddr = alloca(LOC, T::i32PtrTy);
@@ -71,18 +75,21 @@ namespace mlir::standalone::passes {
                 myAssert(LOCL, rcTempIsSqliteOk);
             } // end if rc != SQLITE_OK goto abort_due_to_error
 
-            auto iStatementAddr = constants(T::i32PtrTy, &vdbe->iStatement);
+            /// iStatement is 13-th element
+            auto iStatementAddr = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->p, 0, 13);
 
             if (vdbe->usesStmtJournal && isWriteValue && (vdbe->db->autoCommit == 0 || vdbe->db->nVdbeRead > 1)) {
                 if (vdbe->iStatement == 0) {
                     /// db->nStatement++;
-                    auto nStatementAddr = constants(T::i32PtrTy, &vdbe->db->nStatement);
+                    constexpr auto nStatementOffset = 79;
+                    auto nStatementAddr = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->db, 0, nStatementOffset);
                     auto nStatementValue = load(LOC, nStatementAddr);
                     auto nStatementPlus1 = add(LOC, nStatementValue, 1);
                     store(LOC, nStatementPlus1, nStatementAddr);
 
                     /// p->iStatement = db->nSavepoint + db->nStatement;
-                    auto nSavepointAddr = constants(T::i32PtrTy, &vdbe->db->nSavepoint);
+                    constexpr auto nSavepointOffset = 78;
+                    auto nSavepointAddr = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->db, nSavepointOffset);
                     auto nSavepointValue = load(LOC, nSavepointAddr);
                     auto sum = add(LOC, nSavepointValue, nStatementValue);
                     store(LOC, sum, iStatementAddr);
@@ -116,13 +123,17 @@ namespace mlir::standalone::passes {
                 rcTemp = load(LOC, rcAddr);
 
                 /// p->nStmtDefCons = db->nDeferredCons;
-                auto nStmtDefConsAddr = constants(T::i64PtrTy, &vdbe->nStmtDefCons);
-                auto nDeferredCons = constants(T::i64PtrTy, &vdbe->db->nDeferredCons);
+                constexpr auto nStmtDefConsOffset = 15;
+                constexpr auto nDeferredConsOffset = 80;
+                constexpr auto nStmtDefImmConsOffset = 81;
+                constexpr auto nDeferredImmOffset = 81;
+                auto nStmtDefConsAddr = getElementPtrImm(LOC, T::i64PtrTy, vdbeCtx->p, nStmtDefConsOffset);
+                auto nDeferredCons = getElementPtrImm(LOC, T::i64PtrTy, vdbeCtx->db, nDeferredConsOffset);
                 auto nDeferredConsVal = load(LOC, nDeferredCons);
                 store(LOC, nDeferredConsVal, nStmtDefConsAddr);
                 /// p->nStmtDefImmCons = db->nDeferredImmCons;
-                auto nStmtDefImmConsAddr = constants(T::i64PtrTy, &vdbe->nStmtDefImmCons);
-                auto nDeferredImmConsAddr = constants(T::i64PtrTy, &vdbe->db->nDeferredImmCons);
+                auto nStmtDefImmConsAddr = getElementPtrImm(LOC, T::i64PtrTy, vdbeCtx->p, nStmtDefImmConsOffset);
+                auto nDeferredImmConsAddr = getElementPtrImm(LOC, T::i64PtrTy, vdbeCtx->db, nDeferredImmOffset);
                 auto nDeferredImmConsVal = load(LOC, nDeferredImmConsAddr);
                 store(LOC, nDeferredConsVal, nStmtDefImmConsAddr);
             } // end if (vdbe->usesStmtJournal && isWriteValue && (vdbe->db->autoCommit == 0 || vdbe->db->nVdbeRead > 1))
@@ -139,8 +150,12 @@ namespace mlir::standalone::passes {
         auto iMetaValue = load(LOC, metaAddr);
         auto metaNeP3 = iCmp(LOC, Pred::ne, iMetaValue, p3Value);
         auto p4AsInt = (int)p4Value;
-        auto generationAddr = constants(T::i32PtrTy, &vdbe->db->aDb[dbIdx].pSchema->iGeneration);
+
+        auto pSchemaAddr = getElementPtrImm(LOC, T::SchemaPtrTy.getPointerTo(), aDb, dbIdx, 4);
+        auto pSchema = load(LOC, pSchemaAddr);
+        auto generationAddr = getElementPtrImm(LOC, T::i32PtrTy, pSchema, 0, 1);
         auto generationVal = load(LOC, generationAddr);
+
         auto generationNeP4 = iCmp(LOC, Pred::ne, generationVal, p4AsInt);
         auto generationNeP4_Or_metaNep3 = bitOr(LOC, generationNeP4, metaNeP3);
         auto p5NotNull__And__generationNeP4_Or_metaNep3 = bitAnd(LOC, p5NotNull, generationNeP4_Or_metaNep3);
