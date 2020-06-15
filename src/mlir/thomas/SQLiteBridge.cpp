@@ -10,6 +10,8 @@
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/BasicBlock.h"
+#include "llvm/Transforms/IPO/Inliner.h"
+#include "llvm/Transforms/IPO.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
@@ -159,10 +161,15 @@ struct VdbeRunner {
         if (!executionEngineCreated) {
             auto tick = std::chrono::system_clock::now();
 
-            // Initialize LLVM targets.
-            llvm::InitializeNativeTarget();
-            llvm::InitializeNativeTargetAsmPrinter();
-            // llvm::InitializeNativeTargetDisassembler();
+            { // Initialize LLVM targets.
+                bool error = llvm::InitializeNativeTarget();
+                assert(!error);
+
+                error = llvm::InitializeNativeTargetAsmPrinter();
+                assert(!error);
+
+                // TODO: Get that to work: llvm::InitializeNativeTargetDisassembler();
+            } // End Initialize LLVM targets.
 
             llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
 
@@ -173,24 +180,62 @@ struct VdbeRunner {
 #ifdef DEBUG_MACHINE
                 if (broken) {
                     tempLlvmModule.dump();
+                    err("Broken module found, exiting.");
+                    exit(127);
                 }
 #endif
                 ALWAYS_ASSERT(!broken && "Generated IR Module is invalid");
 
+                auto maybeHost = llvm::orc::JITTargetMachineBuilder::detectHost();
+                if (!maybeHost) {
+                    err("Host could not be detected: " << maybeHost.takeError());
+                    exit(123);
+                }
+                auto host = *maybeHost;
+                llvm::orc::JITTargetMachineBuilder tmb(host);
+                auto maybeMachine = tmb.createTargetMachine();
+                if (!maybeMachine) {
+                    out("Target machine could not be created: " <<maybeMachine.takeError());
+                    exit(123);
+                }
+                auto& machine = *maybeMachine;
+                auto targetTriple = machine->getTargetTriple();
+
                 auto passManagerBuilder = llvm::PassManagerBuilder();
+                passManagerBuilder.OptLevel = 3;
+                passManagerBuilder.SizeLevel = 0;
+                passManagerBuilder.Inliner = llvm::createFunctionInliningPass();
+                passManagerBuilder.MergeFunctions = true;
+                passManagerBuilder.LoopVectorize = true;
+                passManagerBuilder.SLPVectorize = true;
+                passManagerBuilder.DisableUnrollLoops = false;
+                passManagerBuilder.RerollLoops = true;
+                passManagerBuilder.PerformThinLTO = true;
+                passManagerBuilder.LibraryInfo = new llvm::TargetLibraryInfoImpl(targetTriple);
+                machine->adjustPassManager(passManagerBuilder);
+
+                // Create the FunctionPassManager
                 llvm::legacy::FunctionPassManager functionPassManager(&*llvmModule);
                 passManagerBuilder.populateFunctionPassManager(functionPassManager);
+                functionPassManager.add(llvm::createTargetTransformInfoWrapperPass(machine->getTargetIRAnalysis()));
 
+                // Optimise functions
                 functionPassManager.doInitialization();
                 for (llvm::Function &f : *llvmModule)
                     functionPassManager.run(f);
                 functionPassManager.doFinalization();
 
+                // Create the ModulePassManager
                 llvm::legacy::PassManager modulePassManager;
                 passManagerBuilder.populateModulePassManager(modulePassManager);
+                modulePassManager.add(llvm::createTargetTransformInfoWrapperPass(machine->getTargetIRAnalysis()));
+
+                // Optimise the module
                 modulePassManager.run(*llvmModule);
+
                 // write_to_file(*llvmModule, "after.ll");
 
+                // Create an ExecutionEngine
                 auto builder = llvm::EngineBuilder(std::move(llvmModule));
                 auto engine = builder
                                 .setEngineKind(llvm::EngineKind::JIT)
@@ -198,11 +243,11 @@ struct VdbeRunner {
                                 .setVerifyModules(true)
                                 .create();
 
-                ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");
+                assert(engine != nullptr && "ExecutionEngine is null!");
                 jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(
                     engine->getFunctionAddress(JIT_MAIN_FN_NAME)
                 );
-                ALWAYS_ASSERT(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
+                assert(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
             }
 
             auto tock = system_clock::now();
