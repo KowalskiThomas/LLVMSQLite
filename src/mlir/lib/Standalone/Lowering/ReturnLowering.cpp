@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
@@ -42,7 +40,7 @@ namespace mlir::standalone::passes {
 
         /// pOp = &aOp[pIn1->u.i];
         // Get &pIn1
-        auto regAddr = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[goBackToAddr]);
+        auto regAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, goBackToAddr);
         // Get &pIn1->u.d
         auto unionValueAddr = getElementPtrImm(LOC, T::doublePtrTy, regAddr, 0, 0, 0);
         // Get &pIn1->u.i
@@ -51,8 +49,10 @@ namespace mlir::standalone::passes {
         auto target = load(LOC, targetAddr);
         // Add 1
         target = add(LOC, target, 1);
+        // Truncate to 32 bits
+        target = trunc(LOC, target, T::i32Ty);
         // Get &vdbe->pc
-        auto pCAddr = constants(T::i64PtrTy, &vdbe->pc);
+        auto pCAddr = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->p, 0, 10);
         // Store target in &vdbe->pc
         store(LOC, target, pCAddr);
 

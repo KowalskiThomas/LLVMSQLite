@@ -116,18 +116,12 @@ namespace mlir::standalone::passes {
 
         /// p->pc = (int) (pOp - aOp) + 1;
         auto pcAddr = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->p, 0, 10);
-        // auto pcAddr = constants(T::i32PtrTy, &vdbe->pc);
         auto newPc = constants(rrOp.counterAttr().getSInt() + 1, 32);
         store(LOC, newPc, pcAddr);
 
         branch(LOC, blockEndResultRow);
 
         ip_start(blockEndResultRow);
-
-        // auto aCountAddr = constants(T::i32PtrTy, &vdbe->aCounter[SQLITE_STMTSTATUS_VM_STEP]);
-        // auto aCountVal = rewriter.create<LoadOp>(LOC, aCountAddr);
-        // auto newAcountVal = rewriter.create<AddOp>(LOC, aCountVal, constants(1, 32));
-        // rewriter.create<StoreOp>(LOC, newAcountVal, aCountAddr);
 
         restoreStack(LOC, stackState);
         rewriter.create<LLVM::ReturnOp>(LOC, constants(SQLITE_ROW, 32));
