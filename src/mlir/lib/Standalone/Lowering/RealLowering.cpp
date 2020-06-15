@@ -1,5 +1,3 @@
-#include <llvm/Support/DynamicLibrary.h>
-
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/OutToPrerelease.h"
@@ -49,16 +47,8 @@ namespace mlir::standalone::passes {
         auto valueAddr = constants(T::doublePtrTy, pointerToValue);
         auto value = load(LOC, valueAddr);
 
-        // print(LOCL, value, "Loading OP_Real: ");
-
-        /// pOut = out2Prerelease(p, pOp);
-        //auto pOut = call(LOC, f_out2Prerelease,
-        //    constants(T::VdbePtrTy, vdbe),
-        //    constants(T::VdbeOpPtrTy, pOp)
-        //).getValue();
         auto outToPrerelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
         auto pOut = outToPrerelease(LOC, vdbe, &vdbe->aOp[pc]);
-
 
         // Get &pOut->flags
         auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
