@@ -1,7 +1,7 @@
-#include "llvm/Support/DynamicLibrary.h"
-#include "mlir/IR/Dialect.h"
-#include "mlir/IR/Attributes.h"
-#include "mlir/Target/LLVMIR.h"
+#include <llvm/Support/DynamicLibrary.h>
+#include <mlir/IR/Dialect.h>
+#include <mlir/IR/Attributes.h>
+#include <mlir/Target/LLVMIR.h>
 
 #include "Standalone/StandalonePassManager.h"
 #include "Standalone/StandalonePasses.h"

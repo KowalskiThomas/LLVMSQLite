@@ -8,29 +8,24 @@
 #include "Standalone/Lowering/Printer.h"
 
 
-namespace mlir {
-    namespace standalone {
-        namespace passes {
-            LogicalResult
-            NoopLowering::matchAndRewrite(Noop noopOp, PatternRewriter& rewriter) const {
-                auto op = &noopOp;
-                LOWERING_PASS_HEADER
-                ConstantManager constants(rewriter, ctx);
-                MyBuilder builder(ctx, constants, rewriter);
-                MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
-                Printer print(ctx, rewriter, __FILE_NAME__);
+namespace mlir::standalone::passes {
+    LogicalResult NoopLowering::matchAndRewrite(Noop noopOp, PatternRewriter& rewriter) const {
+        auto op = &noopOp;
+        LOWERING_PASS_HEADER
+        ConstantManager constants(rewriter, ctx);
+        MyBuilder builder(ctx, constants, rewriter);
+        MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
+        Printer print(ctx, rewriter, __FILE_NAME__);
 
-                print(LOCL, "-- NoOp");
+        print(LOCL, "-- NoOp");
 
-                {
-                    auto operand = constants(noopOp.pcAttr().getUInt(), 64);
-                    // Macro needs a variable named "builder" so we give it one
-                    // print(LOCL, operand, "Noop at line");
-                }
+        {
+            auto operand = constants(noopOp.pcAttr().getUInt(), 64);
+            // Macro needs a variable named "builder" so we give it one
+            // print(LOCL, operand, "Noop at line");
+        }
 
-                rewriter.eraseOp(noopOp);
-                return success();
-            } // matchAndRewrite
-        } // namespace passes
-    } // namespace standalone
-} // namespace mlir
+        rewriter.eraseOp(noopOp);
+        return success();
+    } // matchAndRewrite
+} // namespace mlir::standalone::passes
