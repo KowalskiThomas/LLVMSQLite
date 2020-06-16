@@ -5,7 +5,7 @@
 PRINTER_USING
 USING_OPS
 
-#define ENABLE_PRINTER false
+#define ENABLE_PRINTER true
 
 using namespace mlir::LLVM;
 

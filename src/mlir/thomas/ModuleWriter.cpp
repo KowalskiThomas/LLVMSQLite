@@ -25,10 +25,15 @@ using FuncOp = mlir::FuncOp;
 using Block = mlir::Block;
 
 void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& func) {
+    // A pointer to the MLIR Context
     auto ctx = &mlirContext;
+    // The StandaloneDialect instance
     auto vdbeDialect = mlirContext.getRegisteredDialect<mlir::standalone::StandaloneDialect>();
+    // A pointer to the VdbeContext instance we use for this query
     auto* vdbeCtx = &vdbeDialect->vdbeContext;
     vdbeCtx->mainFunction = func;
+
+    // The Vdbe instance we use for this query
     auto* vdbe = vdbeCtx->vdbe;
 
     // All the blocks / operations we have already translated
@@ -38,14 +43,19 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     // This map should be checked for at the end of every block / operation translation to update jumps.
     std::unordered_map<size_t, llvm::SmallVector<std::pair<mlir::Operation*, size_t>, 128>> operations_to_update;
 
-    // Create an OpBuilder and make it write in the (new) function's entryBlock
+    // Create an OpBuilder and make it write in the function's newly created entryBlock
     auto builder = mlir::OpBuilder(ctx);
     auto* entryBlock = func.addEntryBlock();
     vdbeCtx->entryBlock = entryBlock;
     builder.setInsertionPointToStart(entryBlock);
+
+    // A handy tool for generating constants (constant integers, nullptr's...)
     ConstantManager constants(builder, ctx);
+
+    // A handy tool for printing stuff at run-time
     mlir::Printer print(ctx, builder, __FILE_NAME__);
 
+    // A reference to builder (some macros use a "rewriter" variable)
     auto& rewriter = builder;
 
     { // Load "globals"
@@ -72,11 +82,17 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
         /// aOp (a VdbeOp*) is the 24-th element of the Clang-compiled Vdbe
         auto aOpAddr = getElementPtrImm(LOC, T::VdbeOpPtrTy.getPointerTo(), p, 0, 23);
-        ALWAYS_ASSERT(vdbe->aOp);
         auto aOp = load(LOC, aOpAddr);
         vdbeCtx->aOp = aOp;
 
+        /// db (a sqlite3*)
+        auto dbAddr = getElementPtrImm(LOC, T::sqlite3PtrTy.getPointerTo(), p, 0, 0);
+        auto db = load(LOC, dbAddr);
+        vdbeCtx->db = db;
+
         if (false) { // TODO: Remove this testing code
+            // The code in this scope allows us to check that the offsets we assume in the structs
+            // are indeed the right ones. Otherwise, the code will behave very weirdly. 
             MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
 
             // Get &aOp[1]
@@ -100,28 +116,27 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
             myAssert(LOCL, addressesMatch);
         }
-
-        /// db (a sqlite3*)
-        auto dbAddr = getElementPtrImm(LOC, T::sqlite3PtrTy.getPointerTo(), p, 0, 0);
-        auto db = load(LOC, dbAddr);
-        vdbeCtx->db = db;
     }
 
     // Each time we translate an instruction, we need to branch from its block to the next block
     // We store the last instruction's block to this end.
     mlir::Block* lastBlock = entryBlock;
 
-    print(LOCL, "Entered JITted function");
+    print(LOCL, "-- Entered JITted function");
 
+    // A block in which we will jump to other blocks. It is useful for resuming execution of the Vdbe.
     auto jumpsBlock = entryBlock->splitBlock(entryBlock->end());
     vdbeCtx->jumpsBlock = jumpsBlock;
     builder.setInsertionPointToEnd(entryBlock);
     builder.create<mlir::BranchOp>(LOC, jumpsBlock);
     builder.setInsertionPointToStart(jumpsBlock);
 
-    // vdbeCtx->iCompare = builder.create<mlir::LLVM::AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
+    // The iCompare value. It is supposed to be local to sqlite3VdbeExec but I moved it out
+    // so we can interleave JIT execution and default implementation
     extern int iCompare;
     vdbeCtx->iCompare = constants(T::i32PtrTy, &iCompare);
+
+    // Our goal here: check the value of vdbe->pc and jump to the right block
     auto pcAddr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, vdbeCtx->p, mlir::ValueRange {
         constants(0, 32),
         constants(10, 32)
@@ -141,11 +156,13 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                  || vdbe->aOp[targetPc - 1].opcode == OP_Goto
                  || vdbe->aOp[targetPc - 1].opcode == OP_Gosub))
             ) {
+            // TODO: Uncomment this (to generate less branching)
             // continue;
         }
 
         targetBlock = blocks.find(targetOpCode) != blocks.end() ? blocks[targetOpCode] : entryBlock;
 
+        // The next block
         blockAfterJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
         auto pcValueIsTarget = builder.create<ICmpOp>
                 (LOCB, ICmpPredicate::eq,
@@ -160,26 +177,38 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         lastBlock = blockAfterJump;
     }
 
+#define PRINT_VDBE_PROGRAMME
 #ifdef PRINT_VDBE_PROGRAMME
+    // Prints all the opcodes of the Vdbe in order
     for(auto pc = 0llu; pc < vdbe->nOp; pc++) {
         auto& op = vdbe->aOp[pc];
-        debug(pc << " - " << sqlite3OpcodeName(op.opcode))
+        out(pc << " - " << sqlite3OpcodeName(op.opcode))
     }
 #endif
 
-    // Iterate over the VDBE programme
+    // Whether this operation should have branching to the next block appended to it
+    // TODO: Remove this and use isKnownTerminator()
     bool writeBranchOut = true;
 
     // Used to stop generating code after a certain instruction is seen (and finished)
+    // TODO: Remove that
     bool lastOpSeen = false;
+
+    // Flag to exit sqlite if we find an unsupported opcode
     bool unsupportedOpCodeSeen = false;
+
+    // Iterate over the VDBE programme
     for(auto pc = 0llu; pc < vdbe->nOp; pc++) {
         // Create a block for that operation
         auto block = func.addBlock();
         builder.setInsertionPointToStart(block);
+        
+        // The VdbeOp we're currently working on 
         auto& op = vdbe->aOp[pc];
 
+        // By default, we write branching to the next block
         bool newWriteBranchOut = true;
+ 
         // Construct the adequate VDBE MLIR operation based on the instruction
         switch(op.opcode) {
             default:
@@ -265,6 +294,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                     );
                 break;
             }
+            case OP_Sort:
             case OP_SorterSort:
             case OP_Rewind: {
                 auto curIdx = op.p1;
@@ -660,16 +690,11 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
             case OP_Return: {
                 auto returnToAddrReg = op.p1;
 
-                // auto returnTo = blocks.count(returnToAddr) == 0 ? entryBlock : blocks[returnToAddr];
-
                 auto op = rewriter.create<mlir::standalone::Return>
                         (LOCB,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, returnToAddrReg)
                         );
-
-                // if (blocks.count(returnToAddr) == 0)
-                //     operations_to_update[returnToAddr].emplace_back(op, 0);
 
                 newWriteBranchOut = false;
                 break;
@@ -867,53 +892,182 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p4 = op.p4.i;
                 auto p5 = op.p5;
 
-                /*
                 rewriter.create<mlir::standalone::OpenEphemeral>
                     (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, true, p2),
                          INTEGER_ATTR(64, false, p4),
-                         INTEGER_ATTR(16, true, p5)
+                         INTEGER_ATTR(16, false, p5)
                     );
-                */
 
                 break;
             }
             case OP_DeferredSeek: {
+                auto p1 = op.p1;
+                auto p3 = op.p3;
+                auto p4 = (char*)op.p4.z;
+
+                rewriter.create<mlir::standalone::DeferredSeek>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p3),
+                        INTEGER_ATTR(64, false, (uint64_t)p4)
+                    );
 
                 break;
             }
             case OP_SeekRowid: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
 
+                auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
+                auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;                
+
+                auto op = rewriter.create<mlir::standalone::SeekRowid>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p3),
+                        jumpToBlock,
+                        fallthroughBlock
+                    );
+
+                if (jumpToBlock == entryBlock)
+                    operations_to_update[p2].emplace_back(op, 0);
+                if (fallthroughBlock == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op, 1);
+
+                newWriteBranchOut = false;
                 break;
             }
             case OP_Sequence: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+
+                rewriter.create<mlir::standalone::Sequence>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2)
+                    );
 
                 break;
             }
             case OP_IfNotZero: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
 
+                auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
+                auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;                
+
+                auto op = rewriter.create<mlir::standalone::IfNotZero>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        jumpToBlock,
+                        fallthroughBlock
+                    );
+
+                if (jumpToBlock == entryBlock)
+                    operations_to_update[p2].emplace_back(op, 0);
+                if (fallthroughBlock == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op, 1);
+
+                newWriteBranchOut = false;
                 break;
             }
             case OP_Last: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
 
+                auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
+                auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;                
+
+                auto op = rewriter.create<mlir::standalone::Last>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        jumpToBlock,
+                        fallthroughBlock
+                    );
+
+                if (jumpToBlock == entryBlock)
+                    operations_to_update[p2].emplace_back(op, 0);
+                if (fallthroughBlock == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op, 1);
+                
+                newWriteBranchOut = false;
                 break;
             }
+            // TODO: Add other OP_IdxXX
             case OP_IdxLE: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+                auto p4 = op.p4.i;
+                auto p5 = op.p5;
 
+                auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
+                auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;                
+
+                auto op = rewriter.create<mlir::standalone::IdxCompare>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p3),
+                        INTEGER_ATTR(64, false, p4),
+                        INTEGER_ATTR(16, false, p5),
+                        jumpToBlock,
+                        fallthroughBlock
+                    );
+
+                if (jumpToBlock == entryBlock)
+                    operations_to_update[p2].emplace_back(op, 0);
+                if (fallthroughBlock == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op, 1);
+                
+                newWriteBranchOut = false;
                 break;
             }
             case OP_Delete: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+                auto p4 = op.p4.i;
+                auto p5 = op.p5;
 
+                auto op = rewriter.create<mlir::standalone::Delete>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(32, true, p3),
+                        INTEGER_ATTR(64, false, p4),
+                        INTEGER_ATTR(16, false, p5)
+                    );
+                
                 break;
             }
             case OP_IdxInsert: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+                auto p4 = op.p4.i;
+                auto p5 = op.p5;
 
-                break;
-            }
-            case OP_Sort: {
-
+                auto op = rewriter.create<mlir::standalone::IdxInsert>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(32, true, p3),
+                        INTEGER_ATTR(64, false, p4),
+                        INTEGER_ATTR(16, false, p5)
+                    );
+                
                 break;
             }
         }

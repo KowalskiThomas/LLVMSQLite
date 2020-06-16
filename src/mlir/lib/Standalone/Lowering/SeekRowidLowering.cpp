@@ -27,6 +27,8 @@ namespace mlir::standalone::passes {
         auto p1 = srOp.curIdxAttr().getSInt();
         auto p2 = srOp.regAttr().getSInt();
 
+        USE_DEFAULT_BOILERPLATE
+        
         auto jumpTo = srOp.jumpTo();
         auto fallThrough = srOp.fallThrough();
 

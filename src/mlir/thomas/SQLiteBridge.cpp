@@ -36,26 +36,9 @@
 #include <cassert>
 #include <memory>
 
-template<typename T>
-void writeToFile(const char* fileName, const T& x) {
-    std::string s;
-    auto stream = llvm::raw_string_ostream(s);
-    x.print(stream, nullptr);
-    auto fd = fopen(fileName, "w");
-    fwrite(s.c_str(), sizeof(char), s.size(), fd);
-    fclose(fd);
-}
-
-bool enableOpt = true;
-const char* const JIT_MAIN_FN_NAME = "jittedFunction";
-
-class VdbeRunner;
-static auto runners = std::unordered_map<Vdbe*, VdbeRunner*>{};
-
 using namespace std::chrono;
 
-unsigned long long functionPreparationTime;
-unsigned long long functionOptimisationTime;
+class VdbeRunner;
 
 template<typename T>
 void printTimeDifference(time_point<T> tick, std::string msg) {
@@ -65,6 +48,39 @@ void printTimeDifference(time_point<T> tick, std::string msg) {
            msg.c_str(),
            duration_cast<milliseconds>(diff).count());
 }
+
+void writeToFile(const char* const fileName, std::string s) {
+    auto fd = fopen(fileName, "w");
+    fwrite(s.c_str(), sizeof(char), s.size(), fd);
+    fclose(fd);
+}
+
+void writeToFile(const char* const fileName, mlir::ModuleOp& x) {
+    std::string s;
+    auto stream = llvm::raw_string_ostream(s);
+    x.print(stream);
+    writeToFile(fileName, s);
+}
+
+void writeToFile(const char* const fileName, llvm::Module& m) {
+    std::string s;
+    auto stream = llvm::raw_string_ostream(s);
+    stream << m;
+    writeToFile(fileName, s);
+}
+
+bool enableOpt = true;
+const char* const JIT_MAIN_FN_NAME = "jittedFunction";
+
+static auto runners = std::unordered_map<Vdbe*, VdbeRunner*>{};
+
+unsigned long long functionPreparationTime;
+unsigned long long functionOptimisationTime;
+
+// TODO: This is temporary
+#ifndef DEBUG_MACHINE
+#define DEBUG_MACHINE
+#endif
 
 static void initRuntime() {
     mlir::registerAllDialects();
@@ -116,7 +132,7 @@ struct VdbeRunner {
         ::prepareFunction(context, llvmDialect, mlirModule);
 
 #ifdef DEBUG_MACHINE
-        writeToFile("jit_mlir_vdbe_module.ll", *llvmModule);
+        writeToFile("jit_mlir_vdbe_module.ll", mlirModule);
 #endif
 
         mlir::PassManager pm(ctx);
@@ -124,7 +140,7 @@ struct VdbeRunner {
         pm.run(mlirModule);
 
 #ifdef DEBUG_MACHINE
-        writeToFile("jit_mlir_llvm_module.ll", *llvmModule);
+        writeToFile("jit_mlir_llvm_module.ll", mlirModule);
 #endif
 
         llvmModule = mlir::translateModuleToLLVMIR(mlirModule);
@@ -199,7 +215,7 @@ struct VdbeRunner {
                 auto targetTriple = machine->getTargetTriple();
 
                 auto passManagerBuilder = llvm::PassManagerBuilder();
-                passManagerBuilder.OptLevel = 3;
+                passManagerBuilder.OptLevel = 0;
                 passManagerBuilder.SizeLevel = 0;
                 passManagerBuilder.Inliner = llvm::createFunctionInliningPass();
                 passManagerBuilder.MergeFunctions = true;
@@ -252,6 +268,7 @@ struct VdbeRunner {
         } // if (!executionEngineCreated)
 
         sqlite3VdbeEnter(vdbe);
+
         if (vdbe->rc == SQLITE_NOMEM) {
             err("ERROR: Cannot allocate memory");
             exit(124);

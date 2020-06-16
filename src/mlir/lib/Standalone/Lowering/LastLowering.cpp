@@ -26,6 +26,8 @@ namespace mlir::standalone::passes {
         auto pc = lstOp.pcAttr().getUInt();
         auto p1 = lstOp.curIdxAttr().getSInt();
 
+        USE_DEFAULT_BOILERPLATE
+        
         auto jumpTo = lstOp.jumpTo();
         auto fallThrough = lstOp.fallThrough();
 

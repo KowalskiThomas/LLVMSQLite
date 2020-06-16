@@ -26,9 +26,11 @@ namespace mlir::standalone::passes {
         auto pc = icOp.pcAttr().getUInt();
         auto p1 = icOp.curIdxAttr().getSInt();
         auto p2 = icOp.firstRegAttr().getSInt();
-        auto p4 = icOp.nRegAttr().getSInt();
-        auto p5 = icOp.flagsAttr().getSInt();
+        auto p4 = icOp.nRegAttr().getUInt();
+        auto p5 = icOp.flagsAttr().getUInt();
 
+        USE_DEFAULT_BOILERPLATE
+        
         auto jumpTo = icOp.jumpTo();
         auto fallThrough = icOp.fallThrough();
 

@@ -50,14 +50,7 @@ namespace mlir::standalone::passes {
         auto flagsValue = constants(flagsAttr.getUInt(), 16);
         auto pc = colOp.counterAttr().getSInt();
 
-        if (false) { // call to default
-            // TODO: Use our own implementation
-            rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
-            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
-            rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange { constants(T::VdbePtrTy, vdbe) });
-            rewriter.eraseOp(*op);
-            return success();
-        }
+        USE_DEFAULT_BOILERPLATE
 
         auto curIdx = rewriter.create<AllocaOp>(LOC, T::i32PtrTy, constants(1, 32), 0);
         rewriter.create<StoreOp>(LOC, curIdxValue, curIdx);

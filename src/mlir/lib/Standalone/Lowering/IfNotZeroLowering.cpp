@@ -29,6 +29,8 @@ namespace mlir::standalone::passes {
         auto jumpTo = inzOp.jumpTo();
         auto fallThrough = inzOp.fallThrough();
 
+        USE_DEFAULT_BOILERPLATE
+
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(inzOp); GO_BACK_TO(curBlock);
 

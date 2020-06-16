@@ -18,22 +18,14 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
-        print(LOCL, "-- Integer");
-
         auto firstBlock = rewriter.getBlock();
 
         auto value = intOp.valueAttr().getSInt();
         auto dest = intOp.destAttr().getSInt();
         auto pc = intOp.pcAttr().getUInt();
 
-        if (false) { // call to default
-            // TODO: Use our own implementation
-            store(LOC, 1, constants(T::i64PtrTy, &maxVdbeSteps));
-            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
-            call(LOC, f_sqlite3VdbeExec2, constants(T::VdbePtrTy, vdbe));
-            rewriter.eraseOp(intOp);
-            return success();
-        }
+        print(LOCL, "-- Integer");
+        USE_DEFAULT_BOILERPLATE
 
         auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
 

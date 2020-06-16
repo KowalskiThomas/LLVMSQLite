@@ -8,6 +8,8 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
+#include "Standalone/DefaultImplementation.h"
+
 
 namespace mlir::standalone::passes {
     LogicalResult SorterInsertLowering::matchAndRewrite(SorterInsert siOp, PatternRewriter &rewriter) const {
@@ -21,14 +23,17 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
-        print(LOCL, "-- SorterInsert");
         auto stackState = saveStack(LOC);
 
         auto firstBlock = rewriter.getBlock();
 
         auto curIdx = siOp.curIdxAttr().getSInt();
         auto reg = siOp.regAttr().getSInt();
+        auto pc = siOp.pcAttr().getUInt();
 
+        print(LOCL, "-- SorterInsert");
+        USE_DEFAULT_BOILERPLATE
+        
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(siOp); GO_BACK_TO(curBlock);
 

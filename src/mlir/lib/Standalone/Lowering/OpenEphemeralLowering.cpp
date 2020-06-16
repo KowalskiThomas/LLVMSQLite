@@ -22,14 +22,15 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
-        auto firstBlock = rewriter.getBlock();
-
         auto pc = oeOp.pcAttr().getUInt();
         auto p1 = oeOp.curIdxAttr().getSInt();
         auto p2 = oeOp.nColumnAttr().getSInt();
         auto p4 = (Btree*) oeOp.btIndexAttr().getUInt();
-        auto p5 = oeOp.flagsAttr().getSInt();
+        auto p5 = oeOp.flagsAttr().getUInt();
 
+        USE_DEFAULT_BOILERPLATE
+        
+        auto firstBlock = rewriter.getBlock();
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(oeOp); GO_BACK_TO(curBlock);
 

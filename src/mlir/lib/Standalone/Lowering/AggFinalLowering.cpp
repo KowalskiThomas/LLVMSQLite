@@ -2,6 +2,7 @@
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
+#include "Standalone/DefaultImplementation.h"
 
 #include "Standalone/StandalonePasses.h"
 
@@ -30,15 +31,7 @@ namespace mlir::standalone::passes {
         auto pFunc = constants(T::FuncDefPtrTy, (void*)functionAttr.getUInt());
 
         print(LOCL, "-- AggFinal");
-
-        if (false) { // call to default
-            // TODO: Use our own implementation
-            rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
-            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
-            rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange { constants(T::VdbePtrTy, vdbe) });
-            rewriter.eraseOp(*op);
-            return success();
-        }
+        USE_DEFAULT_BOILERPLATE
 
         auto stackState = saveStack(LOC);
 

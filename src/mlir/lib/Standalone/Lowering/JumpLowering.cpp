@@ -18,8 +18,6 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
-        print(LOCL, "-- Jump");
-
         auto firstBlock = rewriter.getBlock();
 
         auto ifEq = jmpOp.ifEqual();
@@ -28,19 +26,8 @@ namespace mlir::standalone::passes {
 
         auto pc = jmpOp.pcAttr().getUInt();
 
-        if (false) { // call to default
-            // TODO: Use our own implementation
-            rewriter.create<StoreOp>(LOC, constants(1, 64), constants(T::i64PtrTy, &maxVdbeSteps));
-            rewriter.create<StoreOp>(LOC, constants(pc, 32), constants(T::i32PtrTy, &vdbe->pc));
-            rewriter.create<CallOp>(LOC, f_sqlite3VdbeExec2, ValueRange {constants(T::VdbePtrTy, vdbe) });
-            rewriter.eraseOp(*op);
-
-            if (op->getOperation()->isKnownTerminator()) {
-                rewriter.create<BranchOp>(LOC, vdbeCtx->jumpsBlock);
-            }
-
-            return success();
-        }
+        print(LOCL, "-- Jump");
+        USE_DEFAULT_BOILERPLATE
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(jmpOp); GO_BACK_TO(curBlock);

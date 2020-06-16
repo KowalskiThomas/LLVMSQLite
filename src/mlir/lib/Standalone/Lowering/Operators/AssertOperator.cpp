@@ -1,6 +1,6 @@
 #include "Standalone/Lowering/AssertOperator.h"
 
-#define ENABLE_JIT_ASSERT false
+#define ENABLE_JIT_ASSERT true
 
 void MyAssertOperator::operator()(const mlir::Location loc, const size_t line, mlir::Value val) {
 #if ENABLE_JIT_ASSERT

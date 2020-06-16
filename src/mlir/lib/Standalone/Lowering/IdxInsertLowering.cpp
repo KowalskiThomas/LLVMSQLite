@@ -27,9 +27,11 @@ namespace mlir::standalone::passes {
         auto p1 = iiOp.curIdxAttr().getSInt();
         auto p2 = iiOp.regAttr().getSInt();
         auto p3 = iiOp.p3Attr().getSInt();
-        auto p4 = iiOp.p4Attr().getSInt();
-        auto p5 = iiOp.flagsAttr().getSInt();
+        auto p4 = iiOp.p4Attr().getUInt();
+        auto p5 = iiOp.flagsAttr().getUInt();
 
+        USE_DEFAULT_BOILERPLATE
+        
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(iiOp); GO_BACK_TO(curBlock);
 

@@ -27,6 +27,8 @@ namespace mlir::standalone::passes {
         auto p1 = seqOp.curIdxAttr().getSInt();
         auto p2 = seqOp.regAttr().getSInt();
 
+        USE_DEFAULT_BOILERPLATE
+        
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(seqOp); GO_BACK_TO(curBlock);
 

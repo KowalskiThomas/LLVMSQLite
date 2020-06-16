@@ -28,6 +28,8 @@ namespace mlir::standalone::passes {
         auto curToMove = dsOp.curToMoveAttr().getSInt();
         auto array = (const int*)dsOp.arrayAttr().getUInt();
 
+        USE_DEFAULT_BOILERPLATE
+        
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(dsOp); GO_BACK_TO(curBlock);
 

@@ -61,6 +61,7 @@ add_mlir_dialect_library(MLIRStandalone
         StandalonePasses.cpp
         StandalonePassManager.cpp
         StandalonePrerequisites.cpp
+        DefaultImplementation.cpp
         TypeCache.cpp
         TypeDefinitions.cpp
         ${LOWERING_FILES}
