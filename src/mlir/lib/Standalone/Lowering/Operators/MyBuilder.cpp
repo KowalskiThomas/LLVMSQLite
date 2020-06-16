@@ -23,9 +23,9 @@ size_t MyBuilder::getBitWidth(Type x) const {
         }
 
     if (rightSize == 0)
-        x.dump();
+        err("Couldn't find bit width for type " << x)
 
-    assert(rightSize > 0 && "Couldn't find bit-width of variable");
+    assert(rightSize > 0 && "Couldn't find bit-width of value");
     return rightSize;
 }
 
@@ -53,6 +53,13 @@ Value MyBuilder::insertICmpOp(Location loc, MyBuilder::ICmpPredicate pred, Value
 }
 
 Value MyBuilder::insertICmpOp(Location loc, MyBuilder::ICmpPredicate pred, Value lhs, int rhs) {
+/*    auto llvmType = lhs.getType().cast<mlir::LLVM::LLVMType>();
+    if (llvmType && llvmType.isPointerTy()) {
+        out("test");
+        auto rhsPointer = rewriter.create<IntToPtrOp>(loc, llvmType, constants(rhs, 64));
+        return insertICmpOp(loc, pred, lhs, (Value)rhsPointer);
+    }*/
+
     Value cst = constants(rhs, getBitWidth(lhs));
     return rewriter.create<ICmpOp>(loc, pred, lhs, cst);
 }

@@ -98,6 +98,7 @@ void VdbeToLLVM::runOnOperation() {
         patterns.insert<CompareJumpLowering>(&getContext());
         patterns.insert<OnceLowering>(&getContext());
         patterns.insert<FunctionLowering>(&getContext());
+        patterns.insert<OpenEphemeralLowering>(&getContext());
 
         mlir::populateStdToLLVMConversionPatterns(typeConverter, patterns);
     }

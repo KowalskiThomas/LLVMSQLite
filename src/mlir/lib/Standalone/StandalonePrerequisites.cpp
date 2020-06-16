@@ -82,6 +82,7 @@ LLVMFuncOp f_sqlite3_value_text;
 LLVMFuncOp f_sqlite3VdbeError;
 LLVMFuncOp f_out2PrereleaseWithClear;
 LLVMFuncOp f_computeNumericType;
+LLVMFuncOp f_sqlite3BtreeClearTable;
 
 LLVMFuncOp f_memCpy;
 
@@ -157,6 +158,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeError);
     DECLARE_FUNCTION(sqlite3_value_text);
     DECLARE_FUNCTION(computeNumericType);
+    DECLARE_FUNCTION(sqlite3BtreeClearTable);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1027,6 +1029,16 @@ void Prerequisites::generateReferenceTocomputeNumericType(ModuleOp m, LLVMDialec
     GENERATE_SYMBOL(f_computeNumericType, computeNumericType, "computeNumericType");
 }
 
+void Prerequisites::generateReferenceTosqlite3BtreeClearTable(mlir::ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::i32Ty, {
+            T::BtreePtrTy,
+            T::i32Ty,
+            T::i32PtrTy
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeClearTable, sqlite3BtreeClearTable, "sqlite3BtreeClearTable");
+}
 
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, d)
@@ -1095,11 +1107,47 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeError);
     CALL_SYMBOL_GENERATOR(sqlite3_value_text);
     CALL_SYMBOL_GENERATOR(computeNumericType);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeClearTable);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 
     CALL_SYMBOL_GENERATOR(Debug);
     CALL_SYMBOL_GENERATOR(Assert);
+
+    {
+        auto builder = mlir::OpBuilder(m);
+        auto& rewriter = builder;
+        auto* ctx = rewriter.getContext();
+        builder.setInsertionPointToStart(m.getBody());
+
+//        using Type = mlir::LLVM::LLVMType;
+//        auto createGlobal = [&](Type ty, const char* name, auto initialValue = 0llu) {
+//            auto global = builder.create<mlir::LLVM::GlobalOp>
+//                (LOC,
+//                    ty,
+//                    true,
+//                    Linkage::External,
+//                    name,
+//                    mlir::Attribute()
+//                    // 0
+//                    // rewriter.getI64IntegerAttr(initialValue)
+//                );
+//
+//            return global;
+//        };
+//
+//        {
+//            auto arrayTy = T::sqlite3_valuePtrTy;
+//            auto aMem = createGlobal(arrayTy, "vdbeMem", 0);
+//        }
+
+//        {
+//            auto arrayTy = T::VdbeOpPtrTy;
+//            auto aOp = createGlobal(arrayTy, "vdbeOps", 0);
+//        }
+
+
+    }
 }
 
 void runPrerequisites(ModuleOp m, LLVMDialect* d) {

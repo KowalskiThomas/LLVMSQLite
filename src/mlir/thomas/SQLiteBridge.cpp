@@ -37,10 +37,10 @@
 #include <memory>
 
 template<typename T>
-void write_to_file(const T& x, const char* fileName) {
+void writeToFile(const char* fileName, const T& x) {
     std::string s;
-    auto temp = llvm::raw_string_ostream(s);
-    x.print(temp, nullptr);
+    auto stream = llvm::raw_string_ostream(s);
+    x.print(stream, nullptr);
     auto fd = fopen(fileName, "w");
     fwrite(s.c_str(), sizeof(char), s.size(), fd);
     fclose(fd);
@@ -116,8 +116,7 @@ struct VdbeRunner {
         ::prepareFunction(context, llvmDialect, mlirModule);
 
 #ifdef DEBUG_MACHINE
-        // llvm::errs() << "-- Original module";
-        // theModule.dump();
+        writeToFile("jit_mlir_vdbe_module.ll", *llvmModule);
 #endif
 
         mlir::PassManager pm(ctx);
@@ -125,14 +124,13 @@ struct VdbeRunner {
         pm.run(mlirModule);
 
 #ifdef DEBUG_MACHINE
-        // llvm::errs() << "\n\n-- Intermediate module";
-        // theModule.dump();
+        writeToFile("jit_mlir_llvm_module.ll", *llvmModule);
 #endif
 
         llvmModule = mlir::translateModuleToLLVMIR(mlirModule);
 
 #ifdef DEBUG_MACHINE
-        // write_to_file(*llvmModule, "unoptimised_ir.ll");
+        writeToFile("jit_llvm_unoptimised.ll", *llvmModule);
 #endif
     }
 
@@ -175,11 +173,10 @@ struct VdbeRunner {
 
             executionEngineCreated = true;
             {
-                auto &tempLlvmModule = *llvmModule;
-                auto broken = llvm::verifyModule(tempLlvmModule, &llvm::outs());
+                auto broken = llvm::verifyModule(*llvmModule, &llvm::outs());
 #ifdef DEBUG_MACHINE
                 if (broken) {
-                    tempLlvmModule.dump();
+                    llvmModule->dump();
                     err("Broken module found, exiting.");
                     exit(127);
                 }
@@ -233,7 +230,7 @@ struct VdbeRunner {
                 // Optimise the module
                 modulePassManager.run(*llvmModule);
 
-                // write_to_file(*llvmModule, "after.ll");
+                writeToFile("jit_llvm_optimised.ll", *llvmModule);
 
                 // Create an ExecutionEngine
                 auto builder = llvm::EngineBuilder(std::move(llvmModule));

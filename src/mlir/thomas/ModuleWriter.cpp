@@ -531,29 +531,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 break;
             }
-                /*
-                case OP_SorterSort: {
-                    auto curIdx = op.p1;
-
-                    auto jumpToAddr = op.p2;
-                    auto jumpToBlock = blocks.find(jumpToAddr) != blocks.end() ? blocks[jumpToAddr] : entryBlock;
-                    auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;
-
-                    auto op = builder.create<mlir::standalone::SorterSort>
-                        (LOCB,
-                            INTEGER_ATTR(32, true, curIdx),
-                            jumpToBlock, fallthroughBlock
-                        );
-
-                    if (jumpToBlock == entryBlock)
-                        operations_to_update[jumpToAddr].emplace_back(op, 0);
-                    if (fallthroughBlock == entryBlock)
-                        operations_to_update[pc + 1].emplace_back(op, 1);
-
-                    newWriteBranchOut = false;
-                    break;
-                }
-                */
             case OP_SorterData: {
                 auto curIdx = op.p1;
                 auto regTo = op.p2;
@@ -881,6 +858,61 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                          INTEGER_ATTR(32, true, outRegister),
                          INTEGER_ATTR(64, false, (uint64_t)func)
                     );
+
+                break;
+            }
+            case OP_OpenEphemeral: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p4 = op.p4.i;
+                auto p5 = op.p5;
+
+                /*
+                rewriter.create<mlir::standalone::OpenEphemeral>
+                    (LOC,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(32, true, p2),
+                         INTEGER_ATTR(64, false, p4),
+                         INTEGER_ATTR(16, true, p5)
+                    );
+                */
+
+                break;
+            }
+            case OP_DeferredSeek: {
+
+                break;
+            }
+            case OP_SeekRowid: {
+
+                break;
+            }
+            case OP_Sequence: {
+
+                break;
+            }
+            case OP_IfNotZero: {
+
+                break;
+            }
+            case OP_Last: {
+
+                break;
+            }
+            case OP_IdxLE: {
+
+                break;
+            }
+            case OP_Delete: {
+
+                break;
+            }
+            case OP_IdxInsert: {
+
+                break;
+            }
+            case OP_Sort: {
 
                 break;
             }
