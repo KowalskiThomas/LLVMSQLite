@@ -88,6 +88,7 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::InitDataTy = t::createStructTy(d, Optional<StringRef>("InitData"));
     T::i1Ty = t::getIntNTy(d, 1);
 
+    T::UnpackedRecordPtrTy = T::UnpackedRecordTy.getPointerTo();
 
     T::SchemaPtrTy = T::SchemaTy.getPointerTo();
     T::ExprPtrTy = T::ExprTy.getPointerTo();
