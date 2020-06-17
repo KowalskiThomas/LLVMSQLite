@@ -97,8 +97,8 @@
 
 
 #define SPLIT_BLOCK rewriter.getBlock()->splitBlock(rewriter.getBlock()->end());
-#define GO_BACK_TO(b) rewriter.setInsertionPointToEnd(b)
-
+#define GO_BACK_TO(b) rewriter.setInsertionPointToEnd(b);
+#define SPLIT_GO_BACK_TO(b) SPLIT_BLOCK; GO_BACK_TO(b);
 
 #define CALL_DEBUG { \
     rewriter.create<CallOp>(LOC, f_debug, mlir::ValueRange{}); \

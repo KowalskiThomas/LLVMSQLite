@@ -10,8 +10,8 @@ static std::unordered_map<std::string, bool> useDefaultImplMap {
     { "standalone.Compare", false },
     { "standalone.CompareJump", false },
     { "standalone.Copy", false },
-    { "standalone.DeferredSeek", true }, // TODO: Implement
-    { "standalone.Delete", false }, // TODO: Implement
+    { "standalone.DeferredSeek", false },
+    { "standalone.Delete", false },
     { "standalone.FunctionOp", false },
     { "standalone.Gosub", false },
     { "standalone.Goto", false },

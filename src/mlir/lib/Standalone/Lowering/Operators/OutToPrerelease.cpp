@@ -23,6 +23,7 @@ namespace mlir::standalone::passes::Inlining {
     {
     }
 
+    // TODO: Fix that (remove IntToPtr's)
     Value OutToPrerelease::operator()(Location loc, Vdbe* vdbe, VdbeOp* pOp) {
         auto& constants = constantManager;
         auto& context = mlirContext;

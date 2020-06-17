@@ -37,6 +37,7 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(delOp); GO_BACK_TO(curBlock);
 
+        auto stackState = saveStack(LOC);
         auto zDbAddr = alloca(LOC, T::i8PtrPtrTy);
         auto pTabAddr = alloca(LOC, T::TablePtrPtrTy);
 
@@ -154,6 +155,8 @@ namespace mlir::standalone::passes {
         branch(LOC, endBlock);
 
         ip_start(endBlock);
+
+        restoreStack(LOC, stackState);
         rewriter.eraseOp(delOp);
 
         return success();

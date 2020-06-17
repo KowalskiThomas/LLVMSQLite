@@ -86,6 +86,8 @@ LLVMFuncOp f_sqlite3BtreeClearTable;
 LLVMFuncOp f_sqlite3VdbeIncrWriteCounter;
 LLVMFuncOp f_sqlite3BtreeIntegerKey;
 LLVMFuncOp f_sqlite3BtreeDelete;
+LLVMFuncOp f_sqlite3VdbeCursorRestore;
+LLVMFuncOp f_sqlite3VdbeIdxRowid;
 
 LLVMFuncOp f_memCpy;
 
@@ -165,6 +167,8 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeIncrWriteCounter);
     DECLARE_FUNCTION(sqlite3BtreeIntegerKey);
     DECLARE_FUNCTION(sqlite3BtreeDelete);
+    DECLARE_FUNCTION(sqlite3VdbeIdxRowid);
+    DECLARE_FUNCTION(sqlite3VdbeCursorRestore);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1072,6 +1076,26 @@ void Prerequisites::generateReferenceTosqlite3BtreeDelete(ModuleOp m, LLVMDialec
     GENERATE_SYMBOL(f_sqlite3BtreeDelete, sqlite3BtreeDelete, "sqlite3BtreeDelete");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeCursorRestore(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::VdbeCursorPtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeCursorRestore, sqlite3VdbeCursorRestore, "sqlite3VdbeCursorRestore");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeIdxRowid(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                    T::sqlite3PtrTy,
+                    T::BtCursorPtrTy,
+                    T::i64PtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeIdxRowid, sqlite3VdbeIdxRowid, "sqlite3VdbeIdxRowid");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, d)
 
@@ -1143,6 +1167,8 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeIncrWriteCounter);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeIntegerKey);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeDelete);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeIdxRowid);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeCursorRestore);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 
