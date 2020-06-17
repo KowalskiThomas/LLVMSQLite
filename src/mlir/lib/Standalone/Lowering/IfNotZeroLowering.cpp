@@ -34,10 +34,29 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(inzOp); GO_BACK_TO(curBlock);
 
-        branch(LOC, endBlock);
+        auto pIn1 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p1);
+        auto inUnionAddr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0);
+        auto inIntAddr = bitCast(LOC, inUnionAddr, T::i64PtrTy);
+        auto inInt = load(LOC, inIntAddr);
+        auto inIntNotNull = iCmp(LOC, Pred::ne, inInt, 0);
+
+        curBlock = rewriter.getBlock();
+        auto blockJump = SPLIT_GO_BACK_TO(curBlock);
+
+        condBranch(LOC, inIntNotNull, blockJump, endBlock);
+        { // if (pIn1->u.i)
+            ip_start(blockJump);
+
+            inInt = add(LOC, inInt, -1);
+            store(LOC, inInt, inIntAddr);
+
+            branch(LOC, jumpTo);
+        } // end if (pIn1->u.i)
 
         ip_start(endBlock);
         rewriter.eraseOp(inzOp);
+
+        branch(LOC, fallThrough);
 
         return success();
     } // matchAndRewrite
