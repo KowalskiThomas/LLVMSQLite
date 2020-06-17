@@ -23,7 +23,7 @@ static std::unordered_map<std::string, bool> useDefaultImplMap {
     { "standalone.IfPos", false },
     { "standalone.Init", false },
     { "standalone.Integer", false },
-    { "standalone.Last", true }, // TODO: Implement
+    { "standalone.Last", false },
     { "standalone.Jump", false },
     { "standalone.MakeRecord", false },
     { "standalone.Move", false },
@@ -39,7 +39,7 @@ static std::unordered_map<std::string, bool> useDefaultImplMap {
     { "standalone.Return", false },
     { "standalone.Rewind", false },
     { "standalone.SeekRowid", true }, // TODO: Implement
-    { "standalone.Sequence", true }, // TODO: Implement
+    { "standalone.Sequence", false }, // TODO: Implement
     { "standalone.SorterData", false },
     { "standalone.SorterInsert", false },
     { "standalone.SorterNext", false },

@@ -983,6 +983,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p1 = op.p1;
                 auto p2 = op.p2;
 
+                p2 = p2 == 0 ? pc + 1 : p2;
                 auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
                 auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;                
 

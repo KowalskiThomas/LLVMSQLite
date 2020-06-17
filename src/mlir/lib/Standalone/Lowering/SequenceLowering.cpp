@@ -2,6 +2,7 @@
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/AllIncludes.h"
 #include "Standalone/Lowering/AssertOperator.h"
+#include "Standalone/Lowering/OutToPrerelease.h"
 #include "Standalone/Lowering/Printer.h"
 
 #include "Standalone/StandalonePasses.h"
@@ -31,6 +32,22 @@ namespace mlir::standalone::passes {
         
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(seqOp); GO_BACK_TO(curBlock);
+
+        /// pOut = out2Prerelease(p, pOp);
+        auto outToPrerelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
+        auto pOut = outToPrerelease(LOC, vdbe, &vdbe->aOp[pc]);
+
+        auto pOutUAddr = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0);
+        auto pOutIntegerAddr = bitCast(LOC, pOutUAddr, T::i64PtrTy);
+
+        /// pOut->u.i = p->apCsr[pOp->p1]->seqCount++;
+        auto cursorAddr = getElementPtrImm(LOC, T::VdbeCursorPtrPtrTy, vdbeCtx->apCsr, p1);
+        auto cursor = load(LOC, cursorAddr);
+        auto seqCountAddr = getElementPtrImm(LOC, T::i64PtrTy, cursor, 0, 7);
+        auto seqCount = load(LOC, seqCountAddr);
+        seqCount = add(LOC, seqCount, 1);
+        store(LOC, seqCount, seqCountAddr);
+        store(LOC, seqCount, pOutIntegerAddr);
 
         branch(LOC, endBlock);
 
