@@ -84,13 +84,15 @@ LLVMFuncOp f_out2PrereleaseWithClear;
 LLVMFuncOp f_computeNumericType;
 LLVMFuncOp f_sqlite3BtreeClearTable;
 LLVMFuncOp f_sqlite3VdbeIncrWriteCounter;
+LLVMFuncOp f_sqlite3BtreeIntegerKey;
+LLVMFuncOp f_sqlite3BtreeDelete;
 
 LLVMFuncOp f_memCpy;
 
 LLVMFuncOp f_debug;
 LLVMFuncOp f_assert;
 
-#define DECLARE_FUNCTION(name) static void generateReferenceTo##name(mlir::ModuleOp, LLVMDialect*);
+#define DECLARE_FUNCTION(name) static void generateReferenceTo##name(ModuleOp m, LLVMDialect* d);
 
 struct Prerequisites {
     using LLVMDialect = mlir::LLVM::LLVMDialect;
@@ -161,6 +163,8 @@ public:
     DECLARE_FUNCTION(computeNumericType);
     DECLARE_FUNCTION(sqlite3BtreeClearTable);
     DECLARE_FUNCTION(sqlite3VdbeIncrWriteCounter);
+    DECLARE_FUNCTION(sqlite3BtreeIntegerKey);
+    DECLARE_FUNCTION(sqlite3BtreeDelete);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1049,6 +1053,25 @@ void Prerequisites::generateReferenceTosqlite3VdbeIncrWriteCounter(ModuleOp m, L
     //false);
 }
 
+void Prerequisites::generateReferenceTosqlite3BtreeIntegerKey(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::i64Ty, {
+            T::BtCursorPtrTy
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeIntegerKey, sqlite3BtreeIntegerKey, "sqlite3BtreeIntegerKey");
+}
+
+void Prerequisites::generateReferenceTosqlite3BtreeDelete(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::BtCursorPtrTy,
+                T::i8Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeDelete, sqlite3BtreeDelete, "sqlite3BtreeDelete");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, d)
 
@@ -1118,6 +1141,8 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(computeNumericType);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeClearTable);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeIncrWriteCounter);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeIntegerKey);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeDelete);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

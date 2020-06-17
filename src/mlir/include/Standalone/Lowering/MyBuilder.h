@@ -72,6 +72,8 @@ struct MyBuilder {
 
     void insertStoreOp(Location loc, int x, Value addr);
 
+    void insertStoreOp(Location loc, void* ptr, Value addr);
+
     Value insertSDivOp(Location loc, Value divided, Value by);
 
     Value insertMulOp(Location loc, Value a, Value b);

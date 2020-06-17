@@ -198,6 +198,14 @@ void MyBuilder::insertStoreOp(Location loc, int x, Value addr) {
     insertStoreOp(loc, cst, addr);
 }
 
+void MyBuilder::insertStoreOp(Location loc, void* ptr, Value addr) {
+    assert(addr.getType().cast<mlir::LLVM::LLVMType>().isPointerTy());
+    auto ty = addr.getType().cast<mlir::LLVM::LLVMType>().getPointerElementTy();
+
+    auto value = insertIntToPtrOp(loc, ty, constants((uint64_t)ptr, 64));
+    return insertStoreOp(loc, value, addr);
+}
+
 Value MyBuilder::insertSDivOp(Location loc, Value divided, Value by) {
     assert(divided.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
     assert(by.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
