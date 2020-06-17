@@ -80,7 +80,7 @@ Value MyBuilder::insertLoad(MyBuilder::Location loc, Value addr) {
     return rewriter.create<LoadOp>(loc, addr);
 }
 
-Value MyBuilder::insertAddOp(MyBuilder::Location loc, Value lhs, Value rhs) {
+Value MyBuilder::insertIAddOp(MyBuilder::Location loc, Value lhs, Value rhs) {
     return rewriter.create<AddOp>(loc, lhs, rhs);
 }
 
@@ -116,6 +116,7 @@ Value MyBuilder::insertFSubOp(Location loc, Value a, Value b) {
 
     return rewriter.create<mlir::LLVM::FSubOp>(loc, a, b);
 }
+
 Value MyBuilder::insertFAddOp(Location loc, Value a, Value b) {
     assert(isFloatingPointType(a.getType()));
     assert(isFloatingPointType(b.getType()));
@@ -206,25 +207,32 @@ void MyBuilder::insertStoreOp(Location loc, void* ptr, Value addr) {
     return insertStoreOp(loc, value, addr);
 }
 
-Value MyBuilder::insertSDivOp(Location loc, Value divided, Value by) {
+Value MyBuilder::insertISDivOp(Location loc, Value divided, Value by) {
     assert(divided.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
     assert(by.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
 
     return rewriter.create<mlir::LLVM::SDivOp>(loc, divided, by);
 }
 
-Value MyBuilder::insertMulOp(Location loc, Value a, Value b) {
+Value MyBuilder::insertIMulOp(Location loc, Value a, Value b) {
     assert(a.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
     assert(b.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
 
     return rewriter.create<mlir::LLVM::MulOp>(loc, a, b);
 }
 
-Value MyBuilder::insertRemOp(Location loc, Value a, Value b) {
+Value MyBuilder::insertISRemOp(Location loc, Value a, Value b) {
     assert(a.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
     assert(b.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
 
-    return rewriter.create<mlir::LLVM::SDivOp>(loc, a, b);
+    return rewriter.create<mlir::LLVM::SRemOp>(loc, a, b);
+}
+
+Value MyBuilder::insertISubOp(Location loc, Value a, Value b) {
+    assert(a.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
+    assert(b.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
+
+    return rewriter.create<mlir::LLVM::SubOp>(loc, a, b);
 }
 
 Value MyBuilder::insertSaveStack(Location loc) {
@@ -233,4 +241,55 @@ Value MyBuilder::insertSaveStack(Location loc) {
 
 void MyBuilder::insertRestoreStack(Location loc, Value stackState) {
     rewriter.create<mlir::LLVM::StackRestoreOp>(loc, stackState);
+}
+
+Value MyBuilder::insertAddOp(Location loc, Value a, Value b) {
+    auto aTy = a.getType();
+    auto bTy = b.getType();
+    assert(aTy == bTy);
+
+    auto aTyLlvm = aTy.cast<LLVMType>();
+    auto bTyLlvm = bTy.cast<LLVMType>();
+
+    if (aTyLlvm.isIntegerTy()) {
+        return insertIAddOp(loc, a, b);
+    } else if (aTyLlvm.isFloatTy()) {
+        return insertFAddOp(loc, a, b);
+    } else {
+        llvm_unreachable("insertAddOp: Couldn't determine what kind of operation to insert!");
+    }
+}
+
+Value MyBuilder::insertMulOp(Location loc, Value a, Value b) {
+    auto aTy = a.getType();
+    auto bTy = b.getType();
+    assert(aTy == bTy);
+
+    auto aTyLlvm = aTy.cast<LLVMType>();
+    auto bTyLlvm = bTy.cast<LLVMType>();
+
+    if (aTyLlvm.isIntegerTy()) {
+        return insertIMulOp(loc, a, b);
+    } else if (aTyLlvm.isFloatTy()) {
+        return insertFMulOp(loc, a, b);
+    } else {
+        llvm_unreachable("insertMulOp: Couldn't determine what kind of operation to insert!");
+    }
+}
+
+Value MyBuilder::insertSubOp(Location loc, Value a, Value b) {
+    auto aTy = a.getType();
+    auto bTy = b.getType();
+    assert(aTy == bTy);
+
+    auto aTyLlvm = aTy.cast<LLVMType>();
+    auto bTyLlvm = bTy.cast<LLVMType>();
+
+    if (aTyLlvm.isIntegerTy()) {
+        return insertISubOp(loc, a, b);
+    } else if (aTyLlvm.isFloatTy()) {
+        return insertFSubOp(loc, a, b);
+    } else {
+        llvm_unreachable("insertSubOp: Couldn't determine what kind of operation to insert!");
+    }
 }

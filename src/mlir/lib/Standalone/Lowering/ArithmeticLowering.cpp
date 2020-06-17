@@ -163,7 +163,7 @@ namespace mlir::standalone::passes {
                     { // if (iA != 0)
                         ip_start(blockiAIsNotZero);
 
-                        auto newIB = sDiv(LOC, iBValue, iA);
+                        auto newIB = isDiv(LOC, iBValue, iA);
                         store(LOC, (Value)newIB, iB);
 
                         branch(LOC, blockAfterSwitch);

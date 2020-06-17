@@ -47,7 +47,7 @@ namespace mlir::standalone::passes {
             ip_start(blockValuePositive);
 
             /// pIn1->u.i -= pOp->p3;
-            auto newValue = rewriter.create<SRemOp>(LOC, value, constants(toSubtract, 64));
+            auto newValue = sub(LOC, value, constants(toSubtract, 64));
             store(LOC, (Value)newValue, intAddress);
 
             branch(LOC, blockAfterValuePositive);

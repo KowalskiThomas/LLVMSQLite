@@ -24,11 +24,9 @@ struct MyBuilder {
     llvm::Optional<Value> insertCallOp(mlir::Location loc, LLVMFuncOp func, mlir::ValueRange range);
 
     Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, mlir::Value rhs);
-
     Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, int rhs);
 
     void insertBranchOp(mlir::Location loc, mlir::Block* b);
-
     void insertCondBranchOp(Location loc, Value cond, Block* bTrue, Block* bFalse);
 
     template<typename... V>
@@ -40,66 +38,72 @@ struct MyBuilder {
 
     Value insertLoad(Location loc, Value addr);
 
-    Value insertAddOp(Location loc, Value lhs, Value rhs);
-
     Value insertPtrToIntOp(Location loc, Value ptr);
-
     Value insertIntToPtrOp(Location loc, Type ty, Value i);
 
     Value insertBitCastOp(Location loc, Value x, Type ty);
 
     size_t getBitWidth(Type x) const;
-
     size_t getBitWidth(Value v) const;
 
+    Value insertAndOp(Location loc, Value lhs, Value rhs);
+    Value insertAndOp(Location loc, Value lhs, int rhs);
+    Value insertOrOp(Location loc, Value lhs, Value rhs);
+    Value insertOrOp(Location loc, Value lhs, int rhs);
+
+    void insertStoreOp(Location loc, Value value, Value addr);
+    void insertStoreOp(Location loc, int x, Value addr);
+    void insertStoreOp(Location loc, void* ptr, Value addr);
+
     template<typename Int>
-    Value insertAddOp(Location loc, Value lhs, Int rhs) {
+    Value insertIAddOp(Location loc, Value lhs, Int rhs) {
         static_assert(std::is_integral<Int>::value);
         auto rightSize = getBitWidth(lhs);
         auto cst = constants(rhs, rightSize);
-        return insertAddOp(loc, lhs, cst);
+        return insertIAddOp(loc, lhs, cst);
     }
-
-    Value insertOrOp(Location loc, Value lhs, Value rhs);
-
-    Value insertOrOp(Location loc, Value lhs, int rhs);
-
-    Value insertAndOp(Location loc, Value lhs, Value rhs);
-
-    Value insertAndOp(Location loc, Value lhs, int rhs);
-
-    void insertStoreOp(Location loc, Value value, Value addr);
-
-    void insertStoreOp(Location loc, int x, Value addr);
-
-    void insertStoreOp(Location loc, void* ptr, Value addr);
-
-    Value insertSDivOp(Location loc, Value divided, Value by);
-
-    Value insertMulOp(Location loc, Value a, Value b);
-
-    Value insertRemOp(Location loc, Value a, Value b);
-
-    Value insertFDivOp(Location loc, Value divided, Value by);
-
-    Value insertFRemOp(Location loc, Value a, Value b);
-
-    Value insertFSubOp(Location loc, Value a, Value b);
+    Value insertIAddOp(Location loc, Value a, Value b);
+    Value insertIMulOp(Location loc, Value a, Value b);
+    Value insertISRemOp(Location loc, Value a, Value b);
+    Value insertIURemOp(Location loc, Value a, Value b);
+    Value insertISubOp(Location loc, Value a, Value b);
+    Value insertISDivOp(Location loc, Value divided, Value by);
+    Value insertIUDivOp(Location loc, Value divided, Value by);
 
     Value insertFAddOp(Location loc, Value a, Value b);
-
+    Value insertFDivOp(Location loc, Value divided, Value by);
     Value insertFMulOp(Location loc, Value a, Value b);
+    Value insertFRemOp(Location loc, Value a, Value b);
+    Value insertFSubOp(Location loc, Value a, Value b);
+
+    template<typename Int>
+    Value insertAddOp(Location loc, Value a, Int b) {
+        static_assert(std::is_integral<Int>::value);
+        return insertIAddOp(loc, a, b);
+    }
+    Value insertAddOp(Location loc, Value a, Value b);
+
+    template<typename Int>
+    Value insertMulOp(Location loc, Value a, Int b) {
+        static_assert(std::is_integral<Int>::value);
+        return insertIMulOp(loc, a, b);
+    }
+    Value insertMulOp(Location loc, Value a, Value b);
+
+    template<typename Int>
+    Value insertSubOp(Location loc, Value a, Int b) {
+        static_assert(std::is_integral<Int>::value);
+        return insertISubOp(loc, a, b);
+    }
+    Value insertSubOp(Location loc, Value a, Value b);
 
     Value insertZExtOp(Location loc, Value a, Type targetType);
-
     Value insertZExtOp(Location loc, Value x, size_t targetWidth);
 
     Value insertTruncOp(Location loc, Value x, Type targetType);
-
     Value insertTruncOp(Location loc, Value x, size_t targetWidth);
 
     Value insertSaveStack(Location loc);
-
     void insertRestoreStack(Location loc, Value stackState);
 };
 
@@ -152,15 +156,6 @@ auto store = [&builder](mlir::Location loc, auto value, mlir::Value addr) { \
     builder.insertStoreOp(loc, value, addr); \
 }; \
  \
-auto add = [&builder](mlir::Location loc, mlir::Value val, auto x) { \
-    return builder.insertAddOp(loc, val, x); \
-}; \
-auto addInPlace = [&builder, &load, &add, &store](mlir::Location loc, mlir::LLVM::AllocaOp addr, auto x) { \
-    auto val = load(loc, addr); \
-    auto result = add(loc, val, x); \
-    store(loc, result, addr); \
-}; \
- \
 auto bitOr = [&builder](mlir::Location loc, mlir::Value val, auto x) { \
     return builder.insertOrOp(loc, val, x); \
 }; \
@@ -176,14 +171,25 @@ auto ptrToInt = [&builder](mlir::Location loc, mlir::Value value) { \
 auto bitCast = [&builder](mlir::Location loc, mlir::Value value, mlir::Type ty) {\
     return builder.insertBitCastOp(loc, value, ty);\
 }; \
-auto sDiv = [&](Location loc, auto a, auto b) { \
-    return builder.insertSDivOp(loc, a, b); \
+auto isDiv = [&](Location loc, auto a, auto b) { \
+    return builder.insertISDivOp(loc, a, b); \
+}; \
+auto add = [&builder](mlir::Location loc, mlir::Value val, auto x) { \
+    return builder.insertAddOp(loc, val, x); \
+}; \
+auto addInPlace = [&builder, &load, &add, &store](mlir::Location loc, mlir::LLVM::AllocaOp addr, auto x) { \
+    auto val = load(loc, addr); \
+    auto result = add(loc, val, x); \
+    store(loc, result, addr); \
 }; \
 auto mul = [&](Location loc, auto a, auto b) { \
     return builder.insertMulOp(loc, a, b); \
 }; \
-auto rem = [&](Location loc, auto a, auto b) { \
-    return builder.insertRemOp(loc, a, b); \
+auto sub = [&](Location loc, auto a, auto b) { \
+    return builder.insertSubOp(loc, a, b); \
+}; \
+auto isRem = [&](Location loc, auto a, auto b) { \
+    return builder.insertISRemOp(loc, a, b); \
 }; \
 auto fAdd = [&](Location loc, auto a, auto b) { \
     return builder.insertFAddOp(loc, a, b); \

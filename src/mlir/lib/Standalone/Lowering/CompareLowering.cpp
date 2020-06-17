@@ -108,7 +108,7 @@ namespace mlir::standalone::passes {
                     { // if (aMem[p1 + idx].flags & MEM_Null) || (aMem[p2 + idx].flags & MEM_Null)
                         ip_start(blockAnyNull);
 
-                        auto negICompare = rewriter.create<SRemOp>(LOC, constants(0, 32), iCompareValue);
+                        auto negICompare = sub(LOC, constants(0, 32), iCompareValue);
                         store(LOC, (Value)negICompare, vdbeCtx->iCompare);
 
                         branch(LOC, blockAfterAnyNull);
@@ -119,7 +119,7 @@ namespace mlir::standalone::passes {
 
                 if (bRev) {
                     auto iCompareValue = load(LOC, vdbeCtx->iCompare);
-                    auto negICompare = rewriter.create<SRemOp>(LOC, constants(0, 32), iCompareValue);
+                    auto negICompare = sub(LOC, constants(0, 32), iCompareValue);
                     store(LOC, (Value)negICompare, vdbeCtx->iCompare);
                 }
 

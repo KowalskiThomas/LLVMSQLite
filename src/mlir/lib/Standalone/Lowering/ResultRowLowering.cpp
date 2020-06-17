@@ -6,8 +6,6 @@
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/Printer.h"
 
-#undef alloca
-
 namespace mlir::standalone::passes {
     LogicalResult ResultRowLowering::matchAndRewrite(ResultRow rrOp, PatternRewriter &rewriter) const {
         auto op = &rrOp;
@@ -129,7 +127,4 @@ namespace mlir::standalone::passes {
         rewriter.eraseOp(rrOp);
         return success();
     } // matchAndRewrite
-
-#define alloca __alloca(size)
-
 } // namespace mlir::standalone::passes
