@@ -17,7 +17,7 @@ static std::unordered_map<std::string, bool> useDefaultImplMap {
     { "standalone.Goto", false },
     { "standalone.Halt", false },
     { "standalone.IdxCompare", false },
-    { "standalone.IdxInsert", true }, // TODO: Implement
+    { "standalone.IdxInsert", false },
     { "standalone.If", false },
     { "standalone.IfNotZero", true }, // TODO: Implement
     { "standalone.IfPos", false },

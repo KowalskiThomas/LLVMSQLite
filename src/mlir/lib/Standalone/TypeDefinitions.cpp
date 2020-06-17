@@ -85,6 +85,7 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::SavepointTy = t::createStructTy(d, Optional<StringRef>("Savepoint"));
     T::UnpackedRecordTy = t::createStructTy(d, Optional<StringRef>("UnpackedRecord"));
     T::BtreePayloadTy = t::createStructTy(d, Optional<StringRef>("BtreePayload"));
+    T::BtreePayloadPtrTy = T::BtreePayloadTy.getPointerTo();
     T::InitDataTy = t::createStructTy(d, Optional<StringRef>("InitData"));
     T::i1Ty = t::getIntNTy(d, 1);
 

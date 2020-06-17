@@ -89,6 +89,7 @@ LLVMFuncOp f_sqlite3BtreeDelete;
 LLVMFuncOp f_sqlite3VdbeCursorRestore;
 LLVMFuncOp f_sqlite3VdbeIdxRowid;
 LLVMFuncOp f_sqlite3VdbeIdxKeyCompare;
+LLVMFuncOp f_sqlite3BtreeInsert;
 
 LLVMFuncOp f_memCpy;
 
@@ -171,6 +172,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeIdxRowid);
     DECLARE_FUNCTION(sqlite3VdbeCursorRestore);
     DECLARE_FUNCTION(sqlite3VdbeIdxKeyCompare);
+    DECLARE_FUNCTION(sqlite3BtreeInsert);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1110,6 +1112,18 @@ void Prerequisites::generateReferenceTosqlite3VdbeIdxKeyCompare(ModuleOp m, LLVM
     GENERATE_SYMBOL(f_sqlite3VdbeIdxKeyCompare, sqlite3VdbeIdxKeyCompare, "sqlite3VdbeIdxKeyCompare");
 }
 
+void Prerequisites::generateReferenceTosqlite3BtreeInsert(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::BtCursorPtrTy,
+                T::BtreePayloadPtrTy,
+                T::i32Ty,
+                T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeInsert, sqlite3BtreeInsert, "sqlite3BtreeInsert");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, d)
 
@@ -1184,6 +1198,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeIdxRowid);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeCursorRestore);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeIdxKeyCompare);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeInsert);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 
