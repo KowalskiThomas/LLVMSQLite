@@ -8,6 +8,7 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
+// extern LLVMFuncOp f_sqlite3VdbeIncrWriteCounter;
 
 namespace mlir::standalone::passes {
     LogicalResult DeleteLowering::matchAndRewrite(Delete delOp, PatternRewriter &rewriter) const {
@@ -25,7 +26,7 @@ namespace mlir::standalone::passes {
 
         auto pc = delOp.pcAttr().getUInt();
         auto p1 = delOp.curIdxAttr().getSInt();
-        auto p2 = delOp.p2Attr().getSInt();
+        auto opflags = delOp.p2Attr().getSInt();
         auto p3 = delOp.p3Attr().getSInt();
         auto p4 = delOp.p4Attr().getUInt();
         auto p5 = delOp.p5Attr().getUInt();
@@ -34,6 +35,21 @@ namespace mlir::standalone::passes {
         
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(delOp); GO_BACK_TO(curBlock);
+
+        auto pCAddr = getElementrPtrImm(LOC, T::VdbeCursorPtrTy, vdbeCtx->apCsr, p1);
+        auto pC = load(LOC, pCAddr);
+
+        // DEBUG FEATURE call(LOC, f_sqlite3VdbeIncrWriteCounter, vdbeCtx->p, pC);
+
+        auto pOp = getElementrPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, pc);
+        
+        auto p4typeAddr = getElementrPtrImm(LOC, T::i8PtrTy, pOp, 0, 1);
+        auto p4type = load(LOC, p4typeAddr);
+        auto p4typeIsTable = iCmp(LOC, Pred::eq, p4type, P4_TABLE);
+
+        // TODO: HAS_UPDATE_HOOK(db)
+
+        
 
         branch(LOC, endBlock);
 

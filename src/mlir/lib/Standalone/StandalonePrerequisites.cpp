@@ -83,6 +83,7 @@ LLVMFuncOp f_sqlite3VdbeError;
 LLVMFuncOp f_out2PrereleaseWithClear;
 LLVMFuncOp f_computeNumericType;
 LLVMFuncOp f_sqlite3BtreeClearTable;
+LLVMFuncOp f_sqlite3VdbeIncrWriteCounter;
 
 LLVMFuncOp f_memCpy;
 
@@ -159,6 +160,7 @@ public:
     DECLARE_FUNCTION(sqlite3_value_text);
     DECLARE_FUNCTION(computeNumericType);
     DECLARE_FUNCTION(sqlite3BtreeClearTable);
+    DECLARE_FUNCTION(sqlite3VdbeIncrWriteCounter);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1040,6 +1042,13 @@ void Prerequisites::generateReferenceTosqlite3BtreeClearTable(mlir::ModuleOp m, 
     GENERATE_SYMBOL(f_sqlite3BtreeClearTable, sqlite3BtreeClearTable, "sqlite3BtreeClearTable");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeIncrWriteCounter(ModuleOp m, LLVMDialect* d) {
+    //auto funcTy = LLVMType::getFuncTy(
+    //    T::i32Ty
+
+    //false);
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, d)
 
@@ -1108,6 +1117,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3_value_text);
     CALL_SYMBOL_GENERATOR(computeNumericType);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeClearTable);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeIncrWriteCounter);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 
