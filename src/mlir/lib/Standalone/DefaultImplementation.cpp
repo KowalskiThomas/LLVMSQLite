@@ -38,7 +38,7 @@ static std::unordered_map<std::string, bool> useDefaultImplMap {
     { "standalone.ResultRow", false },
     { "standalone.Return", false },
     { "standalone.Rewind", false },
-    { "standalone.SeekRowid", true }, // TODO: Implement
+    { "standalone.SeekRowid", false },
     { "standalone.Sequence", false }, // TODO: Implement
     { "standalone.SorterData", false },
     { "standalone.SorterInsert", false },

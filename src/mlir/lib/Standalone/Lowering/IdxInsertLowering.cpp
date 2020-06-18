@@ -122,8 +122,9 @@ namespace mlir::standalone::passes {
         store(LOC, CACHE_STALE, cacheStatusAddr);
 
         branch(LOC, endBlock);
-
         ip_start(endBlock);
+
+        restoreStack(LOC, stackState);
         rewriter.eraseOp(iiOp);
 
         return success();
