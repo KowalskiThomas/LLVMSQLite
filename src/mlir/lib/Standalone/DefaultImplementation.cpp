@@ -31,7 +31,7 @@ static std::unordered_map<std::string, bool> useDefaultImplMap {
     { "standalone.Noop", false },
     { "standalone.Null", false },
     { "standalone.Once", false },
-    { "standalone.OpenEphemeral", true }, // TODO: Implement
+    { "standalone.OpenEphemeral", false },
     { "standalone.OpenPseudo", false },
     { "standalone.OpenRead", true }, // TODO: Fix OpenRead
     { "standalone.Real", false },
@@ -39,7 +39,7 @@ static std::unordered_map<std::string, bool> useDefaultImplMap {
     { "standalone.Return", false },
     { "standalone.Rewind", false },
     { "standalone.SeekRowid", false },
-    { "standalone.Sequence", false }, // TODO: Implement
+    { "standalone.Sequence", false },
     { "standalone.SorterData", false },
     { "standalone.SorterInsert", false },
     { "standalone.SorterNext", false },

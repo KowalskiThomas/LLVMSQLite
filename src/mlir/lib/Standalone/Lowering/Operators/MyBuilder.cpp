@@ -48,20 +48,21 @@ llvm::Optional<Value> MyBuilder::insertCallOp(Location loc, MyBuilder::LLVMFuncO
     return llvm::Optional<Value>(result);
 }
 
-Value MyBuilder::insertICmpOp(Location loc, MyBuilder::ICmpPredicate pred, Value lhs, Value rhs) {
+Value MyBuilder::insertICmpOp(Location loc, ICmpPredicate pred, Value lhs, Value rhs) {
     return rewriter.create<ICmpOp>(loc, pred, lhs, rhs);
 }
 
-Value MyBuilder::insertICmpOp(Location loc, MyBuilder::ICmpPredicate pred, Value lhs, int rhs) {
-/*    auto llvmType = lhs.getType().cast<mlir::LLVM::LLVMType>();
-    if (llvmType && llvmType.isPointerTy()) {
-        out("test");
-        auto rhsPointer = rewriter.create<IntToPtrOp>(loc, llvmType, constants(rhs, 64));
-        return insertICmpOp(loc, pred, lhs, (Value)rhsPointer);
-    }*/
-
+Value MyBuilder::insertICmpOp(Location loc, ICmpPredicate pred, Value lhs, int rhs) {
     Value cst = constants(rhs, getBitWidth(lhs));
     return rewriter.create<ICmpOp>(loc, pred, lhs, cst);
+}
+
+Value MyBuilder::insertICmpOp(Location loc, ICmpPredicate pred, Value lhs, void* rhs) {
+    auto llvmType = lhs.getType().cast<LLVMType>();
+    assert(llvmType.isPointerTy() && "Can't use insertICmpOp(..., void*) with non-pointer LHS!");
+
+    auto rhsPointer = rewriter.create<IntToPtrOp>(loc, llvmType, constants((uint64_t)rhs, 64));
+    return insertICmpOp(loc, pred, lhs, (Value)rhsPointer);
 }
 
 void MyBuilder::insertBranchOp(Location loc, Block *b) {

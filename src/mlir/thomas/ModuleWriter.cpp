@@ -889,15 +889,18 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
             case OP_OpenEphemeral: {
                 auto p1 = op.p1;
                 auto p2 = op.p2;
-                auto p4 = op.p4.i;
+                auto p4 = op.p4.pKeyInfo;
                 auto p5 = op.p5;
+
+                // TODO: Fix the memory leaks caused by this:
+                p4->nRef++;
 
                 rewriter.create<mlir::standalone::OpenEphemeral>
                     (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, true, p2),
-                         INTEGER_ATTR(64, false, p4),
+                         INTEGER_ATTR(64, false, (uint64_t)p4),
                          INTEGER_ATTR(16, false, p5)
                     );
 

@@ -93,6 +93,8 @@ LLVMFuncOp f_sqlite3BtreeInsert;
 LLVMFuncOp f_sqlite3BtreeCursorIsValidNN;
 LLVMFuncOp f_sqlite3BtreeLast;
 LLVMFuncOp f_sqlite3BtreeMovetoUnpacked;
+LLVMFuncOp f_sqlite3BtreeOpen;
+LLVMFuncOp f_sqlite3BtreeCreateTable;
 
 LLVMFuncOp f_memCpy;
 
@@ -179,6 +181,8 @@ public:
     DECLARE_FUNCTION(sqlite3BtreeCursorIsValidNN);
     DECLARE_FUNCTION(sqlite3BtreeLast);
     DECLARE_FUNCTION(sqlite3BtreeMovetoUnpacked);
+    DECLARE_FUNCTION(sqlite3BtreeOpen);
+    DECLARE_FUNCTION(sqlite3BtreeCreateTable);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1162,6 +1166,31 @@ void Prerequisites::generateReferenceTosqlite3BtreeMovetoUnpacked(ModuleOp m, LL
     GENERATE_SYMBOL(f_sqlite3BtreeMovetoUnpacked, sqlite3BtreeMovetoUnpacked, "sqlite3BtreeMovetoUnpacked");
 }
 
+void Prerequisites::generateReferenceTosqlite3BtreeOpen(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::i32Ty, {
+            T::sqlite3_vfsPtrTy,
+            T::i8PtrTy,
+            T::sqlite3PtrTy,
+            T::BtreePtrTy.getPointerTo(),
+            T::i32Ty,
+            T::i32Ty
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeOpen, sqlite3BtreeOpen, "sqlite3BtreeOpen");
+}
+
+void Prerequisites::generateReferenceTosqlite3BtreeCreateTable(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::i32Ty, {
+            T::BtreePtrTy,
+            T::i32PtrTy,
+            T::i32Ty
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeCreateTable, sqlite3BtreeCreateTable, "sqlite3BtreeCreateTable");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, d)
 
@@ -1240,6 +1269,8 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3BtreeCursorIsValidNN);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeLast);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeMovetoUnpacked);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeOpen);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeCreateTable);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

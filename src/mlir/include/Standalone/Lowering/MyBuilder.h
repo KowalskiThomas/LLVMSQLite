@@ -25,6 +25,7 @@ struct MyBuilder {
 
     Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, mlir::Value rhs);
     Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, int rhs);
+    Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, void* rhs);
 
     void insertBranchOp(mlir::Location loc, mlir::Block* b);
     void insertCondBranchOp(Location loc, Value cond, Block* bTrue, Block* bFalse);
