@@ -3,51 +3,42 @@
 #include "Standalone/TypeDefinitions.h"
 #include "Standalone/Lowering/Printer.h"
 #include "Standalone/ConstantManager.h"
+#include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
 
 namespace mlir::standalone::passes {
     LogicalResult OpenReadLowering::matchAndRewrite(OpenRead orOp, PatternRewriter &rewriter) const {
         auto op = &orOp;
-        auto &builder = rewriter;
         LOWERING_PASS_HEADER
         LOWERING_NAMESPACE
         ConstantManager constants(rewriter, ctx);
         Printer print(ctx, rewriter, __FILE_NAME__);
         MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
-
+        MyBuilder builder(ctx, constants, rewriter);
+        myOperators
+        
         mlir::Value curIdx = constants(orOp.curIdxAttr().getSInt(), 32);
         mlir::Value databaseIdx = constants(orOp.databaseAttr().getSInt(), 32);
 
         auto pc = orOp.counterAttr().getUInt();
         auto pOp = &vdbe->aOp[pc];
+        auto dbAttr = orOp.databaseAttr().getSInt();
 
         print(LOCL, "-- OpenRead");
         USE_DEFAULT_BOILERPLATE
 
         auto p = vdbeCtx->p;
 
-        auto dbAddr = rewriter.create<GEPOp>(LOC, T::sqlite3PtrTy.getPointerTo(), p, ValueRange{
-                constants(0, 32),
-                constants(0, 32)
-        });
-        auto db = rewriter.create<LoadOp>(LOC, dbAddr);
-        auto aDbAddr = rewriter.create<GEPOp>(LOC, T::DbPtrTy.getPointerTo(), db, ValueRange {
-            constants(0, 32),
-            constants(4, 32)
-        });
-        auto aDb = rewriter.create<LoadOp>(LOC, aDbAddr);
+        auto dbAddr = getElementPtrImm(LOC, T::sqlite3PtrTy.getPointerTo(), p, 0, 0);
+        auto db = load(LOC, dbAddr);
+        auto aDbAddr = getElementPtrImm(LOC, T::DbPtrTy.getPointerTo(), db, 0, 4);
+        auto aDb = load(LOC, aDbAddr);
 
-        auto pDb = rewriter.create<GEPOp>
-            (LOC, T::DbPtrTy, aDb, mlir::ValueRange{
-                constants(orOp.databaseAttr().getSInt(), 32)
-            });
+        auto pDb = getElementPtrImm(LOC, T::DbPtrTy, aDb, dbAttr);
 
-        auto ppX = rewriter.create<GEPOp>(LOC,
-                                          T::BtreePtrTy.getPointerTo(), pDb,
-                                          mlir::ValueRange{constants(0, 64),
-                                                           constants(1, 32)});
+        auto ppX = getElementPtrImm(LOC, T::BtreePtrTy.getPointerTo(), pDb, 0, 1);
 
-        auto pX = rewriter.create<LoadOp>(LOC, ppX);
+        auto pX = load(LOC, ppX);
 
         // TODO: pOp->opcode == OpenWrite ...
 
@@ -60,24 +51,21 @@ namespace mlir::standalone::passes {
             // Get the address at which the array of sqlite3_value (aMem) starts
             auto addressOfRegisters = vdbeCtx->aMem;
             // Get the address of the value we're looking for
-            auto adressOfValue = rewriter.create<GEPOp>
+            auto adressOfValue = getElementPtrImm
                     (LOC,
-                     LLVMType::getDoubleTy(llvmDialect).getPointerTo(), // Union has a double only
+                     T::doublePtrTy, // Union has a double only
                      addressOfRegisters, /* This is the address of the sqlite3_value array */
-                     ValueRange{ /* p2 = */ rootPage,          // Index in array
-                             constants(0, 32), // Element 0 of struct
-                             constants(0, 32)  // Element 0 of union-struct
-                     });
+                     rootPage, 0, 0);
 
             out("TODO: Add 3826 sqlite3VdbeMemIntegerify(pIn2);")
             exit(126);
 
             // Load the content at the address of the union
-            auto regContent = rewriter.create<LoadOp>(LOC, adressOfValue);
+            auto regContent = load(LOC, adressOfValue);
             // Register contains a union -> BitCast it to i64
-            auto valueOfRegisterP2 = rewriter.create<BitcastOp>(LOC, T::i64Ty, regContent);
+            auto valueOfRegisterP2 = bitCast(LOC, regContent, T::i64Ty);
             // rootPage is supposed to be an i32 -> Truncate
-            auto valueAsI32 = rewriter.create<mlir::LLVM::TruncOp>(LOC, T::i32Ty, valueOfRegisterP2);
+            auto valueAsI32 = trunc(LOC, valueOfRegisterP2, T::i32Ty);
             // Update what rootPage is
             rootPage = valueAsI32;
         }
@@ -88,88 +76,65 @@ namespace mlir::standalone::passes {
         if (pOp->p4type == P4_INT32) {
             nField = constants(orOp.P4Attr().getUInt(), 32);
         } else {
-            pKeyInfo = constants(orOp.P4Attr().getUInt(), 64);
-            pKeyInfo = rewriter.create<BitcastOp>(LOC, T::KeyInfoPtrTy, pKeyInfo);
-            auto nAllFieldAddr = rewriter.create<GEPOp>
-                (LOC, T::i16PtrTy, pKeyInfo, mlir::ValueRange {
-                    constants(0, 64),
-                    constants(3, 64)
-                });
-            nField = rewriter.create<LoadOp>(LOC, nAllFieldAddr);
+            pKeyInfo = constants(T::KeyInfoPtrTy, (KeyInfo*)orOp.P4Attr().getUInt());
+            auto nAllFieldAddr = getElementPtrImm(LOC, T::i16PtrTy, pKeyInfo, 0, 3);
+            nField = load(LOC, nAllFieldAddr);
+            nField = zExt(LOC, nField, T::i32Ty);
         }
 
-        auto pCur = rewriter.create<CallOp>
+        auto pCur = call
                 (LOC, f_allocateCursor, mlir::ValueRange{
                     p,
                     curIdx,
                     nField,
                     databaseIdx,
                     constants(CURTYPE_BTREE, 8)
-                }).getResult(0);
+                }).getValue();
 
         // pCur->nullRow = 1;
-        auto pNullRow = rewriter.create<GEPOp>
-                (LOC, T::i8PtrTy, pCur,ValueRange{
-                        constants(0, 32),
-                    constants(2, 32)
-                });
-        rewriter.create<StoreOp>(LOC, constants(1, 8), pNullRow);
+        auto pNullRow = getElementPtrImm(LOC, T::i8PtrTy, pCur, 0, 2);
+        store(LOC, constants(1, 8), pNullRow);
 
         // pCur->isOrdered = 1;
-        auto pMixedParameters = rewriter.create<GEPOp>
-                (LOC, T::i8PtrTy, pCur, ValueRange{
-                    constants(0, 32),
-                    constants(5, 32)
-                });
+        auto pMixedParameters = getElementPtrImm(LOC, T::i8PtrTy, pCur, 0, 5);
 
-        mlir::Value curValue = rewriter.create<LoadOp>(LOC, pMixedParameters);
+        Value curValue = load(LOC, pMixedParameters);
 
-        curValue = rewriter.create<OrOp>(LOC, curValue, constants(4, 8));
-        rewriter.create<StoreOp>(LOC, curValue, pMixedParameters);
+        curValue = bitOr(LOC, curValue, 4);
+        store(LOC, curValue, pMixedParameters);
 
         // pCur->pgnoRoot = p2;
-        auto ppgnoRoot = rewriter.create<GEPOp>
-                (LOC, T::i32PtrTy, pCur, ValueRange{
-                    constants(0, 32),
-                    constants(15, 32)
-                });
+        auto ppgnoRootAddr = getElementPtrImm(LOC, T::i32PtrTy, pCur, 0, 15);
 
-        rewriter.create<StoreOp>(LOC, rootPage, ppgnoRoot);
+        store(LOC, rootPage, ppgnoRootAddr);
 
-        auto pCur_uc_pCursor_addr = rewriter.create<GEPOp>
-                (LOC, T::BtCursorPtrTy.getPointerTo(), pCur, ValueRange{
-                    constants(0, 32),  // &*pCur
-                    constants(12, 32), // &pCur->uc
-                    constants(0, 32)   // &pCur->uc.pCursor
-                });
+        auto pCur_uc_pCursor_addr = getElementPtrImm
+                (LOC, T::BtCursorPtrTy.getPointerTo(), pCur,
+                    0,  // &*pCur
+                    12, // &pCur->uc
+                    0   // &pCur->uc.pCursor
+                );
 
-        auto pCur_uc_pCursor = rewriter.create<LoadOp>(LOC, pCur_uc_pCursor_addr);
+        auto pCur_uc_pCursor = load(LOC, pCur_uc_pCursor_addr);
 
-        auto rc = rewriter.create<CallOp>
+        auto rc = call
                 (LOC, f_sqlite3BtreeCursor, ValueRange{
                     pX, rootPage, wrFlag, pKeyInfo, pCur_uc_pCursor
-                }).getResult(0);
+                }).getValue();
 
         // print(LOCL, rc, "Value returned by sqlite3_BtreeCursor:");
 
         /// pCur->pKeyInfo = pKeyInfo;
-        auto ppKeyInfo = rewriter.create<GEPOp>
-                (LOC, T::KeyInfoPtrTy.getPointerTo(), pCur, ValueRange{
-                    constants(0, 32),
-                    constants(13, 32)
-                });
-        rewriter.create<StoreOp>(LOC, pKeyInfo, ppKeyInfo);
+        auto ppKeyInfo = getElementPtrImm(LOC, T::KeyInfoPtrTy.getPointerTo(), pCur, 0, 13);
+
+        store(LOC, pKeyInfo, ppKeyInfo);
 
         /// pCur->isTable = pOp->p4type != P4_KEYINFO;
-        auto isTableAddr = rewriter.create<GEPOp>
-                (LOC, T::i8PtrTy, pCur, ValueRange {
-                    constants(0, 32),
-                    constants(4, 32)
-                });
-        rewriter.create<StoreOp>(LOC, constants(pOp->p4type != P4_KEYINFO ? 1 : 0, 8), isTableAddr);
+        auto isTableAddr = getElementPtrImm(LOC, T::i8PtrTy, pCur, 0, 4);
+        store(LOC, constants(pOp->p4type != P4_KEYINFO ? 1 : 0, 8), isTableAddr);
 
         unsigned hint = p5Value & (OPFLAG_BULKCSR | OPFLAG_SEEKEQ);
-        rewriter.create<CallOp>(LOC, f_sqlite3BtreeCursorHintFlags, ValueRange{
+        call(LOC, f_sqlite3BtreeCursorHintFlags, ValueRange{
             pCur_uc_pCursor, constants(hint, 32)
         });
 

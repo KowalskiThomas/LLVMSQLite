@@ -281,15 +281,20 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto curIdx = op.p1;
                 auto rootPage = op.p2;
                 auto dbIdx = op.p3;
-                auto p4 = op.p4;
+                auto p4 = op.p4.pKeyInfo;
                 auto p5 = op.p5;
+
+                // TODO: Fix the memory leak caused by this
+                if (op.p4type == P4_KEYINFO)
+                    p4->nRef++;
+
                 builder.create<mlir::standalone::OpenRead>
                     (LOCB,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, rootPage),
                          INTEGER_ATTR(32, true, dbIdx),
-                         INTEGER_ATTR(64, false, p4.i),
+                         INTEGER_ATTR(64, false, (uint64_t)p4),
                          INTEGER_ATTR(16, false, p5)
                     );
                 break;

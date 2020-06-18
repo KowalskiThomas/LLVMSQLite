@@ -182,10 +182,14 @@ Value MyBuilder::insertAndOp(Location loc, Value lhs, int rhs) {
 
 void MyBuilder::insertStoreOp(Location loc, Value value, Value addr) {
     auto valueTypeLlvm = value.getType().dyn_cast_or_null<mlir::LLVM::LLVMType>();
-    auto addrTypeLlvm = value.getType().dyn_cast_or_null<mlir::LLVM::LLVMType>();
+    auto addrTypeLlvm = addr.getType().dyn_cast_or_null<mlir::LLVM::LLVMType>();
     if (valueTypeLlvm && valueTypeLlvm.isPointerTy() && valueTypeLlvm.getPointerElementTy() == addrTypeLlvm) {
         llvm_unreachable("insertStoreOp: It seems that 'value' and 'addr' arguments have been mismatched.");
     }
+    // Enabling this allows for better MLIR-level type safety / debugging but breaks everything
+    // It does not break LLVM-IR-lowered code because all LLVM IR typing is done at the LLVM-IR level and ignores ours
+    // err("Value: " << valueTypeLlvm << " addr: " << addrTypeLlvm);
+    // assert(valueTypeLlvm.getPointerTo() == addrTypeLlvm && "insertStoreOp: type(addr) is not type(value)*");
 
     rewriter.create<StoreOp>(loc, value, addr);
 }

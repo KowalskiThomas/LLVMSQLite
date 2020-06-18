@@ -33,7 +33,7 @@ static std::unordered_map<std::string, bool> useDefaultImplMap {
     { "standalone.Once", false },
     { "standalone.OpenEphemeral", false },
     { "standalone.OpenPseudo", false },
-    { "standalone.OpenRead", true }, // TODO: Fix OpenRead
+    { "standalone.OpenRead", false },
     { "standalone.Real", false },
     { "standalone.ResultRow", false },
     { "standalone.Return", false },
