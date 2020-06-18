@@ -55,7 +55,11 @@ bool useDefaultImpl(mlir::Operation* op) {
     assert(useDefaultImplMap.count(s) == 1 && "Undefined useDefaultImpl for operation");
     
     if (useDefaultImplMap.count(s) > 0) {
-        return useDefaultImplMap[s];
+        auto useDefault = useDefaultImplMap[s];
+        if (useDefault)
+            err("Warning: using default implementation for " << s);
+
+        return useDefault;
     }
 
     err("Couldn't find useDefaultImpl value for operation '" << op->getName() << "'");
