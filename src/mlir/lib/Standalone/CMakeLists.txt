@@ -36,7 +36,6 @@ set(LOWERING_FILES
     Lowering/SorterSortLowering.cpp
     Lowering/TransactionLowering.cpp
     Lowering/ArithmeticLowering.cpp
-    Lowering/String8Lowering.cpp
     Lowering/StringLowering.cpp
     Lowering/VariableLowering.cpp
     Lowering/RealLowering.cpp
