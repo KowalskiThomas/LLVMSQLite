@@ -197,10 +197,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     // TODO: Remove this and use isKnownTerminator()
     bool writeBranchOut = true;
 
-    // Used to stop generating code after a certain instruction is seen (and finished)
-    // TODO: Remove that
-    bool lastOpSeen = false;
-
     // Flag to exit sqlite if we find an unsupported opcode
     bool unsupportedOpCodeSeen = false;
 
@@ -489,7 +485,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                          INTEGER_ATTR(32, true, nothing)
                         );
 
-                // lastOpSeen = true;
                 break;
             }
             case OP_Gosub: {
