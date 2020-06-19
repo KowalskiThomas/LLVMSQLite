@@ -6,6 +6,7 @@
 #include "Standalone/StandaloneOps.h"
 
 bool useDefaultImpl(mlir::Operation* op);
+bool anyDefaultImplUsed();
 
 /**
  * This macro inserts the code required to possibly call the default implementation of an operation.

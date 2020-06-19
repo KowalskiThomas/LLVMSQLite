@@ -79,3 +79,9 @@ bool useDefaultImpl(mlir::Operation* op) {
     err("Couldn't find useDefaultImpl value for operation '" << op->getName() << "'");
     exit(UNDEFINED_USE_DEFAULT_IMPL);
 }
+
+bool anyDefaultImplUsed() {
+    return std::any_of(useDefaultImplMap.cbegin(), useDefaultImplMap.cend(), [](const auto& pair) {
+        return pair.second;
+    });
+}

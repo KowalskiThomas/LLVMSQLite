@@ -10,6 +10,7 @@
 #include "Standalone/Lowering/Printer.h"
 #include "Standalone/VdbeContext.h"
 #include "Standalone/ErrorCodes.h"
+#include "Standalone/DefaultImplementation.h"
 
 #include "SQLiteBridge.h"
 
@@ -163,8 +164,10 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                  || vdbe->aOp[targetPc - 1].opcode == OP_Goto
                  || vdbe->aOp[targetPc - 1].opcode == OP_Gosub))
             ) {
-            // TODO: Uncomment this (to generate less branching)
-            // continue;
+            if (!anyDefaultImplUsed()) {
+                // TODO: Fix (and uncomment) this (to generate less branching)
+                /// continue;
+            }
         }
 
         targetBlock = blocks.find(targetOpCode) != blocks.end() ? blocks[targetOpCode] : entryBlock;
@@ -1015,7 +1018,9 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 newWriteBranchOut = false;
                 break;
             }
-            // TODO: Add other OP_IdxXX
+            case OP_IdxGE:
+            case OP_IdxGT:
+            case OP_IdxLT:
             case OP_IdxLE: {
                 auto p1 = op.p1;
                 auto p2 = op.p2;
