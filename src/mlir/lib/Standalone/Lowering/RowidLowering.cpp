@@ -39,8 +39,9 @@ namespace mlir::standalone::passes {
         auto stackState = saveStack(LOC);
         auto vAddr = alloca(LOC, T::i64PtrTy);
 
-        auto outToPrerelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
-        auto pOut = outToPrerelease(LOC, vdbe, &vdbe->aOp[pc]);
+        auto outToPrerelease = Inlining::OutToPrerelease(*vdbeCtx, context, rewriter, print, constants);
+        auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto pOut = outToPrerelease(LOC, vdbeCtx->p, pOp);
 
         /// pC = p->apCsr[pOp->p1];
         auto pCAddr = getElementPtrImm(LOC, T::VdbeCursorPtrPtrTy, vdbeCtx->apCsr, p1);

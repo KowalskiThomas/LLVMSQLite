@@ -21,14 +21,11 @@ namespace mlir::standalone::passes {
 
         auto firstBlock = rewriter.getBlock();
 
-        auto firstRegAttr = nullOp.firstRegAttr();
-        auto lastRegAttr = nullOp.lastRegAttr();
-        auto setMemClearedAttr = nullOp.setMemClearedAttr();
-
-        auto firstReg = firstRegAttr.getSInt();
-        auto lastReg = lastRegAttr.getSInt();
-        auto cnt = lastReg - firstReg;
-        auto setMemCleared = setMemClearedAttr.getSInt();
+        /// p2 = firstReg
+        auto firstReg = nullOp.firstRegAttr().getSInt();
+        /// p3 = lastReg
+        auto lastReg = nullOp.lastRegAttr().getSInt();
+        auto setMemCleared = nullOp.setMemClearedAttr().getSInt();
         auto pc = nullOp.pcAttr().getUInt();
 
         print(LOCL, "-- Null");
@@ -37,29 +34,39 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(nullOp); GO_BACK_TO(curBlock);
 
-        auto pOp = &vdbe->aOp[pc];
-        // auto pOut2 = call(LOC, f_out2Prerelease,
-        //      constants(T::VdbePtrTy, vdbe), constants(T::VdbeOpPtrTy, pOp)
-        // ).getValue();
-        auto outToPrerelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
-        auto pOut = outToPrerelease(LOC, vdbe, &vdbe->aOp[pc]);
+        /// pOut = out2Prerelease(p, pOp);
+        auto outToPrerelease = Inlining::OutToPrerelease(*vdbeCtx,context, rewriter, print, constants);
+        auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto pOut = outToPrerelease(LOC, vdbeCtx->p, pOp);
+
+        /// cnt = pOp->p3 - pOp->p2;
+        auto cnt = lastReg - firstReg;
 
         branch(LOC, endBlock);
         rewriter.setInsertionPointToStart(endBlock);
 
-        auto nullFlagValue = setMemClearedAttr ? (MEM_Null | MEM_Cleared) : MEM_Null;
-        auto nullFlag = constants(nullFlagValue, 16);
-
+        /// pOut->flags = nullFlag = pOp->p1 ? (MEM_Null | MEM_Cleared) : MEM_Null;
         auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
+        auto nullFlagValue = setMemCleared ? (MEM_Null | MEM_Cleared) : MEM_Null;
+        auto nullFlag = constants(nullFlagValue, 16);
         store(LOC, nullFlag, flagsAddr);
+
+        /// pOut->n = 0;
         auto nAddr = getElementPtrImm(LOC, T::i32PtrTy, pOut, 0, 4);
         store(LOC, 0, nAddr);
 
         while (cnt > 0) {
+            /// pOut++;
             pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, pOut, 1);
+
+            /// sqlite3VdbeMemSetNull(pOut);
             call(LOC, f_sqlite3VdbeMemSetNull, pOut);
+
+            /// pOut->flags = nullFlag;
             auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
             store(LOC, nullFlag, flagsAddr);
+
+            /// pOut->n = 0;
             auto nAddr = getElementPtrImm(LOC, T::i32PtrTy, pOut, 0, 4);
             store(LOC, 0, nAddr);
 

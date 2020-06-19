@@ -620,14 +620,13 @@ void Prerequisites::generateReferenceTosqlite3BtreeBeginStmt(ModuleOp m, LLVMDia
 
 extern "C" {
     Mem *out2Prerelease(Vdbe *p, VdbeOp *pOp);
-    Mem *out2PrereleaseWithClear(Vdbe *p, VdbeOp *pOp);
+    Mem *out2PrereleaseWithClear(Mem*);
 }
 
 void Prerequisites::generateReferenceToout2Prerelease(ModuleOp m, LLVMDialect* d) {
     auto funcTy = LLVMType::getFunctionTy(
             T::sqlite3_valuePtrTy, {
-                T::VdbePtrTy,
-                T::VdbeOpPtrTy
+                T::sqlite3_valuePtrTy
             }, false);
 
     // { // Generate f_out2Prerelease

@@ -1,4 +1,3 @@
-#include "mlir/IR/Value.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 
 #include "Standalone/Lowering/OutToPrerelease.h"
@@ -6,25 +5,24 @@
 #include "Standalone/TypeDefinitions.h"
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Utils.h"
+#include "Standalone/VdbeContext.h"
+
 
 extern "C" {
-    #include "src/sqliteInt.h"
     #include "sqlite3.h"
     #include "src/vdbeInt.h"
-    #include "src/vdbe.h"
 }
 
 extern mlir::LLVM::LLVMFuncOp f_out2PrereleaseWithClear;
 
 namespace mlir::standalone::passes::Inlining {
 
-    OutToPrerelease::OutToPrerelease(MLIRContext& context, OpBuilder& rewriter, Printer& print, ConstantManager& constants)
-        : mlirContext(context), rewriter(rewriter), printer(print), constantManager(constants)
+    OutToPrerelease::OutToPrerelease(VdbeContext& vdbeCtx, MLIRContext& context, OpBuilder& rewriter, Printer& print, ConstantManager& constants)
+        : vdbeCtx(vdbeCtx), mlirContext(context), rewriter(rewriter), printer(print), constantManager(constants)
     {
     }
 
-    // TODO: Fix that (remove IntToPtr's)
-    Value OutToPrerelease::operator()(Location loc, Vdbe* vdbe, VdbeOp* pOp) {
+    Value OutToPrerelease::operator()(Location loc, Value vdbe, Value pOp) {
         auto& constants = constantManager;
         auto& context = mlirContext;
         auto ctx = &context;
@@ -32,23 +30,24 @@ namespace mlir::standalone::passes::Inlining {
 
         auto stackState = rewriter.create<mlir::LLVM::StackSaveOp>(loc, T::i8PtrTy);
 
-        /// assert(pOp->p2 > 0);
-        /// assert(pOp->p2 <= (p->nMem + 1 - p->nCursor));
+        /// Get pOp->p2
+        auto p2Addr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, pOp, ValueRange {
+            constants(0, 32),
+            constants(4, 32)
+        });
+        auto p2 = rewriter.create<LoadOp>(LOC, p2Addr);
 
         /// pOut = &p->aMem[pOp->p2];
-        auto pOut = constants(T::sqlite3_valuePtrTy, &vdbe->aMem[pOp->p2]);
-
-        /// memAboutToChange(p, pOut);
+        auto pOut = rewriter.create<GEPOp>(LOC, T::sqlite3_valuePtrTy, vdbeCtx.aMem, ValueRange{ p2 });
 
         // #define VdbeMemDynamic(X) (((X)->flags&(MEM_Agg|MEM_Dyn))!=0)
-
         /// if (VdbeMemDynamic(pOut))
         auto flagsAddr = rewriter.create<GEPOp>(loc, T::i16PtrTy, pOut, ValueRange{
                 constants(0, 32),
                 constants(1, 32)
         });
-
         auto flagsValue = rewriter.create<LoadOp>(loc, flagsAddr);
+
         auto memDynamic = rewriter.create<AndOp>(loc, flagsValue, constants(MEM_Agg | MEM_Dyn, 16));
 
         auto curBlock = rewriter.getBlock();
@@ -71,8 +70,7 @@ namespace mlir::standalone::passes::Inlining {
             /// return out2PrereleaseWithClear(pOut);
             auto callResult = rewriter.create<CallOp>
                 (loc, f_out2PrereleaseWithClear, ValueRange {
-                    constants(T::VdbePtrTy, vdbe),
-                    constants(T::VdbeOpPtrTy, pOp)
+                    pOut
                 }).getResult(0);
 
             rewriter.create<StoreOp>(loc, callResult, pOutResult);

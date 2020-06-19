@@ -1308,6 +1308,7 @@ int sqlite3VdbeExec2(
 #ifdef SQLITE_DEBUG
                 pOut->uTemp = 0;
 #endif
+                printf("Count: %d\n", cnt);
                 while (cnt > 0) {
                     pOut++;
                     memAboutToChange(p, pOut);

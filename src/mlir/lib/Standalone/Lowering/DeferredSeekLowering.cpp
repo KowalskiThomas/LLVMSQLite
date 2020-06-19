@@ -93,12 +93,10 @@ namespace mlir::standalone::passes {
                 /// pTabCur->pAltCursor = pC;
                 auto pAltCursorAddr = getElementPtrImm(LOC, T::VdbeCursorPtrPtrTy, pTabCur, 0, 11);
                 store(LOC, pC, pAltCursorAddr);
-
             } else {
-
-                auto outToPrelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
-                // auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
-                auto pOut = outToPrelease(LOC, vdbe, &vdbe->aOp[pc]);
+                auto outToPrelease = Inlining::OutToPrerelease(*vdbeCtx, context, rewriter, print, constants);
+                auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+                auto pOut = outToPrelease(LOC, vdbeCtx->p, pOp);
 
                 auto pOutUnionAddress = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0, 0);
                 auto pOutIntAddress = bitCast(LOC, pOutUnionAddress, T::i64PtrTy);

@@ -2,6 +2,7 @@ struct ConstantManager;
 
 struct Vdbe;
 struct VdbeOp;
+struct VdbeContext;
 
 namespace mlir {
     struct Printer;
@@ -23,9 +24,10 @@ namespace mlir::standalone::passes::Inlining {
         ConstantManager& constantManager;
         MLIRContext& mlirContext;
         OpBuilder& rewriter;
+        VdbeContext& vdbeCtx;
 
-        OutToPrerelease(MLIRContext&, OpBuilder&, Printer&, ConstantManager&);
+        OutToPrerelease(VdbeContext&, MLIRContext&, OpBuilder&, Printer&, ConstantManager&);
 
-        Value operator()(Location, Vdbe*, VdbeOp*);
+        Value operator()(Location, Value, Value);
     };
 }

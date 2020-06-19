@@ -8,6 +8,7 @@ using std::unordered_map;
 using std::string;
 
 static unordered_map<string, bool> useDefaultImplMap {
+    { "standalone.Affinity", true },  // TODO: Implement
     { "standalone.AggFinal", false },
     { "standalone.AggStep", false },
     { "standalone.Arithmetic", false },
@@ -28,12 +29,13 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.IfPos", false },
     { "standalone.Init", false },
     { "standalone.Integer", false },
-    { "standalone.Last", false },
     { "standalone.Jump", false },
+    { "standalone.Last", false },
     { "standalone.MakeRecord", false },
     { "standalone.Move", false },
     { "standalone.Next", false },
     { "standalone.Noop", false },
+    { "standalone.NotFound", true },  // TODO: Implement
     { "standalone.Null", false },
     { "standalone.Once", false },
     { "standalone.OpenEphemeral", false },
@@ -43,6 +45,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.ResultRow", false },
     { "standalone.Return", false },
     { "standalone.Rewind", false },
+    { "standalone.RowSetTest", true },  // TODO: Implement
     { "standalone.Rowid", false },
     { "standalone.SeekRowid", false },
     { "standalone.Sequence", false },
@@ -51,12 +54,9 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.SorterNext", false },
     { "standalone.SorterOpen", false },
     { "standalone.String", false },
+    { "standalone.Template", true },  // TODO: Implement
     { "standalone.Transaction", false },
     { "standalone.Variable", true },  // TODO: Implement
-    { "standalone.RowSetTest", true },  // TODO: Implement
-    { "standalone.Affinity", true },  // TODO: Implement
-    { "standalone.NotFound", true },  // TODO: Implement
-    { "standalone.Template", true },  // TODO: Implement
 };
 
 bool useDefaultImpl(mlir::Operation* op) {

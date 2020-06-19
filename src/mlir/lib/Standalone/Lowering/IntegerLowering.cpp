@@ -32,8 +32,8 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(intOp); GO_BACK_TO(curBlock);
 
-        auto outToPrerelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
-        auto pOutValue = outToPrerelease(LOC, vdbe, &vdbe->aOp[pc]);
+        auto outToPrerelease = Inlining::OutToPrerelease(*vdbeCtx, context, rewriter, print, constants);
+        auto pOutValue = outToPrerelease(LOC, vdbeCtx->p, pOp);
 
         // Get &pOut->u.i
         auto pOutUAddressBeforeCast = getElementPtrImm(LOC, T::doublePtrTy, pOutValue, 0, 0, 0);

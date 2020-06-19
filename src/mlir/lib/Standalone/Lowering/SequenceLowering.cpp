@@ -34,8 +34,9 @@ namespace mlir::standalone::passes {
         auto endBlock = curBlock->splitBlock(seqOp); GO_BACK_TO(curBlock);
 
         /// pOut = out2Prerelease(p, pOp);
-        auto outToPrerelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
-        auto pOut = outToPrerelease(LOC, vdbe, &vdbe->aOp[pc]);
+        auto outToPrerelease = Inlining::OutToPrerelease(*vdbeCtx, context, rewriter, print, constants);
+        auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto pOut = outToPrerelease(LOC, vdbeCtx->p, pOp);
 
         auto pOutUAddr = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0);
         auto pOutIntegerAddr = bitCast(LOC, pOutUAddr, T::i64PtrTy);

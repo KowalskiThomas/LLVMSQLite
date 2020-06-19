@@ -23,7 +23,6 @@ namespace mlir::standalone::passes {
 
         // pc = Programme Counter
         auto pc = realOp.pcAttr().getUInt();
-        auto* pOp = &vdbe->aOp[pc];
 
         // regTo = p2
         auto regTo = realOp.regToAttr().getSInt();
@@ -40,8 +39,9 @@ namespace mlir::standalone::passes {
         auto valueAddr = constants(T::doublePtrTy, pointerToValue);
         auto value = load(LOC, valueAddr);
 
-        auto outToPrerelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
-        auto pOut = outToPrerelease(LOC, vdbe, &vdbe->aOp[pc]);
+        auto outToPrerelease = Inlining::OutToPrerelease(*vdbeCtx, context, rewriter, print, constants);
+        auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto pOut = outToPrerelease(LOC, vdbeCtx->p, pOp);
 
         // Get &pOut->flags
         auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);

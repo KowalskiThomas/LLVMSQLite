@@ -22,7 +22,6 @@ namespace mlir::standalone::passes {
         auto firstBlock = rewriter.getBlock();
 
         auto pc = strOp.pcAttr().getUInt();
-        auto* pOp = &vdbe->aOp[pc];
         // regTo = p2
         auto regTo = strOp.regToAttr().getSInt();
         // string = p4
@@ -39,8 +38,9 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(strOp); GO_BACK_TO(curBlock);
 
-        auto outToPrerelease = Inlining::OutToPrerelease(context, rewriter, print, constants);
-        auto pOut = outToPrerelease(LOC, vdbe, pOp);
+        auto outToPrerelease = Inlining::OutToPrerelease(*vdbeCtx, context, rewriter, print, constants);
+        auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto pOut = outToPrerelease(LOC, vdbeCtx->p, pOp);
 
         branch(LOC, endBlock);
         ip_start(endBlock);
