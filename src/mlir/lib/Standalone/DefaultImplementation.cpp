@@ -9,7 +9,7 @@ using std::unordered_map;
 using std::string;
 
 static unordered_map<string, bool> useDefaultImplMap {
-    { "standalone.Affinity", true },  // TODO: Implement
+    { "standalone.Affinity", false },
     { "standalone.AggFinal", false },
     { "standalone.AggStep", false },
     { "standalone.Arithmetic", false },

@@ -1019,7 +1019,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p1 = op.p1;
                 auto p2 = op.p2;
                 auto p3 = op.p3;
-                auto p4 = op.p4.i;
+                auto p4 = op.p4.p;
                 auto p5 = op.p5;
 
                 auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
@@ -1030,7 +1030,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
                         INTEGER_ATTR(32, true, p3),
-                        INTEGER_ATTR(64, false, p4),
+                        INTEGER_ATTR(64, false, (uint64_t)p4),
                         INTEGER_ATTR(16, false, p5),
                         jumpToBlock,
                         fallthroughBlock
@@ -1048,7 +1048,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p1 = op.p1;
                 auto p2 = op.p2;
                 auto p3 = op.p3;
-                auto p4 = op.p4.i;
+                auto p4 = op.p4.p;
                 auto p5 = op.p5;
 
                 auto op = rewriter.create<mlir::standalone::Delete>
@@ -1057,7 +1057,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                         INTEGER_ATTR(32, true, p1),
                         INTEGER_ATTR(32, true, p2),
                         INTEGER_ATTR(32, true, p3),
-                        INTEGER_ATTR(64, false, p4),
+                        INTEGER_ATTR(64, false, (uint64_t)p4),
                         INTEGER_ATTR(16, false, p5)
                     );
                 
@@ -1067,7 +1067,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p1 = op.p1;
                 auto p2 = op.p2;
                 auto p3 = op.p3;
-                auto p4 = op.p4.i;
+                auto p4 = op.p4.p;
                 auto p5 = op.p5;
 
                 auto op = rewriter.create<mlir::standalone::IdxInsert>
@@ -1076,7 +1076,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                         INTEGER_ATTR(32, true, p1),
                         INTEGER_ATTR(32, true, p2),
                         INTEGER_ATTR(32, true, p3),
-                        INTEGER_ATTR(64, false, p4),
+                        INTEGER_ATTR(64, false, (uint64_t)p4),
                         INTEGER_ATTR(16, false, p5)
                     );
                 
@@ -1099,7 +1099,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p1 = op.p1;
                 auto p2 = op.p2;
                 auto p3 = op.p3;
-                auto p4 = op.p4.i;
+                auto p4 = op.p4.p;
 
                 auto op = rewriter.create<mlir::standalone::NotFound>
                     (LOC,
@@ -1107,7 +1107,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                         INTEGER_ATTR(32, true, p1),
                         INTEGER_ATTR(32, true, p2),
                         INTEGER_ATTR(32, true, p3),
-                        INTEGER_ATTR(64, false, p4)
+                        INTEGER_ATTR(64, false, (uint64_t)p4)
                     );
 
                 break;
@@ -1116,7 +1116,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p1 = op.p1;
                 auto p2 = op.p2;
                 auto p3 = op.p3;
-                auto p4 = op.p4.i;
+                auto p4 = op.p4.p;
 
                 auto op = rewriter.create<mlir::standalone::RowSetTest>
                     (LOC,
@@ -1124,7 +1124,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                         INTEGER_ATTR(32, true, p1),
                         INTEGER_ATTR(32, true, p2),
                         INTEGER_ATTR(32, true, p3),
-                        INTEGER_ATTR(64, false, p4)
+                        INTEGER_ATTR(64, false, (uint64_t)p4)
                     );
 
                 break;
@@ -1132,14 +1132,14 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
             case OP_Affinity: {
                 auto p1 = op.p1;
                 auto p2 = op.p2;
-                auto p4 = op.p4.i;
+                auto p4 = op.p4.z;
 
                 auto op = rewriter.create<mlir::standalone::Affinity>
                     (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, true, p2),
-                         INTEGER_ATTR(64, false, p4)
+                         INTEGER_ATTR(64, false, (uint64_t)p4)
                     );
 
                 break;
