@@ -36,7 +36,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Move", false },
     { "standalone.Next", false },
     { "standalone.Noop", false },
-    { "standalone.NotFound", true },  // TODO: Implement
+    { "standalone.NotFound", false },
     { "standalone.Null", false },
     { "standalone.Once", false },
     { "standalone.OpenEphemeral", false },
@@ -55,9 +55,10 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.SorterNext", false },
     { "standalone.SorterOpen", false },
     { "standalone.String", false },
-    { "standalone.Template", true },  // TODO: Implement
     { "standalone.Transaction", false },
     { "standalone.Variable", true },  // TODO: Implement
+
+    { "standalone.Template", true },  // TODO: Implement
 };
 
 bool useDefaultImpl(mlir::Operation* op) {

@@ -40,9 +40,9 @@ namespace mlir::standalone::passes {
         // Truncate to 32 bits
         target = trunc(LOC, target, T::i32Ty);
         // Get &vdbe->pc
-        auto pCAddr = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->p, 0, 10);
+        auto pcAddr = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->p, 0, 10);
         // Store target in &vdbe->pc
-        store(LOC, target, pCAddr);
+        store(LOC, target, pcAddr);
 
         // TODO: Debug
         // print(LOCL, target, "Return: Returning to");

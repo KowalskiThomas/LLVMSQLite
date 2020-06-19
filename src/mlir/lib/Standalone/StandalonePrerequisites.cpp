@@ -13,8 +13,8 @@
 #undef ExternFuncOp
 #endif
 
-using LLVMDialect = mlir::LLVM::LLVMDialect;
-using LLVMFuncOp = mlir::LLVM::LLVMFuncOp;
+using mlir::LLVM::LLVMDialect;
+using mlir::LLVM::LLVMFuncOp;
 
 LLVMFuncOp f_progress;
 LLVMFuncOp f_printInt;
@@ -96,6 +96,9 @@ LLVMFuncOp f_sqlite3BtreeLast;
 LLVMFuncOp f_sqlite3BtreeMovetoUnpacked;
 LLVMFuncOp f_sqlite3BtreeOpen;
 LLVMFuncOp f_sqlite3BtreeCreateTable;
+LLVMFuncOp f_sqlite3VdbeAllocUnpackedRecord;
+LLVMFuncOp f_sqlite3VdbeRecordUnpack;
+LLVMFuncOp f_sqlite3DbFreeNN;
 
 LLVMFuncOp f_memCpy;
 
@@ -184,6 +187,9 @@ public:
     DECLARE_FUNCTION(sqlite3BtreeMovetoUnpacked);
     DECLARE_FUNCTION(sqlite3BtreeOpen);
     DECLARE_FUNCTION(sqlite3BtreeCreateTable);
+    DECLARE_FUNCTION(sqlite3VdbeAllocUnpackedRecord);
+    DECLARE_FUNCTION(sqlite3VdbeRecordUnpack);
+    DECLARE_FUNCTION(sqlite3DbFreeNN);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1191,6 +1197,37 @@ void Prerequisites::generateReferenceTosqlite3BtreeCreateTable(ModuleOp m, LLVMD
     GENERATE_SYMBOL(f_sqlite3BtreeCreateTable, sqlite3BtreeCreateTable, "sqlite3BtreeCreateTable");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeAllocUnpackedRecord(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::UnpackedRecordPtrTy, {
+            T::KeyInfoPtrTy
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeAllocUnpackedRecord, sqlite3VdbeAllocUnpackedRecord, "sqlite3VdbeAllocUnpackedRecord");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeRecordUnpack(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::voidTy, {
+            T::KeyInfoPtrTy,
+            T::i32PtrTy,
+            T::i8PtrTy,
+            T::UnpackedRecordPtrTy
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeRecordUnpack, sqlite3VdbeRecordUnpack, "sqlite3VdbeRecordUnpack");
+}
+
+void Prerequisites::generateReferenceTosqlite3DbFreeNN(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::i32Ty, {
+            T::sqlite3PtrTy,
+            T::i8PtrTy
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3DbFreeNN, sqlite3DbFreeNN, "sqlite3DbFreeNN");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, d)
 
@@ -1271,6 +1308,9 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3BtreeMovetoUnpacked);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeOpen);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeCreateTable);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeAllocUnpackedRecord);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeRecordUnpack);
+    CALL_SYMBOL_GENERATOR(sqlite3DbFreeNN);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

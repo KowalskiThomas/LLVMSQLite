@@ -38,10 +38,7 @@ namespace mlir::standalone::passes {
 
         auto aMemAddress = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), vdbeCtx->p, 0, 17);
         auto aMemValue = load(LOC, aMemAddress);
-        // auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, aMemValue, p3);
-        // TODO: Fix that:
         auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p3);
-
 
         auto pCtx = constants(T::sqlite3_contextPtrTy, p4);
         auto pCtxOutAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pCtx, 0, 0);
