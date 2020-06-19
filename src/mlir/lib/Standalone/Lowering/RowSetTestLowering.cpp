@@ -49,7 +49,6 @@ namespace mlir::standalone::passes {
         auto pIn3 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p3);
 
         /// iSet = pOp->p4.i;
-        out("iSet: " << (int)p4);
         auto iSet = constants((int)p4, 32);
 
         auto in1FlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn1, 0, 1);
@@ -65,8 +64,6 @@ namespace mlir::standalone::passes {
         condBranch(LOC, condIn1NotBlob, blockIn1NotBlob, blockAfterIn1NotBlob);
         { // if ((pIn1->flags & MEM_Blob) == 0)
             ip_start(blockIn1NotBlob);
-
-            print(LOCL, "is not a blob");
 
             auto rc = call(LOC, f_sqlite3VdbeMemSetRowSet, pIn1).getValue();
             { // if (sqlite3VdbeMemSetRowSet(pIn1)) goto no_mem;
@@ -88,25 +85,17 @@ namespace mlir::standalone::passes {
         { // if (iSet)
             ip_start(blockISetNotNull);
 
-            print(LOCL, "iSet not null");
-
-            CALL_DEBUG
-            auto in1UAddr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0, 0);
+            auto in1UAddr = getElementPtrImm(LOC, T::i8PtrPtrTy, pIn1, 0, 5);
             auto in1ZAddr = bitCast(LOC, in1UAddr, T::RowSetPtrTy.getPointerTo());
             auto z = load(LOC, in1ZAddr);
 
-            print(LOCL, z, "z");
-
-            auto in3UAddr = getElementPtrImm(LOC, T::doublePtrTy, pIn3, 0, 0, 0);
+            auto in3UAddr = getElementPtrImm(LOC, T::doublePtrTy, pIn3, 0, 0);
             auto in3IAddr = bitCast(LOC, in3UAddr, T::i64PtrTy);
             auto in3Int = load(LOC, in3IAddr);
-
-            print(LOCL, in3IAddr, "in3 Int");
 
             auto exists = call(LOC, f_sqlite3RowSetTest, z, iSet, in3Int).getValue();
 
             auto existsNotNull = iCmp(LOC, Pred::ne, exists, 0);
-            print(LOCL, existsNotNull, "existsNotNull");
 
             condBranch(LOC, existsNotNull, jumpTo, blockAfterISetNotNull);
         } // end if (iSet)
@@ -122,16 +111,14 @@ namespace mlir::standalone::passes {
         { // if (iSet >= 0)
             ip_start(blockISetPositive);
 
-            print(LOCL, "iSet >= 0");
-
             /// sqlite3RowSetInsert((RowSet *) pIn1->z, pIn3->u.i);
             // Get (RowSet*) pIn1->z
-            auto in1UAddr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0, 0);
+            auto in1UAddr = getElementPtrImm(LOC, T::i8PtrPtrTy, pIn1, 0, 5);
             auto in1ZAddr = bitCast(LOC, in1UAddr, T::RowSetPtrTy.getPointerTo());
             auto z = load(LOC, in1ZAddr);
 
             // Get pIn3->u.i
-            auto in3UAddr = getElementPtrImm(LOC, T::doublePtrTy, pIn3, 0, 0, 0);
+            auto in3UAddr = getElementPtrImm(LOC, T::doublePtrTy, pIn3, 0, 0);
             auto in3IAddr = bitCast(LOC, in3UAddr, T::i64PtrTy);
             auto in3Int = load(LOC, in3IAddr);
 

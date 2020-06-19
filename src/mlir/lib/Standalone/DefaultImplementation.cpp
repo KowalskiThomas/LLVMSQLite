@@ -46,7 +46,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.ResultRow", false },
     { "standalone.Return", false },
     { "standalone.Rewind", false },
-    { "standalone.RowSetTest", true },
+    { "standalone.RowSetTest", false },
     { "standalone.Rowid", false },
     { "standalone.SeekRowid", false },
     { "standalone.Sequence", false },
