@@ -264,16 +264,20 @@ def Standalone_Rowid : Standalone_Op<"Rowid"> {
     let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2);
 }
 
-def Standalone_RowSetTest : Standalone_Op<"RowSetTest"> {
+def Standalone_RowSetTest : Standalone_Op<"RowSetTest", [Terminator]> {
     let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2, I32Attr:$p3, I64Attr:$p4);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallThrough);
 }
 
 def Standalone_Affinity : Standalone_Op<"Affinity"> {
     let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2, I64Attr:$p4);
 }
 
-def Standalone_NotFound : Standalone_Op<"NotFound"> {
+def Standalone_NotFound : Standalone_Op<"NotFound", [Terminator]> {
     let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2, I32Attr:$p3, I64Attr:$p4);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallThrough);
 }
 
 /*

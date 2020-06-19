@@ -99,6 +99,9 @@ LLVMFuncOp f_sqlite3BtreeCreateTable;
 LLVMFuncOp f_sqlite3VdbeAllocUnpackedRecord;
 LLVMFuncOp f_sqlite3VdbeRecordUnpack;
 LLVMFuncOp f_sqlite3DbFreeNN;
+LLVMFuncOp f_sqlite3VdbeMemSetRowSet;
+LLVMFuncOp f_sqlite3RowSetTest;
+LLVMFuncOp f_sqlite3RowSetInsert;
 
 LLVMFuncOp f_memCpy;
 
@@ -190,6 +193,9 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeAllocUnpackedRecord);
     DECLARE_FUNCTION(sqlite3VdbeRecordUnpack);
     DECLARE_FUNCTION(sqlite3DbFreeNN);
+    DECLARE_FUNCTION(sqlite3VdbeMemSetRowSet);
+    DECLARE_FUNCTION(sqlite3RowSetTest);
+    DECLARE_FUNCTION(sqlite3RowSetInsert);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1228,6 +1234,38 @@ void Prerequisites::generateReferenceTosqlite3DbFreeNN(ModuleOp m, LLVMDialect* 
     GENERATE_SYMBOL(f_sqlite3DbFreeNN, sqlite3DbFreeNN, "sqlite3DbFreeNN");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeMemSetRowSet(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::i32Ty, {
+            T::sqlite3_valuePtrTy
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemSetRowSet, sqlite3VdbeMemSetRowSet, "sqlite3VdbeMemSetRowSet");
+}
+
+void Prerequisites::generateReferenceTosqlite3RowSetTest(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::i32Ty, {
+            T::RowSetPtrTy,
+            T::i32Ty,
+            T::i64Ty
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3RowSetTest, sqlite3RowSetTest, "sqlite3RowSetTest");
+}
+
+void Prerequisites::generateReferenceTosqlite3RowSetInsert(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::voidTy, {
+            T::RowSetPtrTy,
+            T::i64Ty
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3RowSetInsert, sqlite3RowSetInsert, "sqlite3RowSetInsert");
+}
+
+
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, d)
 
@@ -1311,6 +1349,9 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeAllocUnpackedRecord);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeRecordUnpack);
     CALL_SYMBOL_GENERATOR(sqlite3DbFreeNN);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemSetRowSet);
+    CALL_SYMBOL_GENERATOR(sqlite3RowSetTest);
+    CALL_SYMBOL_GENERATOR(sqlite3RowSetInsert);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

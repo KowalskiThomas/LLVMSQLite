@@ -128,6 +128,7 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::sqlite3_io_methodsPtrTy = T::sqlite3_io_methodsTy.getPointerTo();
     T::BtreeTy = t::createStructTy(d, Optional<StringRef>("Btree"));
     T::RowSetTy = t::createStructTy(d, Optional<StringRef>("RowSet"));
+    T::RowSetPtrTy = T::RowSetTy.getPointerTo();
     T::TriggerPtrTy = T::TriggerTy.getPointerTo();
     T::SavepointPtrTy = T::SavepointTy.getPointerTo();
     T::IdListPtrTy = T::IdListTy.getPointerTo();

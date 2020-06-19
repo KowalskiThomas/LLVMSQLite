@@ -31,7 +31,10 @@ namespace mlir::standalone::passes {
         auto p1 = nfOp.p1Attr().getSInt();
         auto p2 = nfOp.p2Attr().getSInt();
         auto p3 = nfOp.p3Attr().getSInt();
-        auto p4 = nfOp.p4Attr().getUInt();
+        auto p4 = nfOp.p4Attr().getSInt();
+
+        auto jumpTo = nfOp.jumpTo();
+        auto fallthrough = nfOp.fallThrough();
 
         USE_DEFAULT_BOILERPLATE
 
@@ -46,7 +49,7 @@ namespace mlir::standalone::passes {
         auto takeJumpAddr = alloca(LOC, T::i32PtrTy);
 
         /// pC = p->apCsr[pOp->p1];
-        auto pCAddr = constants(T::VdbeCursorPtrPtrTy, &vdbe->apCsr[p1]);
+        auto pCAddr = getElementPtrImm(LOC, T::VdbeCursorPtrTy, vdbeCtx->apCsr, p1);
         auto pC = load(LOC, pCAddr);
 
         /// pIn3 = &aMem[pOp->p3];
@@ -67,10 +70,7 @@ namespace mlir::standalone::passes {
 
             /// r.aMem = pIn3;
             auto rAMemAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrPtrTy, rAddr, 0, 1);
-            {
-                auto aMem = getElementPtrImm(LOC, T::sqlite3_valuePtrPtrTy, vdbeCtx->aMem, p3);
-                store(LOC, aMem, rAMemAddr);
-            }
+            store(LOC, pIn3, rAMemAddr);
 
             /// pIdxKey = &r;
             store(LOC, (Value)rAddr, pIdxKeyAddr);
@@ -78,6 +78,7 @@ namespace mlir::standalone::passes {
             /// pFree = 0;
             store(LOC, nullptr, pFreeAddr);
         } else {
+            print(LOCL, "TODO: ExpandBlob");
             /// rc = ExpandBlob(pIn3);
             auto rc = call(LOC, f_sqlite3VdbeMemExpandBlob, pIn3).getValue();
             { // if (rc) goto no_mem;
@@ -89,6 +90,7 @@ namespace mlir::standalone::passes {
             auto pKeyInfoAddr = getElementPtrImm(LOC, T::KeyInfoPtrTy.getPointerTo(), pC, 0, 13);
             auto pKeyInfo = load(LOC, pKeyInfoAddr);
             auto pIdxKey = call(LOC, f_sqlite3VdbeAllocUnpackedRecord, pKeyInfo).getValue();
+            store(LOC, pIdxKey, pFreeAddr);
 
             { // if (pIdxKey == 0) goto no_mem;
                 auto pIdxKeyNotNull = iCmp(LOC, Pred::ne, pIdxKey, nullptr);
@@ -97,7 +99,7 @@ namespace mlir::standalone::passes {
 
             // Get pin3->n
             auto nAddr = getElementPtrImm(LOC, T::i32PtrTy, pIn3, 0, 4);
-            auto n =load(LOC, nAddr);
+            auto n = load(LOC, nAddr);
 
             // Get pin3->z
             auto zAddr = getElementPtrImm(LOC, T::i8PtrPtrTy, pIn3, 0, 5);
@@ -109,7 +111,7 @@ namespace mlir::standalone::passes {
 
         /// pIdxKey->default_rc = 0;
         auto pIdxKey = load(LOC, pIdxKeyAddr);
-        auto defaultRcAddr = getElementPtrImm(LOC, T::i8PtrTy, pIdxKey, 0, 4);
+        auto defaultRcAddr = getElementPtrImm(LOC, T::i8PtrTy, pIdxKey, 0, 3);
         store(LOC, 0, defaultRcAddr);
 
         /// takeJump = 0;
@@ -151,7 +153,8 @@ namespace mlir::standalone::passes {
             ip_start(blockPFreeNotNull);
 
             auto db = vdbeCtx->db;
-            // call(LOC, f_sqlite3DbFreeNN, db, pFree);
+            auto pFreeVoidStar = bitCast(LOC, pFree, T::i8PtrTy);
+            call(LOC, f_sqlite3DbFreeNN, db, pFreeVoidStar);
 
             branch(LOC, blockAfterPFreeNotNull);
         } // end if (pFree)
@@ -168,8 +171,8 @@ namespace mlir::standalone::passes {
         store(LOC, res, seekResultAddr);
 
         /// alreadyExists = (res == 0);
-        auto alreadyExists = iCmp(LOC, Pred::eq, res, 0);
-        alreadyExists = zExt(LOC, alreadyExists, T::i8Ty);
+        auto alreadyExistsBool = iCmp(LOC, Pred::eq, res, 0);
+        auto alreadyExists = zExt(LOC, alreadyExistsBool, T::i8Ty);
 
         /// pC->nullRow = 1 - alreadyExists;
         auto nullRowAddr = getElementPtrImm(LOC, T::i8PtrTy, pC, 0, 2);
@@ -188,15 +191,32 @@ namespace mlir::standalone::passes {
             llvm_unreachable("Unimplemented OP_Found");
             /// VdbeBranchTaken(alreadyExists != 0, 2);
             /// if (alreadyExists) goto jump_to_p2;
+            restoreStack(LOC, stackState);
         } else {
             /// VdbeBranchTaken(takeJump || alreadyExists == 0, 2);
-            /// if (takeJump || !alreadyExists) goto jump_to_p2;
-        }
 
+            /// if (takeJump || !alreadyExists) goto jump_to_p2;
+            auto curBlock = rewriter.getBlock();
+            auto blockAfter = SPLIT_GO_BACK_TO(curBlock);
+
+            // Get takeJump
+            auto takeJump = load(LOC, takeJumpAddr);
+            takeJump = iCmp(LOC, Pred::ne, takeJump, 0);
+
+            // Get !alreadyExists
+            auto notAlreadyExists = iCmp(LOC, Pred::eq, alreadyExistsBool, 0);
+            auto takeJumpOrAlreadyExists = bitOr(LOC, takeJump, notAlreadyExists);
+
+            restoreStack(LOC, stackState);
+
+            // goto jump_to_p2
+            condBranch(LOC, takeJumpOrAlreadyExists, jumpTo, blockAfter);
+            ip_start(blockAfter);
+        }
         branch(LOC, endBlock);
         ip_start(endBlock);
 
-        restoreStack(LOC, stackState);
+        branch(LOC, fallthrough);
         rewriter.eraseOp(nfOp);
 
         return success();
