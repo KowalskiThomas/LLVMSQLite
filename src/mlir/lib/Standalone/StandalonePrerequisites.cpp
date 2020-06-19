@@ -7,6 +7,7 @@
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
+#include "Standalone/ErrorCodes.h"
 
 #ifdef ExternFuncOp
 #undef ExternFuncOp
@@ -240,7 +241,7 @@ uint64_t printProgress(const char* s, uint32_t line, const char* fileName) {
 
     if(strstr(s, "TODO")) {
         err("Warning: a TODO has been emitted!");
-        exit(128);
+        exit(INCOMPLETE_LOWERING_USED);
     }
 
     return 0;

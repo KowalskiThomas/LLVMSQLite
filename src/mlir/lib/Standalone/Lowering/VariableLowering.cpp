@@ -2,6 +2,7 @@
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
+#include "Standalone/ErrorCodes.h"
 
 #include "Standalone/StandalonePasses.h"
 
@@ -35,7 +36,7 @@ namespace mlir::standalone::passes {
         ip_start(endBlock);
 
         err("TODO: Implement Variable Lowering");
-        exit(3);
+        exit(UNIMPLEMENTED_LOWERING_USED);
 
         rewriter.eraseOp(varOp);
 

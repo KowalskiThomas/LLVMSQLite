@@ -1,6 +1,7 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/StandalonePassManager.h"
 #include "Standalone/StandaloneDialect.h"
+#include "Standalone/ErrorCodes.h"
 
 #include "SQLiteBridge.h"
 
@@ -194,7 +195,7 @@ struct VdbeRunner {
                 if (broken) {
                     llvmModule->dump();
                     err("Broken module found, exiting.");
-                    exit(127);
+                    exit(SQLITE_BRIDGE_FAILURE);
                 }
 #endif
                 ALWAYS_ASSERT(!broken && "Generated IR Module is invalid");
@@ -202,14 +203,14 @@ struct VdbeRunner {
                 auto maybeHost = llvm::orc::JITTargetMachineBuilder::detectHost();
                 if (!maybeHost) {
                     err("Host could not be detected: " << maybeHost.takeError());
-                    exit(123);
+                    exit(SQLITE_BRIDGE_FAILURE);
                 }
                 auto host = *maybeHost;
                 llvm::orc::JITTargetMachineBuilder tmb(host);
                 auto maybeMachine = tmb.createTargetMachine();
                 if (!maybeMachine) {
                     out("Target machine could not be created: " <<maybeMachine.takeError());
-                    exit(123);
+                    exit(SQLITE_BRIDGE_FAILURE);
                 }
                 auto& machine = *maybeMachine;
                 auto targetTriple = machine->getTargetTriple();
@@ -271,7 +272,7 @@ struct VdbeRunner {
 
         if (vdbe->rc == SQLITE_NOMEM) {
             err("ERROR: Cannot allocate memory");
-            exit(124);
+            exit(OUT_OF_MEMORY);
         }
 
         int returnedValue = ((vdbeExecType)(jittedFunctionPointer))(vdbe);

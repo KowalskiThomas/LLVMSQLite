@@ -2,6 +2,7 @@
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
+#include "Standalone/ErrorCodes.h"
 
 #include "Standalone/StandalonePasses.h"
 
@@ -53,7 +54,7 @@ namespace mlir::standalone::passes {
             toCall = f_sqlite3BtreeNext;
         } else {
             err("Unsupported advancer " << advancerValue);
-            exit(11);
+            exit(UNSUPPORTED_ADVANCER);
         }
 
         /// rc = pOp->p4.xAdvance(pC->uc.pCursor, pOp->p3);

@@ -5,6 +5,7 @@
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
+#include "Standalone/ErrorCodes.h"
 
 namespace mlir::standalone::passes {
     LogicalResult OpenReadLowering::matchAndRewrite(OpenRead orOp, PatternRewriter &rewriter) const {
@@ -58,7 +59,7 @@ namespace mlir::standalone::passes {
                      rootPage, 0, 0);
 
             out("TODO: Add 3826 sqlite3VdbeMemIntegerify(pIn2);")
-            exit(126);
+            exit(INCOMPLETE_LOWERING_USED);
 
             // Load the content at the address of the union
             auto regContent = load(LOC, adressOfValue);

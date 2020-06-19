@@ -9,6 +9,7 @@
 #include "Standalone/TypeDefinitions.h"
 #include "Standalone/Lowering/Printer.h"
 #include "Standalone/VdbeContext.h"
+#include "Standalone/ErrorCodes.h"
 
 #include "SQLiteBridge.h"
 
@@ -1172,7 +1173,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
     if (unsupportedOpCodeSeen) {
         out("Exiting after seeing unsupported opcodes")
-        exit(1);
+        exit(UNSUPPORTED_OPCODE);
     }
 
     /*

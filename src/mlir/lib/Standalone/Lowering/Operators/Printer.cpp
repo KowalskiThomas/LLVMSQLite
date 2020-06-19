@@ -1,6 +1,7 @@
 #include "Standalone/Lowering/Printer.h"
 #include "Standalone/Utils.h"
 #include "Standalone/TypeDefinitions.h"
+#include "Standalone/ErrorCodes.h"
 
 PRINTER_USING
 USING_OPS
@@ -117,7 +118,7 @@ void mlir::Printer::operator()(Location loc, size_t line, Value v, const char *m
             printPtr(loc, line, v, msg, false);
         } else {
             err("Cannot work with type " << v.getType())
-            exit(10);
+            exit(ILLEGAL_TYPE_USED);
         }
     }
 #endif

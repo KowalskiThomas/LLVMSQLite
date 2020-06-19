@@ -2,9 +2,8 @@
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
-
+#include "Standalone/ErrorCodes.h"
 #include "Standalone/StandalonePasses.h"
-
 
 namespace mlir::standalone::passes {
     LogicalResult String8Lowering::matchAndRewrite(String8 strOp, PatternRewriter &rewriter) const {
@@ -19,7 +18,7 @@ namespace mlir::standalone::passes {
         myOperators
 
         err("String8 should not be used!");
-        exit(123);
+        exit(ILLEGAL_LOWERING_USED);
 
         auto firstBlock = rewriter.getBlock();
 

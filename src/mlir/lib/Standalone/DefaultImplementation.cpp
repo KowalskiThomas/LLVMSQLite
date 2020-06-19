@@ -1,6 +1,7 @@
 #include "Standalone/DefaultImplementation.h"
 #include "Standalone/StandaloneDialect.h"
 #include "Standalone/StandaloneOps.h"
+#include "Standalone/ErrorCodes.h"
 
 static const constexpr auto useOnlyDefaultImpl = false;
 
@@ -76,5 +77,5 @@ bool useDefaultImpl(mlir::Operation* op) {
     }
 
     err("Couldn't find useDefaultImpl value for operation '" << op->getName() << "'");
-    exit(129);
+    exit(UNDEFINED_USE_DEFAULT_IMPL);
 }

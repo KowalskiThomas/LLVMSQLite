@@ -60,20 +60,21 @@ set(LOWERING_FILES
 )
 
 add_mlir_dialect_library(MLIRStandalone
-        StandaloneDialect.cpp
-        StandaloneOps.cpp
-        StandalonePasses.cpp
-        StandalonePassManager.cpp
-        StandalonePrerequisites.cpp
-        DefaultImplementation.cpp
-        TypeCache.cpp
-        TypeDefinitions.cpp
-        ${LOWERING_FILES}
-        ADDITIONAL_HEADER_DIRS
-        ${PROJECT_SOURCE_DIR}/include/Standalone
+    ${ADDITIONAL_HEADER_DIRS}
+    ${PROJECT_SOURCE_DIR}/include/Standalone
+    StandaloneDialect.cpp
+    StandaloneOps.cpp
+    StandalonePasses.cpp
+    StandalonePassManager.cpp
+    StandalonePrerequisites.cpp
+    DefaultImplementation.cpp
+    TypeCache.cpp
+    TypeDefinitions.cpp
 
-        DEPENDS
+    ${LOWERING_FILES}
+
+    DEPENDS
         MLIRStandaloneOpsIncGen
-        )
+)
 
 target_link_libraries(MLIRStandalone PUBLIC MLIRIR)
