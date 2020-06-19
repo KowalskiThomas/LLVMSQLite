@@ -17,21 +17,30 @@
 
 #define EXIT_ON_UNSUPPORTED_OPCODE true
 
-#define INTEGER_ATTR(width, signed, value) builder.getIntegerAttr(builder.getIntegerType(width, signed), value)
+#define INTEGER_ATTR(width, signed, value) opBuilder.getIntegerAttr(opBuilder.getIntegerType(width, signed), value)
 
-using MLIRContext = mlir::MLIRContext;
-using LLVMDialect = mlir::LLVM::LLVMDialect;
-using ModuleOp = mlir::ModuleOp;
-using FuncOp = mlir::FuncOp;
-using Block = mlir::Block;
+using mlir::MLIRContext;
+using mlir::LLVM::LLVMDialect;
+using mlir::ModuleOp;
+using mlir::FuncOp;
+using mlir::BranchOp;
 
+using namespace mlir::standalone;
 
+using mlir::Block;
+using mlir::Operation;
+
+using std::pair;
+using llvm::SmallVector;
+using std::unordered_map;
+
+namespace VdbeOps = mlir::standalone;
 
 void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& func) {
     // A pointer to the MLIR Context
     auto ctx = &mlirContext;
     // The StandaloneDialect instance
-    auto vdbeDialect = mlirContext.getRegisteredDialect<mlir::standalone::StandaloneDialect>();
+    auto vdbeDialect = mlirContext.getRegisteredDialect<StandaloneDialect>();
     // A pointer to the VdbeContext instance we use for this query
     auto* vdbeCtx = &vdbeDialect->vdbeContext;
     vdbeCtx->mainFunction = func;
@@ -44,27 +53,25 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
     // Operations that depend on a block that has not yet been built.
     // This map should be checked for at the end of every block / operation translation to update jumps.
-    std::unordered_map<size_t, llvm::SmallVector<std::pair<mlir::Operation*, size_t>, 128>> operations_to_update;
+    unordered_map<size_t, SmallVector<pair<Operation*, size_t>, 128>> operations_to_update;
 
     // Create an OpBuilder and make it write in the function's newly created entryBlock
-    auto builder = mlir::OpBuilder(ctx);
+    auto opBuilder = mlir::OpBuilder(ctx);
+    auto& rewriter = opBuilder;
     auto* entryBlock = func.addEntryBlock();
     vdbeCtx->entryBlock = entryBlock;
-    builder.setInsertionPointToStart(entryBlock);
+    opBuilder.setInsertionPointToStart(entryBlock);
 
     // A handy tool for generating constants (constant integers, nullptr's...)
-    ConstantManager constants(builder, ctx);
+    ConstantManager constants(opBuilder, ctx);
 
     // A handy tool for printing stuff at run-time
-    mlir::Printer print(ctx, builder, __FILE_NAME__);
+    mlir::Printer print(ctx, opBuilder, __FILE_NAME__);
 
-    // A reference to builder (some macros use a "rewriter" variable)
-    auto& rewriter = builder;
-
+    using namespace mlir;
+    auto builder = MyBuilder(ctx, constants, rewriter);
+    myOperators
     { // Load "globals"
-        using namespace mlir;
-        auto builder = MyBuilder(ctx, constants, rewriter);
-        myOperators
 
         /// Get the address of the VDBE
         auto beg = vdbeCtx->entryBlock->args_begin();
@@ -130,9 +137,9 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     // A block in which we will jump to other blocks. It is useful for resuming execution of the Vdbe.
     auto jumpsBlock = entryBlock->splitBlock(entryBlock->end());
     vdbeCtx->jumpsBlock = jumpsBlock;
-    builder.setInsertionPointToEnd(entryBlock);
-    builder.create<mlir::BranchOp>(LOC, jumpsBlock);
-    builder.setInsertionPointToStart(jumpsBlock);
+    opBuilder.setInsertionPointToEnd(entryBlock);
+    branch(LOC, jumpsBlock);
+    opBuilder.setInsertionPointToStart(jumpsBlock);
 
     // The iCompare value. It is supposed to be local to sqlite3VdbeExec but I moved it out
     // so we can interleave JIT execution and default implementation
@@ -140,16 +147,13 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     vdbeCtx->iCompare = constants(T::i32PtrTy, &iCompare);
 
     // Our goal here: check the value of vdbe->pc and jump to the right block
-    auto pcAddr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, vdbeCtx->p, mlir::ValueRange {
-        constants(0, 32),
-        constants(10, 32)
-    });
-    auto pcValue = builder.create<LoadOp>(LOCB, pcAddr);
+    auto pcAddr = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->p, 0, 10);
+    auto pcValue = load(LOC, pcAddr);
 
     Block* targetBlock = nullptr;
     Block* blockAfterJump = nullptr;
     for(auto targetPc = 0; targetPc < vdbe->nOp; targetPc++) {
-        auto curBlock = builder.getBlock();
+        auto curBlock = opBuilder.getBlock();
         // Only certain codes can be jumped back to. This saves a lot of branching.
         auto targetOpCode = vdbe->aOp[targetPc].opcode;
         if (targetOpCode != OP_Next && targetOpCode != OP_Halt
@@ -167,16 +171,13 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
         // The next block
         blockAfterJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-        auto pcValueIsTarget = builder.create<ICmpOp>
-                (LOCB, ICmpPredicate::eq,
-                 pcValue, constants(targetPc, 32)
-                );
+        auto pcValueIsTarget = iCmp(LOC, ICmpPredicate::eq, pcValue, targetPc);
 
-        auto brOp = builder.create<CondBrOp>(LOCB, pcValueIsTarget, targetBlock, blockAfterJump);
+        auto brOp = opBuilder.create<CondBrOp>(LOC, pcValueIsTarget, targetBlock, blockAfterJump);
         if (targetBlock == entryBlock)
             operations_to_update[targetPc].emplace_back(brOp, 0);
 
-        builder.setInsertionPointToStart(blockAfterJump);
+        opBuilder.setInsertionPointToStart(blockAfterJump);
         lastBlock = blockAfterJump;
     }
 
@@ -204,7 +205,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     for(auto pc = 0llu; pc < vdbe->nOp; pc++) {
         // Create a block for that operation
         auto block = func.addBlock();
-        builder.setInsertionPointToStart(block);
+        opBuilder.setInsertionPointToStart(block);
         
         // The VdbeOp we're currently working on 
         auto& op = vdbe->aOp[pc];
@@ -225,8 +226,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                     jumpTo = pc + 1;
                 }
 
-                auto initOp = builder.create<mlir::standalone::InitOp>
-                        (LOCB,
+                auto initOp = opBuilder.create<VdbeOps::InitOp>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          entryBlock
                         );
@@ -237,8 +238,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
             }
             case OP_Noop: {
-                builder.create<mlir::standalone::Noop>
-                        (LOCB,
+                opBuilder.create<VdbeOps::Noop>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc)
                         );
                 break;
@@ -257,8 +258,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 }
 
                 // Create the jump
-                auto op = builder.create<mlir::standalone::Goto>(
-                        LOCB,
+                auto op = opBuilder.create<VdbeOps::Goto>(
+                        LOC,
                         INTEGER_ATTR(64, false, pc),
                         toBlock
                 );
@@ -273,8 +274,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 break;
             }
             case OP_Halt: {
-                builder.create<mlir::standalone::Halt>
-                    (LOCB,
+                opBuilder.create<VdbeOps::Halt>
+                    (LOC,
                         INTEGER_ATTR(64, false, pc)
                     );
                 newWriteBranchOut = false;
@@ -291,8 +292,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 if (op.p4type == P4_KEYINFO)
                     p4->nRef++;
 
-                builder.create<mlir::standalone::OpenRead>
-                    (LOCB,
+                opBuilder.create<VdbeOps::OpenRead>
+                    (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, rootPage),
@@ -311,8 +312,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 Block *blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
                 Block *blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
 
-                auto op = builder.create<mlir::standalone::Rewind>
-                        (LOCB,
+                auto op = opBuilder.create<VdbeOps::Rewind>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          blockJumpTo,
@@ -334,8 +335,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto defaultNull = op.p4;
                 auto flags = op.p5;
 
-                builder.create<mlir::standalone::Column>
-                        (LOCB,
+                opBuilder.create<VdbeOps::Column>
+                        (LOC,
                          INTEGER_ATTR(64, true, pc),
                          INTEGER_ATTR(32, true, cursor),
                          INTEGER_ATTR(32, true, column),
@@ -350,8 +351,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto firstColumnIndex = op.p1;
                 auto nColumn = op.p2;
 
-                builder.create<mlir::standalone::ResultRow>
-                        (LOCB,
+                opBuilder.create<VdbeOps::ResultRow>
+                        (LOC,
                          INTEGER_ATTR(64, true, pc),
                          INTEGER_ATTR(32, true, firstColumnIndex),
                          INTEGER_ATTR(32, true, nColumn)
@@ -373,8 +374,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                     blockJumpTo = blocks[jumpTo];
                 }
 
-                auto op = builder.create<mlir::standalone::Next>
-                        (LOCB,
+                auto op = opBuilder.create<VdbeOps::Next>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, curHint),
@@ -398,8 +399,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p4 = (uint64_t) op.p4.p;
                 auto p5 = op.p5;
 
-                builder.create<mlir::standalone::Transaction>
-                        (LOCB,
+                opBuilder.create<VdbeOps::Transaction>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, dbIdx),
                          INTEGER_ATTR(32, true, isWrite),
@@ -415,8 +416,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto firstReg = op.p2;
                 auto lastReg = op.p3;
 
-                builder.create<mlir::standalone::Null>
-                        (LOCB,
+                opBuilder.create<VdbeOps::Null>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, setMemCleared),
                          INTEGER_ATTR(32, true, firstReg),
@@ -432,8 +433,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto funcDef = op.p4.pFunc;
                 auto nArgs = op.p5;
 
-                builder.create<mlir::standalone::AggStep>
-                        (LOCB,
+                opBuilder.create<VdbeOps::AggStep>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, false, p1),
                          INTEGER_ATTR(32, true, firstRegFrom),
@@ -449,8 +450,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto nArgs = op.p2;
                 auto funcDef = op.p4.pFunc;
 
-                builder.create<mlir::standalone::AggFinal>
-                        (LOCB,
+                opBuilder.create<VdbeOps::AggFinal>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, false, nArgs),
@@ -464,8 +465,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto firstRegFrom = op.p2;
                 auto nRegs = op.p3;
 
-                builder.create<mlir::standalone::Copy>
-                        (LOCB,
+                opBuilder.create<VdbeOps::Copy>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, firstRegTo),
                          INTEGER_ATTR(32, true, firstRegFrom),
@@ -478,8 +479,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto value = op.p1;
                 auto nothing = op.p2;
 
-                builder.create<mlir::standalone::Integer>
-                        (LOCB,
+                opBuilder.create<VdbeOps::Integer>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, value),
                          INTEGER_ATTR(32, true, nothing)
@@ -494,8 +495,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 Block *blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
 
-                auto op = rewriter.create<mlir::standalone::Gosub>
-                        (LOCB,
+                auto op = rewriter.create<VdbeOps::Gosub>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, writeAddressTo),
                          blockJumpTo
@@ -513,8 +514,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto dest = op.p3;
                 auto affinities = (uint64_t) op.p4.p;
 
-                rewriter.create<mlir::standalone::MakeRecord>
-                        (LOCB,
+                rewriter.create<VdbeOps::MakeRecord>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, firstRegFrom),
                          INTEGER_ATTR(32, true, nReg),
@@ -529,8 +530,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto reg = op.p2;
                 auto nFields = op.p3;
 
-                rewriter.create<mlir::standalone::OpenPseudo>
-                        (LOCB,
+                rewriter.create<VdbeOps::OpenPseudo>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, reg),
@@ -543,8 +544,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto curIdx = op.p1;
                 auto reg = op.p2;
 
-                rewriter.create<mlir::standalone::SorterInsert>
-                        (LOCB,
+                rewriter.create<VdbeOps::SorterInsert>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, reg)
@@ -558,8 +559,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p3 = op.p3;
                 auto p4 = (uint64_t) op.p4.p;
 
-                builder.create<mlir::standalone::SorterOpen>
-                        (LOCB,
+                opBuilder.create<VdbeOps::SorterOpen>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, nCol),
@@ -574,8 +575,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto regTo = op.p2;
                 auto p3 = op.p3;
 
-                auto op = builder.create<mlir::standalone::SorterData>
-                        (LOCB,
+                auto op = opBuilder.create<VdbeOps::SorterData>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, curIdx),
                          INTEGER_ATTR(32, true, regTo),
@@ -592,8 +593,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto jumpToBlock = blocks.find(jumpToAddr) != blocks.end() ? blocks[jumpToAddr] : entryBlock;
                 auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;
 
-                auto op = builder.create<mlir::standalone::SorterNext>
-                        (LOCB,
+                auto op = opBuilder.create<VdbeOps::SorterNext>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(16, false, p5),
@@ -616,8 +617,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p4 = (uint64_t) op.p4.p;
                 auto p5 = op.p5;
 
-                builder.create<mlir::standalone::Compare>
-                        (LOCB,
+                opBuilder.create<VdbeOps::Compare>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, true, p2),
@@ -637,8 +638,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 Block *blockEq = blocks.count(addrEq) == 0 ? entryBlock : blocks[addrEq];
                 Block *blockGreater = blocks.count(addrGreater) == 0 ? entryBlock : blocks[addrGreater];
 
-                auto op = builder.create<mlir::standalone::Jump>
-                        (LOCB,
+                auto op = opBuilder.create<VdbeOps::Jump>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          blockLess,
                          blockEq,
@@ -660,8 +661,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p2 = op.p2;
                 auto p3 = op.p3;
 
-                rewriter.create<mlir::standalone::Move>
-                        (LOCB,
+                rewriter.create<VdbeOps::Move>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, true, p2),
@@ -678,8 +679,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 Block *blockTarget = blocks.count(jumpToAddr) == 0 ? entryBlock : blocks[jumpToAddr];
                 Block *blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
 
-                auto op = rewriter.create<mlir::standalone::IfPos>
-                        (LOCB,
+                auto op = rewriter.create<VdbeOps::IfPos>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, true, p3),
@@ -698,8 +699,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
             case OP_Return: {
                 auto returnToAddrReg = op.p1;
 
-                auto op = rewriter.create<mlir::standalone::Return>
-                        (LOCB,
+                auto op = rewriter.create<VdbeOps::Return>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, returnToAddrReg)
                         );
@@ -716,8 +717,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p2 = op.p2;
                 auto p3 = op.p3;
 
-                rewriter.create<mlir::standalone::Arithmetic>
-                        (LOCB,
+                rewriter.create<VdbeOps::Arithmetic>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, true, p2),
@@ -730,8 +731,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p2 = op.p2;
                 auto p4 = op.p4.pReal;
 
-                rewriter.create<mlir::standalone::Real>
-                        (LOCB,
+                rewriter.create<VdbeOps::Real>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p2),
                          INTEGER_ATTR(64, false, (uint64_t) p4)
@@ -746,8 +747,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto string = op.p4.z;
                 auto flags = op.p5;
 
-                rewriter.create<mlir::standalone::String>
-                        (LOCB,
+                rewriter.create<VdbeOps::String>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, len),
                          INTEGER_ATTR(32, true, regTo),
@@ -765,8 +766,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p3 = op.p3;
                 auto p5 = op.p5;
 
-                rewriter.create<mlir::standalone::String>
-                        (LOCB,
+                rewriter.create<VdbeOps::String>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, strLen),
                          INTEGER_ATTR(32, true, regTo),
@@ -782,8 +783,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto regTo = op.p2;
                 auto parameterName = op.p4.z;
 
-                rewriter.create<mlir::standalone::Variable>
-                        (LOCB,
+                rewriter.create<VdbeOps::Variable>
+                        (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, parameter),
                          INTEGER_ATTR(32, true, regTo),
@@ -810,8 +811,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 Block *blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
                 Block *blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
 
-                auto op = rewriter.create<mlir::standalone::CompareJump>
-                    (LOCB,
+                auto op = rewriter.create<VdbeOps::CompareJump>
+                    (LOC,
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p2),
                         INTEGER_ATTR(32, true, lhs),
@@ -836,8 +837,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 Block *blockJumpTo = blocks.count(jumpTo) == 0 ? entryBlock : blocks[jumpTo];
                 Block *blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
 
-                auto op = rewriter.create<mlir::standalone::Once>
-                    (LOCB,
+                auto op = rewriter.create<VdbeOps::Once>
+                    (LOC,
                         INTEGER_ATTR(64, false, pc),
                         blockJumpTo,
                         blockFallthrough
@@ -859,8 +860,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 Block *blockJump = blocks.count(p2) == 0 ? entryBlock : blocks[p2];
                 Block *blockFallthrough = blocks.count(pc + 1) == 0 ? entryBlock : blocks[pc + 1];
 
-                auto op = rewriter.create<mlir::standalone::If>
-                    (LOCB,
+                auto op = rewriter.create<VdbeOps::If>
+                    (LOC,
                      INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
                          INTEGER_ATTR(32, true, p3),
@@ -883,7 +884,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto outRegister = op.p3;
                 auto func = op.p4.pCtx;
 
-                rewriter.create<mlir::standalone::Function>
+                rewriter.create<VdbeOps::Function>
                     (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, bitmask),
@@ -903,7 +904,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 // TODO: Fix the memory leaks caused by this:
                 p4->nRef++;
 
-                rewriter.create<mlir::standalone::OpenEphemeral>
+                rewriter.create<VdbeOps::OpenEphemeral>
                     (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
@@ -919,7 +920,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p3 = op.p3;
                 auto p4 = (char*)op.p4.z;
 
-                rewriter.create<mlir::standalone::DeferredSeek>
+                rewriter.create<VdbeOps::DeferredSeek>
                     (LOC,
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
@@ -937,7 +938,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
                 auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;                
 
-                auto op = rewriter.create<mlir::standalone::SeekRowid>
+                auto op = rewriter.create<VdbeOps::SeekRowid>
                     (LOC,
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
@@ -958,7 +959,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p1 = op.p1;
                 auto p2 = op.p2;
 
-                rewriter.create<mlir::standalone::Sequence>
+                rewriter.create<VdbeOps::Sequence>
                     (LOC,
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
@@ -974,7 +975,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
                 auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;                
 
-                auto op = rewriter.create<mlir::standalone::IfNotZero>
+                auto op = rewriter.create<VdbeOps::IfNotZero>
                     (LOC,
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
@@ -998,7 +999,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
                 auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;                
 
-                auto op = rewriter.create<mlir::standalone::Last>
+                auto op = rewriter.create<VdbeOps::Last>
                     (LOC,
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
@@ -1025,7 +1026,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
                 auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;                
 
-                auto op = rewriter.create<mlir::standalone::IdxCompare>
+                auto op = rewriter.create<VdbeOps::IdxCompare>
                     (LOC,
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
@@ -1051,7 +1052,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p4 = op.p4.p;
                 auto p5 = op.p5;
 
-                auto op = rewriter.create<mlir::standalone::Delete>
+                auto op = rewriter.create<VdbeOps::Delete>
                     (LOC,
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
@@ -1070,7 +1071,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p4 = op.p4.p;
                 auto p5 = op.p5;
 
-                auto op = rewriter.create<mlir::standalone::IdxInsert>
+                auto op = rewriter.create<VdbeOps::IdxInsert>
                     (LOC,
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
@@ -1086,7 +1087,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p1 = op.p1;
                 auto p2 = op.p2;
 
-                auto op = rewriter.create<mlir::standalone::Rowid>
+                auto op = rewriter.create<VdbeOps::Rowid>
                     (LOC,
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
@@ -1101,7 +1102,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p3 = op.p3;
                 auto p4 = op.p4.p;
 
-                auto op = rewriter.create<mlir::standalone::NotFound>
+                auto op = rewriter.create<VdbeOps::NotFound>
                     (LOC,
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
@@ -1118,7 +1119,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p3 = op.p3;
                 auto p4 = op.p4.p;
 
-                auto op = rewriter.create<mlir::standalone::RowSetTest>
+                auto op = rewriter.create<VdbeOps::RowSetTest>
                     (LOC,
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
@@ -1134,7 +1135,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p2 = op.p2;
                 auto p4 = op.p4.z;
 
-                auto op = rewriter.create<mlir::standalone::Affinity>
+                auto op = rewriter.create<VdbeOps::Affinity>
                     (LOC,
                          INTEGER_ATTR(64, false, pc),
                          INTEGER_ATTR(32, true, p1),
@@ -1161,9 +1162,9 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
         // Add a branch from the latest block to this one
         if (writeBranchOut) {
-            builder.setInsertionPointToEnd(lastBlock);
-            vdbeCtx->outBranches[pc] = builder.create<mlir::BranchOp>(LOCB, block);
-            builder.setInsertionPointToStart(block);
+            opBuilder.setInsertionPointToEnd(lastBlock);
+            vdbeCtx->outBranches[pc] = opBuilder.create<BranchOp>(LOC, block);
+            opBuilder.setInsertionPointToStart(block);
         }
 
         // Mark this block as the lastBlock
@@ -1176,18 +1177,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         exit(UNSUPPORTED_OPCODE);
     }
 
-    /*
-    // Add the returning block and a branch from the last VDBE instruction block to it
-    auto endBlock = func.addBlock();
-    builder.setInsertionPointToEnd(lastBlock);
-    builder.create<mlir::BranchOp>(LOCB, endBlock);
-
-    // Add a return operation in the returning block
-    builder.setInsertionPointToStart(endBlock);
-    auto return0 = builder.create<mlir::ConstantIntOp>(LOCB, 0, 32);
-    builder.create<mlir::ReturnOp>(LOCB, (mlir::Value)return0);
-    */
-
     // If the map is not empty, then we didn't generate the destination block of some branches.
     assert(operations_to_update.empty());
 }
@@ -1195,25 +1184,25 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 void prepareFunction(MLIRContext& context, LLVMDialect* llvmDialect, ModuleOp& theModule) {
     static_assert(sizeof(int*) == 8, "sizeof(int*) is assumed to be 8!");
     auto ctx = &context;
-    auto vdbeDialect = context.getRegisteredDialect<mlir::standalone::StandaloneDialect>();
+    auto vdbeDialect = context.getRegisteredDialect<StandaloneDialect>();
     assert(vdbeDialect && "No VDBE Dialect registered");
     auto* vdbeCtx = &vdbeDialect->vdbeContext;
     auto* vdbe = vdbeCtx->vdbe;
 
-    auto builder = mlir::OpBuilder(ctx);
-    builder.setInsertionPointToStart(theModule.getBody());
+    auto rewriter = mlir::OpBuilder(ctx);
+    rewriter.setInsertionPointToStart(theModule.getBody());
 
     assert(vdbeCtx->regInstances.empty() && "Registers vector should be empty at that point!");
     for(auto i = 0llu; i < vdbe->nMem; i++) {
         vdbeCtx->regInstances.emplace_back(&vdbe->aMem[i]);
     }
 
-    auto inTypes = mlir::SmallVector<mlir::Type, 1>{
+    auto inTypes = SmallVector<mlir::Type, 1>{
         T::VdbePtrTy
     };
 
-    auto funcTy = builder.getFunctionType(inTypes, builder.getIntegerType(32));
-    auto func = mlir::FuncOp::create(LOCB, JIT_MAIN_FN_NAME, funcTy);
+    auto funcTy = rewriter.getFunctionType(inTypes, rewriter.getIntegerType(32));
+    auto func = FuncOp::create(LOC, JIT_MAIN_FN_NAME, funcTy);
     theModule.push_back(func);
 
     writeFunction(context, llvmDialect, func);
