@@ -206,7 +206,6 @@ def Standalone_CompareJump : Standalone_Op<"CompareJump", [Terminator]> {
     let successors = (successor AnySuccessor:$ifTrue, AnySuccessor:$ifFalse);
 }
 
-
 def Standalone_Once : Standalone_Op<"Once", [Terminator]> {
     let arguments = (ins I64Attr:$pc);
 
@@ -259,6 +258,22 @@ def Standalone_Delete : Standalone_Op<"Delete"> {
 
 def Standalone_IdxInsert : Standalone_Op<"IdxInsert"> {
     let arguments = (ins I64Attr:$pc, I32Attr:$curIdx, I32Attr:$reg, I32Attr:$p3, I64Attr:$p4, I16Attr:$flags);
+}
+
+def Standalone_Rowid : Standalone_Op<"Rowid"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2);
+}
+
+def Standalone_RowSetTest : Standalone_Op<"RowSetTest"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2, I32Attr:$p3, I64Attr:$p4);
+}
+
+def Standalone_Affinity : Standalone_Op<"Affinity"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2, I64Attr:$p4);
+}
+
+def Standalone_NotFound : Standalone_Op<"NotFound"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2, I32Attr:$p3, I64Attr:$p4);
 }
 
 /*

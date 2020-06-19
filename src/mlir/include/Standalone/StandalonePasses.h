@@ -65,6 +65,10 @@ namespace mlir::standalone::passes {
     DECLARE_LOWERING(IdxCompare)
     DECLARE_LOWERING(Delete)
     DECLARE_LOWERING(IdxInsert)
+    DECLARE_LOWERING(Rowid)
+    DECLARE_LOWERING(NotFound)
+    DECLARE_LOWERING(RowSetTest)
+    DECLARE_LOWERING(Affinity)
 } // namespace mlir::standalone::passes
 
 #undef DECLARE_LOWERING

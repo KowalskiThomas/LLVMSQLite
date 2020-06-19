@@ -91,7 +91,6 @@ namespace mlir::standalone::passes {
 
         /// if (zAffinity)
         if (affinities) {
-            print(LOCL, "Applying affinities");
             auto pRecValue = pData0Value;
             auto pRec = pData0;
             do {
@@ -123,11 +122,10 @@ namespace mlir::standalone::passes {
                     } // end if (pRec->flags & MEM_Int)
 
                     ip_start(blockAfterRecIsInt);
-
-                    affinities++;
-                    pRecValue++;
-                    pRec = getElementPtrImm(LOC, T::i8PtrTy, pRec, 1);
                 }
+                affinities++;
+                pRecValue++;
+                pRec = getElementPtrImm(LOC, T::i8PtrTy, pRec, 1);
             } while (affinities[0]);
         }
 

@@ -53,6 +53,10 @@ set(LOWERING_FILES
     Lowering/IdxCompareLowering.cpp
     Lowering/DeleteLowering.cpp
     Lowering/IdxInsertLowering.cpp
+    Lowering/RowidLowering.cpp
+    Lowering/RowSetTestLowering.cpp
+    Lowering/NotFoundLowering.cpp
+    Lowering/AffinityLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

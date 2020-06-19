@@ -2,7 +2,12 @@
 #include "Standalone/StandaloneDialect.h"
 #include "Standalone/StandaloneOps.h"
 
-static std::unordered_map<std::string, bool> useDefaultImplMap {
+static const constexpr auto useOnlyDefaultImpl = false;
+
+using std::unordered_map;
+using std::string;
+
+static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.AggFinal", false },
     { "standalone.AggStep", false },
     { "standalone.Arithmetic", false },
@@ -38,6 +43,7 @@ static std::unordered_map<std::string, bool> useDefaultImplMap {
     { "standalone.ResultRow", false },
     { "standalone.Return", false },
     { "standalone.Rewind", false },
+    { "standalone.Rowid", false },
     { "standalone.SeekRowid", false },
     { "standalone.Sequence", false },
     { "standalone.SorterData", false },
@@ -47,9 +53,16 @@ static std::unordered_map<std::string, bool> useDefaultImplMap {
     { "standalone.String", false },
     { "standalone.Transaction", false },
     { "standalone.Variable", true },  // TODO: Implement
+    { "standalone.RowSetTest", true },  // TODO: Implement
+    { "standalone.Affinity", true },  // TODO: Implement
+    { "standalone.NotFound", true },  // TODO: Implement
+    { "standalone.Template", true },  // TODO: Implement
 };
 
 bool useDefaultImpl(mlir::Operation* op) {
+    if (useOnlyDefaultImpl)
+        return true;
+
     std::string s = op->getName().getStringRef().str();
     
     assert(useDefaultImplMap.count(s) == 1 && "Undefined useDefaultImpl for operation");

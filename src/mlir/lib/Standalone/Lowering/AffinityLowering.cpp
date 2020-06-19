@@ -10,8 +10,8 @@
 
 
 namespace mlir::standalone::passes {
-    LogicalResult Lowering::matchAndRewrite(TO_REPLACE txnOp, PatternRewriter &rewriter) const {
-        auto op = &txnOp;
+    LogicalResult AffinityLowering::matchAndRewrite(Affinity affOp, PatternRewriter &rewriter) const {
+        auto op = &affOp;
         LOWERING_PASS_HEADER
         LOWERING_NAMESPACE
 
@@ -21,24 +21,22 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
-        USE_DEFAULT_BOILERPLATE
-
         auto firstBlock = rewriter.getBlock();
 
-        auto pc = txnOp.pcAttr().getUInt();
-        auto p1 = txnOp.p1Attr().getSInt();
-        auto p2 = txnOp.p2Attr().getSInt();
-        auto p3 = txnOp.p3Attr().getSInt();
-        auto p4 = txnOp.p4Attr().getUInt();
-        auto p5 = txnOp.p5Attr().getSInt();
+        auto pc = affOp.pcAttr().getUInt();
+        auto p1 = affOp.p1Attr().getSInt();
+        auto p2 = affOp.p2Attr().getSInt();
+        auto p4 = affOp.p4Attr().getUInt();
+
+        USE_DEFAULT_BOILERPLATE
 
         auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
+        auto endBlock = curBlock->splitBlock(affOp); GO_BACK_TO(curBlock);
 
         branch(LOC, endBlock);
 
         ip_start(endBlock);
-        rewriter.eraseOp(txnOp);
+        rewriter.eraseOp(affOp);
 
         return success();
     } // matchAndRewrite

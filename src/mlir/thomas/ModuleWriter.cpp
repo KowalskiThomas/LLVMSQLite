@@ -1079,6 +1079,68 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 
                 break;
             }
+            case OP_Rowid: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+
+                auto op = rewriter.create<mlir::standalone::Rowid>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2)
+                    );
+
+                break;
+            }
+            case OP_NotFound: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+                auto p4 = op.p4.i;
+
+                auto op = rewriter.create<mlir::standalone::NotFound>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(32, true, p3),
+                        INTEGER_ATTR(64, false, p4)
+                    );
+
+                break;
+            }
+            case OP_RowSetTest: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+                auto p4 = op.p4.i;
+
+                auto op = rewriter.create<mlir::standalone::RowSetTest>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(32, true, p3),
+                        INTEGER_ATTR(64, false, p4)
+                    );
+
+                break;
+            }
+            case OP_Affinity: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p4 = op.p4.i;
+
+                auto op = rewriter.create<mlir::standalone::Affinity>
+                    (LOC,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(32, true, p2),
+                         INTEGER_ATTR(64, false, p4)
+                    );
+
+                break;
+            }
         }
 
         // Add the block to the blocks map (for use in branches)

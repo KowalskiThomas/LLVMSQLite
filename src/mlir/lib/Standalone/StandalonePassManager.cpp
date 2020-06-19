@@ -107,6 +107,10 @@ void VdbeToLLVM::runOnOperation() {
         patterns.insert<IdxCompareLowering>(&getContext());
         patterns.insert<DeleteLowering>(&getContext());
         patterns.insert<IdxInsertLowering>(&getContext());
+        patterns.insert<RowidLowering>(&getContext());
+        patterns.insert<AffinityLowering>(&getContext());
+        patterns.insert<NotFoundLowering>(&getContext());
+        patterns.insert<RowSetTestLowering>(&getContext());
 
         mlir::populateStdToLLVMConversionPatterns(typeConverter, patterns);
     }
