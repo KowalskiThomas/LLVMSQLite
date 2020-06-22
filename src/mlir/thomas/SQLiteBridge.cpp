@@ -128,7 +128,7 @@ struct VdbeRunner {
     void prepareFunction() {
         ::prepareFunction(context, llvmDialect, mlirModule);
 
-#ifdef DEBUG_MACHINE
+#if DEBUG_MACHINE && LLVMSQLITE_DEBUG
         writeToFile("jit_mlir_vdbe_module.ll", mlirModule);
 #endif
 
@@ -136,13 +136,13 @@ struct VdbeRunner {
         pm.addPass(std::make_unique<VdbeToLLVM>());
         pm.run(mlirModule);
 
-#ifdef DEBUG_MACHINE
+#if DEBUG_MACHINE && LLVMSQLITE_DEBUG
         writeToFile("jit_mlir_llvm_module.ll", mlirModule);
 #endif
 
         llvmModule = mlir::translateModuleToLLVMIR(mlirModule);
 
-#ifdef DEBUG_MACHINE
+#if DEBUG_MACHINE && LLVMSQLITE_DEBUG
         writeToFile("jit_llvm_unoptimised.ll", *llvmModule);
 #endif
     }
@@ -214,7 +214,7 @@ struct VdbeRunner {
                 auto targetTriple = machine->getTargetTriple();
 
                 auto passManagerBuilder = llvm::PassManagerBuilder();
-                passManagerBuilder.OptLevel = 0;
+                passManagerBuilder.OptLevel = 3;
                 passManagerBuilder.SizeLevel = 0;
                 passManagerBuilder.Inliner = llvm::createFunctionInliningPass();
                 passManagerBuilder.MergeFunctions = true;
@@ -245,7 +245,9 @@ struct VdbeRunner {
                 // Optimise the module
                 modulePassManager.run(*llvmModule);
 
+#if DEBUG_MACHINE && LLVMSQLITE_DEBUG
                 writeToFile("jit_llvm_optimised.ll", *llvmModule);
+#endif
 
                 // Create an ExecutionEngine
                 auto builder = llvm::EngineBuilder(std::move(llvmModule));
