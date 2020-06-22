@@ -64,7 +64,7 @@ def get_mtime(copy_from: str) -> datetime.datetime:
     return datetime.datetime.fromtimestamp(stat.st_mtime)
 
 def date_to_string(dt: datetime.datetime) -> str:
-    return dt.strftime("%m-%d-%H-%m-%S")
+    return dt.strftime("%m-%d-%H-%M-%S")
 
 def now() -> datetime.datetime:
     return datetime.datetime.now()
