@@ -9,7 +9,7 @@ queries = [1, 3, 6, 19]
 jit_config = ["jit", "nojit"]
 count = 50
 
-total_line = "echo ''"
+total_line = ""
 for q in queries:
     for jit in jit_config:
         to_run = f"python3 runner.py {db} {jit} query {q} count {count}"
@@ -18,7 +18,7 @@ for q in queries:
             stdout, stderr = run_blocking(to_run)
             print(stdout, stderr)
         else:
-            total_line += " && " + to_run
+            total_line += to_run + "\n"
 
-if not do_run:
-    print(total_line)
+with open("script.sh", 'w') as f:
+    f.write(total_line)
