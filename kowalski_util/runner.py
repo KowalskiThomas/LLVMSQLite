@@ -99,4 +99,4 @@ data = data[1:]
 date = date_to_string(now())
 with open(f"Results-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
     f.write('\n'.join([str(x) for x in data]))
-        
+    f.write('\n')

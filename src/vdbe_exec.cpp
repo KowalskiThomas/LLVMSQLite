@@ -78,6 +78,7 @@ int sqlite3VdbeExec(Vdbe *p) {
         printf("Vdbe execution time without compilation: %llu ms\n",
                 initialDiff - functionPreparationTime - functionOptimisationTime);
 #endif
+        lastVdbe = nullptr;
     }
 
 
