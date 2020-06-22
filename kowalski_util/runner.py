@@ -70,8 +70,16 @@ to_run = f'{shell} -jit-query {query_index} -jit-query-count {count} "{db_file}"
 print(to_run)
 
 stdout, stderr = run_blocking(to_run)
+with open("stdout.txt", 'w') as f:
+    f.write(stdout)
+with open("stderr.txt", 'w') as f:
+    f.write(stderr)
 
-to_find = "Vdbe execution time without compilation"
+if enable_jit:
+    to_find = "Vdbe execution time without compilation"
+else:
+    to_find = "Total Vdbe execution time"
+
 data = list()
 for line in stdout.split('\n'):
     line = line.strip()
@@ -82,6 +90,8 @@ for line in stdout.split('\n'):
         data_point = line.split(':')[1].strip().split()[0]
         data_point = int(data_point)
         data.append(data_point)
+
+assert len(data) > 0, "Didn't find any data points in the output. Check the value of 'to_find'."
 
 # Skip initial schema retrieval query
 data = data[1:]
