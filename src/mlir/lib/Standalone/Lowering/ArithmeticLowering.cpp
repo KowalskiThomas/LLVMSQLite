@@ -13,6 +13,7 @@ ExternFuncOp f_sqlite3AddInt64;
 ExternFuncOp f_sqlite3SubInt64;
 ExternFuncOp f_sqlite3MulInt64;
 ExternFuncOp f_sqlite3IsNaN;
+ExternFuncOp f_sqlite3VdbeIntValue;
 
 namespace mlir::standalone::passes {
     LogicalResult ArithmeticLowering::matchAndRewrite(Arithmetic mathOp, PatternRewriter &rewriter) const {
@@ -95,7 +96,7 @@ namespace mlir::standalone::passes {
 
         curBlock = rewriter.getBlock();
         auto blockAfterType = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-        auto blockBothNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        auto blockFpMath = SPLIT_BLOCK; GO_BACK_TO(curBlock);
         auto blockAnyNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
         auto blockNotBothInt = SPLIT_BLOCK; GO_BACK_TO(curBlock);
         auto blockBothInt = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -122,40 +123,49 @@ namespace mlir::standalone::passes {
             // IDEA: Use native operations here
             switch (pOp->opcode) {
                 case OP_Add: {
-                    /// if (sqlite3AddInt64(&iB, iA))
+                    /// if (sqlite3AddInt64(&iB, iA)) ...
                     auto result = call(LOC, f_sqlite3AddInt64, iB, iA).getValue();
 
-                    /// goto fp_math;
-                    auto resultIsNull = iCmp(LOC, Pred::eq, result, 0);
-                    condBranch(LOC, resultIsNull, blockAfterSwitch, blockBothNotNull);
+                    /// ... goto fp_math;
+                    auto resultIsFalse = iCmp(LOC, Pred::eq, result, 0);
+                    condBranch(LOC, resultIsFalse, blockAfterSwitch, blockFpMath);
 
                     break;
                 }
                 case OP_Subtract: {
-                    /// if (sqlite3SubInt64(&iB, iA))
+                    /// if (sqlite3SubInt64(&iB, iA)) ...
                     auto result = call(LOC, f_sqlite3SubInt64, iB, iA).getValue();
 
-                    /// goto fp_math;
+                    /// ... goto fp_math;
                     auto resultIsNull = iCmp(LOC, Pred::eq, result, 0);
-                    condBranch(LOC, resultIsNull, blockAfterSwitch, blockBothNotNull);
+                    condBranch(LOC, resultIsNull, blockAfterSwitch, blockFpMath);
 
                     break;
                 }
                 case OP_Multiply: {
+                    /// if (sqlite3MulInt64(&iB, iA)) ...
                     auto result = call(LOC, f_sqlite3MulInt64, iB, iA).getValue();
 
-                    /// goto fp_math;
-                    auto resultIsNull = iCmp(LOC, Pred::eq, result, 0);
-                    condBranch(LOC, resultIsNull, blockAfterSwitch, blockBothNotNull);
+                    /// ... goto fp_math;
+                    auto resultIsFalse = iCmp(LOC, Pred::eq, result, 0);
+                    condBranch(LOC, resultIsFalse, blockAfterSwitch, blockFpMath);
 
                     break;
                 }
                 case OP_Divide: {
                     auto iAIsZero = iCmp(LOC, Pred::eq, iA, 0);
 
-                    // TODO: if (iA == -1 && iB == SMALLEST_INT64) goto fp_math;
+                    auto iAIsNegOne = iCmp(LOC, Pred::eq, iA, -1);
+                    auto iBIsSmallestInt64 = iCmp(LOC, Pred::eq, iBValue, SMALLEST_INT64);
+                    auto fullCond = bitAnd(LOC, iAIsNegOne, iBIsSmallestInt64);
 
                     auto curBlock = rewriter.getBlock();
+                    auto blockNoJump = SPLIT_GO_BACK_TO(curBlock);
+
+                    condBranch(LOC, fullCond, blockFpMath, blockNoJump);
+                    ip_start(blockNoJump);
+
+                    curBlock = rewriter.getBlock();
                     auto blockAfterIANotZero = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     auto blockiAIsNotZero = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     condBranch(LOC, iAIsZero, blockResultIsNull, blockiAIsNotZero);
@@ -178,20 +188,37 @@ namespace mlir::standalone::passes {
                 default: /* Remainder */ {
                     auto iAIsZero = iCmp(LOC, Pred::eq, iA, 0);
 
-                    // TODO: if (iA == -1) iA = 1;
-
                     auto curBlock = rewriter.getBlock();
                     auto blockAfterANotZero = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     auto blockiAIsNotZero = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     condBranch(LOC, iAIsZero, blockResultIsNull, blockiAIsNotZero);
-
                     { // if (iA != 0)
                         ip_start(blockiAIsNotZero);
 
-                        // TODO: Lines 1688
+                        /// if (iA == -1) iA = 1;
+                        auto iAIsNegOne = iCmp(LOC, Pred::eq, iA, -1);
+                        auto tempAddr = alloca(LOC, T::i64PtrTy);
+                        store(LOC, iA, tempAddr);
+                        auto curBlock = rewriter.getBlock();
+                        auto blockAfterAIsNegOne = SPLIT_GO_BACK_TO(curBlock);
+                        auto blockAIsNegOne = SPLIT_GO_BACK_TO(curBlock);
 
-                        print(LOCL, "Error: Remainder is not yet supported!");
-                        myAssert(LOCL, constants(0, 1));
+                        condBranch(LOC, iAIsNegOne, blockAIsNegOne, blockAfterAIsNegOne);
+                        { // if (iA == -1)
+                            ip_start(blockAIsNegOne);
+
+                            /// iA = 1
+                            store(LOC, -1, tempAddr);
+
+                            branch(LOC, blockAfterAIsNegOne);
+                        } // end if (iA == -1)
+                        ip_start(blockAfterAIsNegOne);
+
+                        iA = load(LOC, tempAddr);
+
+                        /// iB %= iA
+                        auto result = isRem(LOC, iBValue, iA);
+                        store(LOC, result, iB);
 
                         branch(LOC, blockAfterANotZero);
                     } // end if (iA != 0)
@@ -220,14 +247,14 @@ namespace mlir::standalone::passes {
             ip_start(blockNotBothInt);
             auto anyNull = bitAnd(LOC, flags, MEM_Null);
             anyNull = iCmp(LOC, Pred::ne, anyNull, 0);
-            condBranch(LOC, anyNull, blockAnyNull, blockBothNotNull);
+            condBranch(LOC, anyNull, blockAnyNull, blockFpMath);
         } // end else of if ((type1 & type2 & MEM_Int) != 0)
         { // if ((flags & MEM_Null) != 0) "AnyNull"
             ip_start(blockAnyNull);
             branch(LOC, blockResultIsNull);
         } // end if ((flags & MEM_Null) != 0) "AnyNull"
         { // else of if ((flags & MEM_Null) != 0) "BothNotNull"
-            ip_start(blockBothNotNull);
+            ip_start(blockFpMath);
 
             /// rA = sqlite3VdbeRealValue(pIn1);
             auto rA = call(LOC, f_sqlite3VdbeRealValue, pIn1).getValue();
@@ -263,13 +290,40 @@ namespace mlir::standalone::passes {
                 }
                 default: {
                     /// iA = sqlite3VdbeIntValue(pIn1);
+                    auto iA = call(LOC, f_sqlite3VdbeIntValue, pIn1).getValue();
                     /// iB = sqlite3VdbeIntValue(pIn2);
-                    /// if (iA == 0) goto arithmetic_result_is_null;
-                    /// if (iA == -1) iA = 1;
+                    auto iB = call(LOC, f_sqlite3VdbeIntValue, pIn2).getValue();
+
+                    { /// if (iA == 0) goto arithmetic_result_is_null;
+                        auto curBlock = rewriter.getBlock();
+                        auto blockAfter = SPLIT_GO_BACK_TO(curBlock);
+                        auto iANull = iCmp(LOC, Pred::eq, iA, 0);
+                        condBranch(LOC, iANull, blockResultIsNull, blockAfter);
+                        ip_start(blockAfter);
+                    }
+
+                    { /// if (iA == -1) iA = 1;
+                        auto curBlock = rewriter.getBlock();
+                        auto blockAfter = SPLIT_GO_BACK_TO(curBlock);
+                        auto blockANegOne = SPLIT_GO_BACK_TO(curBlock);
+                        auto iANegOne = iCmp(LOC, Pred::eq, iA, -1);
+                        auto tempAddr = alloca(LOC, T::i64PtrTy);
+                        store(LOC, iA, tempAddr);
+                        condBranch(LOC, iANegOne, blockANegOne, blockAfter);
+                        {
+                            ip_start(blockANegOne);
+                            store(LOC, 1, tempAddr);
+                            branch(LOC, blockAfter);
+                        }
+                        ip_start(blockAfter);
+                        iA = load(LOC, tempAddr);
+                    }
+
                     /// rB = (double) (iB % iA);
-                    // TODO
-                    print(LOCL, "ERROR: Unsupported Float Remainder");
-                    myAssert(LOCL, constants(0, 1));
+                    auto result = isRem(LOC, iB, iA);
+                    auto resultCasted = rewriter.create<mlir::LLVM::SIToFPOp>(LOC, T::doubleTy, result);
+                    rB = resultCasted;
+
                     break;
                 }
             }

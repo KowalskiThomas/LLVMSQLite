@@ -102,6 +102,7 @@ LLVMFuncOp f_sqlite3DbFreeNN;
 LLVMFuncOp f_sqlite3VdbeMemSetRowSet;
 LLVMFuncOp f_sqlite3RowSetTest;
 LLVMFuncOp f_sqlite3RowSetInsert;
+LLVMFuncOp f_sqlite3VdbeIntValue;
 
 LLVMFuncOp f_memCpy;
 
@@ -196,6 +197,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeMemSetRowSet);
     DECLARE_FUNCTION(sqlite3RowSetTest);
     DECLARE_FUNCTION(sqlite3RowSetInsert);
+    DECLARE_FUNCTION(sqlite3VdbeIntValue);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1264,7 +1266,14 @@ void Prerequisites::generateReferenceTosqlite3RowSetInsert(ModuleOp m, LLVMDiale
     GENERATE_SYMBOL(f_sqlite3RowSetInsert, sqlite3RowSetInsert, "sqlite3RowSetInsert");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeIntValue(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i64Ty, {
+                T::sqlite3_valuePtrTy
+            }, false);
 
+   GENERATE_SYMBOL(f_sqlite3VdbeIntValue, sqlite3VdbeIntValue, "sqlite3VdbeIntValue");
+}
 
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, d)
@@ -1352,6 +1361,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemSetRowSet);
     CALL_SYMBOL_GENERATOR(sqlite3RowSetTest);
     CALL_SYMBOL_GENERATOR(sqlite3RowSetInsert);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeIntValue);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

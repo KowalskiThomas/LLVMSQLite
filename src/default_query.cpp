@@ -12,6 +12,10 @@ int Argc;
 
 static std::unordered_map<size_t, string> tpch =
         {
+                {0, "SELECT "
+                    "'Int',  1 + 1, 2, 2 * 2, 4, 8 / 4, 2, 5 - 8, -3, 3 % 4, 3, 4 % 3, 1, 2 / 2, 1, 8 / 4, 2, "
+                    "'Real', 1.0 + 1.0, 2.0, 2.0 * 2.0, 4.0, 5.0 - 8.0, -3.0, 8.5 % 2.5, 0.0, 5.0 / 2, 2.5 "
+                    "FROM lineitem;"},
                 {1,  " SELECT\n"
                      "    l_returnflag,\n"
                      "    l_linestatus,\n"
