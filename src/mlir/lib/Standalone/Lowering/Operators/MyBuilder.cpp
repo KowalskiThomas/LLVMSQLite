@@ -1,4 +1,5 @@
 #include "Standalone/Lowering/MyBuilder.h"
+#include "Standalone/DebugUtils.h"
 
 using Value = mlir::Value;
 using ValueRange = mlir::ValueRange;
@@ -25,7 +26,7 @@ size_t MyBuilder::getBitWidth(Type x) const {
     if (rightSize == 0)
         err("Couldn't find bit width for type " << x)
 
-    assert(rightSize > 0 && "Couldn't find bit-width of value");
+    LLVMSQLITE_ASSERT(rightSize > 0 && "Couldn't find bit-width of value");
     return rightSize;
 }
 
@@ -59,7 +60,7 @@ Value MyBuilder::insertICmpOp(Location loc, ICmpPredicate pred, Value lhs, int r
 
 Value MyBuilder::insertICmpOp(Location loc, ICmpPredicate pred, Value lhs, void* rhs) {
     auto llvmType = lhs.getType().cast<LLVMType>();
-    assert(llvmType.isPointerTy() && "Can't use insertICmpOp(..., void*) with non-pointer LHS!");
+    LLVMSQLITE_ASSERT(llvmType.isPointerTy() && "Can't use insertICmpOp(..., void*) with non-pointer LHS!");
 
     auto rhsPointer = rewriter.create<IntToPtrOp>(loc, llvmType, constants((uint64_t)rhs, 64));
     return insertICmpOp(loc, pred, lhs, (Value)rhsPointer);
@@ -98,64 +99,64 @@ Value MyBuilder::insertBitCastOp(Location loc, Value x, Type ty) {
 }
 
 Value MyBuilder::insertFDivOp(Location loc, Value divided, Value by) {
-    assert(isFloatingPointType(divided.getType()));
-    assert(isFloatingPointType(by.getType()));
+    LLVMSQLITE_ASSERT(isFloatingPointType(divided.getType()));
+    LLVMSQLITE_ASSERT(isFloatingPointType(by.getType()));
 
     return rewriter.create<mlir::LLVM::FDivOp>(loc, divided, by);
 }
 
 Value MyBuilder::insertFRemOp(Location loc, Value a, Value b) {
-    assert(isFloatingPointType(a.getType()));
-    assert(isFloatingPointType(b.getType()));
+    LLVMSQLITE_ASSERT(isFloatingPointType(a.getType()));
+    LLVMSQLITE_ASSERT(isFloatingPointType(b.getType()));
 
     return rewriter.create<mlir::LLVM::FRemOp>(loc, a, b);
 }
 
 Value MyBuilder::insertFSubOp(Location loc, Value a, Value b) {
-    assert(isFloatingPointType(a.getType()));
-    assert(isFloatingPointType(b.getType()));
+    LLVMSQLITE_ASSERT(isFloatingPointType(a.getType()));
+    LLVMSQLITE_ASSERT(isFloatingPointType(b.getType()));
 
     return rewriter.create<mlir::LLVM::FSubOp>(loc, a, b);
 }
 
 Value MyBuilder::insertFAddOp(Location loc, Value a, Value b) {
-    assert(isFloatingPointType(a.getType()));
-    assert(isFloatingPointType(b.getType()));
+    LLVMSQLITE_ASSERT(isFloatingPointType(a.getType()));
+    LLVMSQLITE_ASSERT(isFloatingPointType(b.getType()));
 
     return rewriter.create<mlir::LLVM::FAddOp>(loc, a, b);
 }
 
 Value MyBuilder::insertFMulOp(Location loc, Value a, Value b) {
-    assert(isFloatingPointType(a.getType()));
-    assert(isFloatingPointType(b.getType()));
+    LLVMSQLITE_ASSERT(isFloatingPointType(a.getType()));
+    LLVMSQLITE_ASSERT(isFloatingPointType(b.getType()));
 
     return rewriter.create<mlir::LLVM::FMulOp>(loc, a, b);
 }
 
 Value MyBuilder::insertZExtOp(Location loc, Value a, mlir::Type targetType) {
-    assert(a.getType().cast<LLVMType>().isIntegerTy());
-    assert(targetType.cast<LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(a.getType().cast<LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(targetType.cast<LLVMType>().isIntegerTy());
 
     return rewriter.create<mlir::LLVM::ZExtOp>(loc, targetType, a);
 }
 
 Value MyBuilder::insertZExtOp(Location loc, Value x, size_t targetWidth) {
-    assert(x.getType().cast<LLVMType>().isIntegerTy());
-    assert(targetWidth > 0 && targetWidth <= 64);
+    LLVMSQLITE_ASSERT(x.getType().cast<LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(targetWidth > 0 && targetWidth <= 64);
 
     return insertZExtOp(loc, x, LLVMType::getIntNTy(llvmDialect, targetWidth));
 }
 
 Value MyBuilder::insertTruncOp(Location loc, Value x, mlir::Type targetType) {
-    assert(x.getType().cast<LLVMType>().isIntegerTy());
-    assert(targetType.cast<LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(x.getType().cast<LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(targetType.cast<LLVMType>().isIntegerTy());
 
     return rewriter.create<mlir::LLVM::TruncOp>(loc, targetType, x);
 }
 
 Value MyBuilder::insertTruncOp(Location loc, Value x, size_t targetWidth) {
-    assert(x.getType().cast<LLVMType>().isIntegerTy());
-    assert(targetWidth > 0 && targetWidth <= 64);
+    LLVMSQLITE_ASSERT(x.getType().cast<LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(targetWidth > 0 && targetWidth <= 64);
 
     return insertTruncOp(loc, x, LLVMType::getIntNTy(llvmDialect, targetWidth));
 }
@@ -189,15 +190,15 @@ void MyBuilder::insertStoreOp(Location loc, Value value, Value addr) {
     // Enabling this allows for better MLIR-level type safety / debugging but breaks everything
     // It does not break LLVM-IR-lowered code because all LLVM IR typing is done at the LLVM-IR level and ignores ours
     // err("Value: " << valueTypeLlvm << " addr: " << addrTypeLlvm);
-    // assert(valueTypeLlvm.getPointerTo() == addrTypeLlvm && "insertStoreOp: type(addr) is not type(value)*");
+    // LLVMSQLITE_ASSERT(valueTypeLlvm.getPointerTo() == addrTypeLlvm && "insertStoreOp: type(addr) is not type(value)*");
 
     rewriter.create<StoreOp>(loc, value, addr);
 }
 
 void MyBuilder::insertStoreOp(Location loc, int x, Value addr) {
-    assert(addr.getType().cast<mlir::LLVM::LLVMType>().isPointerTy());
+    LLVMSQLITE_ASSERT(addr.getType().cast<mlir::LLVM::LLVMType>().isPointerTy());
     auto ty = addr.getType().cast<mlir::LLVM::LLVMType>().getPointerElementTy();
-    assert(ty.isIntegerTy());
+    LLVMSQLITE_ASSERT(ty.isIntegerTy());
     auto width = getBitWidth(ty);
 
     auto cst = constants(x, width);
@@ -205,7 +206,7 @@ void MyBuilder::insertStoreOp(Location loc, int x, Value addr) {
 }
 
 void MyBuilder::insertStoreOp(Location loc, void* ptr, Value addr) {
-    assert(addr.getType().cast<mlir::LLVM::LLVMType>().isPointerTy());
+    LLVMSQLITE_ASSERT(addr.getType().cast<mlir::LLVM::LLVMType>().isPointerTy());
     auto ty = addr.getType().cast<mlir::LLVM::LLVMType>().getPointerElementTy();
 
     auto value = insertIntToPtrOp(loc, ty, constants((uint64_t)ptr, 64));
@@ -213,29 +214,29 @@ void MyBuilder::insertStoreOp(Location loc, void* ptr, Value addr) {
 }
 
 Value MyBuilder::insertISDivOp(Location loc, Value divided, Value by) {
-    assert(divided.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
-    assert(by.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(divided.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(by.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
 
     return rewriter.create<mlir::LLVM::SDivOp>(loc, divided, by);
 }
 
 Value MyBuilder::insertIMulOp(Location loc, Value a, Value b) {
-    assert(a.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
-    assert(b.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(a.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(b.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
 
     return rewriter.create<mlir::LLVM::MulOp>(loc, a, b);
 }
 
 Value MyBuilder::insertISRemOp(Location loc, Value a, Value b) {
-    assert(a.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
-    assert(b.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(a.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(b.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
 
     return rewriter.create<mlir::LLVM::SRemOp>(loc, a, b);
 }
 
 Value MyBuilder::insertISubOp(Location loc, Value a, Value b) {
-    assert(a.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
-    assert(b.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(a.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
+    LLVMSQLITE_ASSERT(b.getType().cast<mlir::LLVM::LLVMType>().isIntegerTy());
 
     return rewriter.create<mlir::LLVM::SubOp>(loc, a, b);
 }
@@ -251,7 +252,7 @@ void MyBuilder::insertRestoreStack(Location loc, Value stackState) {
 Value MyBuilder::insertAddOp(Location loc, Value a, Value b) {
     auto aTy = a.getType();
     auto bTy = b.getType();
-    assert(aTy == bTy);
+    LLVMSQLITE_ASSERT(aTy == bTy);
 
     auto aTyLlvm = aTy.cast<LLVMType>();
     auto bTyLlvm = bTy.cast<LLVMType>();
@@ -268,7 +269,7 @@ Value MyBuilder::insertAddOp(Location loc, Value a, Value b) {
 Value MyBuilder::insertMulOp(Location loc, Value a, Value b) {
     auto aTy = a.getType();
     auto bTy = b.getType();
-    assert(aTy == bTy);
+    LLVMSQLITE_ASSERT(aTy == bTy);
 
     auto aTyLlvm = aTy.cast<LLVMType>();
     auto bTyLlvm = bTy.cast<LLVMType>();
@@ -285,7 +286,7 @@ Value MyBuilder::insertMulOp(Location loc, Value a, Value b) {
 Value MyBuilder::insertSubOp(Location loc, Value a, Value b) {
     auto aTy = a.getType();
     auto bTy = b.getType();
-    assert(aTy == bTy);
+    LLVMSQLITE_ASSERT(aTy == bTy);
 
     auto aTyLlvm = aTy.cast<LLVMType>();
     auto bTyLlvm = bTy.cast<LLVMType>();

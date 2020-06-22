@@ -6,6 +6,7 @@
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
+#include "Standalone/DebugUtils.h"
 
 ExternFuncOp f_sqlite3BtreeCursorIsValid;
 ExternFuncOp f_sqlite3VdbeExec2;
@@ -628,7 +629,7 @@ namespace mlir::standalone::passes {
                     auto blockOpColumnReadHeader = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     rewriter.create<BranchOp>(LOC, blockOpColumnReadHeader);
 
-                    assert(operationToUpdateReadHeader);
+                    LLVMSQLITE_ASSERT(operationToUpdateReadHeader);
                     operationToUpdateReadHeader->getBlockOperands()[0].set(blockOpColumnReadHeader);
 
                     rewriter.setInsertionPointToStart(blockOpColumnReadHeader);

@@ -53,7 +53,7 @@ namespace mlir::standalone::passes {
         auto nullRowNotNull = iCmp(LOC, Pred::ne, nullRow, 0);
 
 #ifdef SQLITE_OMIT_VIRTUALTABLE
-      static_assert(false, "This has been written assuming SQLITE_OMIT_VIRTUALTABLE")
+      llvm_unreachable("RowidLowering.cpp:56 This has been written assuming SQLITE_OMIT_VIRTUALTABLE")
 #endif
 
         curBlock = rewriter.getBlock();

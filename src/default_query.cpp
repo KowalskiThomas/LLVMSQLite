@@ -129,13 +129,13 @@ static std::unordered_map<size_t, string> tpch =
         };
 
 extern "C" {
-bool get_default_query(char *);
+bool llvmsqliteGetDefaultQuery(char *);
 }
 
 static string selected_query;
 static size_t query_count = 1;
 
-void parse_argv() {
+static void parseArgv() {
     static bool parsed = false;
     if (parsed) {
         return;
@@ -160,8 +160,8 @@ void parse_argv() {
     }
 }
 
-bool get_default_query(char *default_query) {
-    parse_argv();
+bool llvmsqliteGetDefaultQuery(char *default_query) {
+    parseArgv();
 
     static size_t call_count = 0;
     if (call_count == query_count)
@@ -171,6 +171,10 @@ bool get_default_query(char *default_query) {
 
     strcpy(default_query, selected_query.c_str());
 
-    // printf("Executing default query %s\n", default_query);
+#ifdef LLVMSQLITE_DEBUG
+    if (call_count == 1)
+        printf("Executing default query %s\n", default_query);
+#endif
+
     return true;
 }

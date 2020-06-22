@@ -11,6 +11,7 @@
 #include "Standalone/VdbeContext.h"
 #include "Standalone/ErrorCodes.h"
 #include "Standalone/DefaultImplementation.h"
+#include "Standalone/DebugUtils.h"
 
 #include "SQLiteBridge.h"
 
@@ -184,8 +185,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         lastBlock = blockAfterJump;
     }
 
-#define PRINT_VDBE_PROGRAMME
-#ifdef PRINT_VDBE_PROGRAMME
+#ifdef LLVMSQLITE_DEBUG && !LLVMSQLITE_DONT_PRINT_VDBE
     // Prints all the opcodes of the Vdbe in order
     for(auto pc = 0llu; pc < vdbe->nOp; pc++) {
         auto& op = vdbe->aOp[pc];
@@ -798,7 +798,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
             case OP_Gt:
             case OP_Ge: {
                 auto* pOp = &vdbe->aOp[pc];
-                ALWAYS_ASSERT(pOp->p4type == P4_COLLSEQ || pOp->p4.pColl == 0);
+                LLVMSQLITE_ASSERT(pOp->p4type == P4_COLLSEQ || pOp->p4.pColl == 0);
                 auto lhs = op.p1;
                 auto p2 = op.p2;
                 auto rhs = op.p3;
@@ -1200,21 +1200,21 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     }
 
     // If the map is not empty, then we didn't generate the destination block of some branches.
-    assert(operations_to_update.empty());
+    LLVMSQLITE_ASSERT(operations_to_update.empty() && "All blocks have not been updated.");
 }
 
 void prepareFunction(MLIRContext& context, LLVMDialect* llvmDialect, ModuleOp& theModule) {
     static_assert(sizeof(int*) == 8, "sizeof(int*) is assumed to be 8!");
     auto ctx = &context;
     auto vdbeDialect = context.getRegisteredDialect<StandaloneDialect>();
-    assert(vdbeDialect && "No VDBE Dialect registered");
+    LLVMSQLITE_ASSERT(vdbeDialect && "No VDBE Dialect registered");
     auto* vdbeCtx = &vdbeDialect->vdbeContext;
     auto* vdbe = vdbeCtx->vdbe;
 
     auto rewriter = mlir::OpBuilder(ctx);
     rewriter.setInsertionPointToStart(theModule.getBody());
 
-    assert(vdbeCtx->regInstances.empty() && "Registers vector should be empty at that point!");
+    LLVMSQLITE_ASSERT(vdbeCtx->regInstances.empty() && "Registers vector should be empty at that point!");
     for(auto i = 0llu; i < vdbe->nMem; i++) {
         vdbeCtx->regInstances.emplace_back(&vdbe->aMem[i]);
     }

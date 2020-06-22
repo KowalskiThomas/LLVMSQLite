@@ -2,6 +2,7 @@
 #include "Standalone/StandaloneDialect.h"
 #include "Standalone/StandaloneOps.h"
 #include "Standalone/ErrorCodes.h"
+#include "Standalone/DebugUtils.h"
 
 static const constexpr auto useOnlyDefaultImpl = false;
 
@@ -67,7 +68,7 @@ bool useDefaultImpl(mlir::Operation* op) {
 
     std::string s = op->getName().getStringRef().str();
     
-    assert(useDefaultImplMap.count(s) == 1 && "Undefined useDefaultImpl for operation");
+    LLVMSQLITE_ASSERT(useDefaultImplMap.count(s) == 1 && "Undefined useDefaultImpl for operation");
     
     if (useDefaultImplMap.count(s) > 0) {
         auto useDefault = useDefaultImplMap[s];

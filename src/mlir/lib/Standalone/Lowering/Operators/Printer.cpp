@@ -2,11 +2,18 @@
 #include "Standalone/Utils.h"
 #include "Standalone/TypeDefinitions.h"
 #include "Standalone/ErrorCodes.h"
+#include "Standalone/DebugUtils.h"
 
 PRINTER_USING
 USING_OPS
 
-#define ENABLE_PRINTER true
+#define LLVMSQLITE_FORCE_ENABLE_PRINTER false
+
+#if LLVMSQLITE_DEBUG || LLVMSQLITE_FORCE_ENABLE_PRINTER
+#define LLVMSQLITE_ENABLE_PRINTER true
+#else
+#define LLVMSQLITE_ENABLE_PRINTER false
+#endif
 
 using namespace mlir::LLVM;
 
@@ -16,7 +23,7 @@ extern LLVMFuncOp f_printInt;
 extern LLVMFuncOp f_printDouble;
 
 size_t mlir::Printer::getBitWidth(Value x) const {
-    static std::vector<size_t> possibleSizes { 1, 8, 16, 32, 64 };
+    static SmallVector<size_t, 8> possibleSizes { 1, 8, 16, 32, 64 };
     auto rightSize = 0llu;
     for(auto size : possibleSizes)
         if (x.getType().isInteger(size)
@@ -28,12 +35,12 @@ size_t mlir::Printer::getBitWidth(Value x) const {
     if (rightSize == 0)
         x.dump();
 
-    assert(rightSize > 0 && "Couldn't find bit-width of variable");
+    LLVMSQLITE_ASSERT(rightSize > 0 && "Couldn't find bit-width of variable");
     return rightSize;
 }
 
 void mlir::Printer::printPtr(Location loc, size_t line, Value ptr, const char *msg, bool loadPtr) {
-#if ENABLE_PRINTER
+#if LLVMSQLITE_ENABLE_PRINTER
     auto& builder = rewriter;
     auto value = loadPtr ?
                     (Value)rewriter.create<mlir::LLVM::LoadOp>(loc, ptr) :
@@ -57,7 +64,7 @@ void mlir::Printer::printPtr(Location loc, size_t line, Value ptr, const char *m
 }
 
 void mlir::Printer::printString(Location loc, size_t line, const char *msg) {
-#if ENABLE_PRINTER
+#if LLVMSQLITE_ENABLE_PRINTER
     auto msgAttr = rewriter.getI64IntegerAttr(reinterpret_cast<const uint64_t>(msg));
     auto lineAttr = rewriter.getI32IntegerAttr(line);
     auto fileNameAttr = rewriter.getI64IntegerAttr(reinterpret_cast<const uint64_t>(fileName));
@@ -71,7 +78,7 @@ void mlir::Printer::printString(Location loc, size_t line, const char *msg) {
 }
 
 void mlir::Printer::printInt(Location loc, size_t line, Value v, const char *msg) {
-#if ENABLE_PRINTER
+#if LLVMSQLITE_ENABLE_PRINTER
     auto extended = rewriter.create<ZExtOp>(loc, T::i64Ty, v);
     auto msgAttr = rewriter.getI64IntegerAttr(reinterpret_cast<const uint64_t>(msg));
     auto lineAttr = rewriter.getI32IntegerAttr(line);
@@ -87,7 +94,7 @@ void mlir::Printer::printInt(Location loc, size_t line, Value v, const char *msg
 }
 
 void mlir::Printer::printDouble(Location loc, size_t line, Value v, const char *msg) {
-#if ENABLE_PRINTER
+#if LLVMSQLITE_ENABLE_PRINTER
     auto msgAttr = rewriter.getI64IntegerAttr(reinterpret_cast<const uint64_t>(msg));
     auto lineAttr = rewriter.getI32IntegerAttr(line);
     auto fileNameAttr = rewriter.getI64IntegerAttr(reinterpret_cast<const uint64_t>(fileName));
@@ -102,7 +109,7 @@ void mlir::Printer::printDouble(Location loc, size_t line, Value v, const char *
 }
 
 void mlir::Printer::operator()(Location loc, size_t line, Value v, const char *msg) {
-#if ENABLE_PRINTER
+#if LLVMSQLITE_ENABLE_PRINTER
     auto t = v.getType();
     if (t == T::i1Ty || t == T::i8Ty || t == T::i16Ty || t == T::i32Ty || t == T::i64Ty
         || false) {
@@ -137,7 +144,7 @@ void mlir::Printer::operator()(Location loc, size_t line, size_t v, const char* 
 }
 
 void mlir::Printer::operator()(Location loc, size_t line, const char *msg) {
-#if ENABLE_PRINTER
+#if LLVMSQLITE_ENABLE_PRINTER
     printString(loc, line, msg);
 #endif
 }

@@ -3,7 +3,7 @@
 #include "Standalone/AllIncludes.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
-
+#include "Standalone/DebugUtils.h"
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
@@ -32,7 +32,7 @@ namespace mlir::standalone::passes {
         auto p3 = rstOp.p3Attr().getSInt();
         auto p4 = rstOp.p4Attr().getSInt();
 
-        ALWAYS_ASSERT(vdbe->aOp[pc].p4type == P4_INT32);
+        LLVMSQLITE_ASSERT(vdbe->aOp[pc].p4type == P4_INT32);
 
         auto jumpTo = rstOp.jumpTo();
         auto fallthrough = rstOp.fallThrough();

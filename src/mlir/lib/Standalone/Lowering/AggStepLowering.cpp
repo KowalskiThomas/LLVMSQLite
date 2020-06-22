@@ -2,7 +2,7 @@
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
-
+#include "Standalone/DebugUtils.h"
 #include "Standalone/StandalonePasses.h"
 
 ExternFuncOp f_sqlite3VdbeError;
@@ -133,7 +133,7 @@ namespace mlir::standalone::passes {
                 store(LOC, pOutValue, pOutAddr);
                 store(LOC, constants(T::FuncDefPtrTy, (FuncDef*)functionAddress), pFuncAddr);
 
-                assert(pc == pOp - vdbe->aOp && "pc is assumed to be pOp - vdbe->aOp");
+                LLVMSQLITE_ASSERT(pc == pOp - vdbe->aOp && "pc is assumed to be pOp - vdbe->aOp");
                 store(LOC, constants(pc, 32), iOpAddr);
                 store(LOC, vdbeCtx->p, pVdbeAddr);
                 store(LOC, 0, skipFlagAddr);
@@ -270,7 +270,7 @@ namespace mlir::standalone::passes {
             }, false);
         auto argcValue = load(LOC, argcAddr);
         if (p1) {
-            ALWAYS_ASSERT(false);
+            llvm_unreachable("TODO: AggStepLowering.cpp:273");
             auto xInverseAddr = getElementPtrImm(LOC, funcType.getPointerTo(), funcDefAddr, 0, 7);
             // TODO: call(LOC, f_callXInversePtr, load(LOC, xInverseAddr), pCtxValue, argcValue, argvAddr);
         } else {
@@ -329,7 +329,7 @@ namespace mlir::standalone::passes {
             { // if (pCtx->skipFlag)
                 ip_start(blockSkipFlagNN);
 
-                assert(pOp[-1].opcode == OP_CollSeq);
+                LLVMSQLITE_ASSERT(pOp[-1].opcode == OP_CollSeq);
 
                 /// i = pOp[-1].p1
                 auto newIValue = pOp[-1].p1;

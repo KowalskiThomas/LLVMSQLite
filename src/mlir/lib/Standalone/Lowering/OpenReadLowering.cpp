@@ -6,6 +6,7 @@
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/ErrorCodes.h"
+#include "Standalone/DebugUtils.h"
 
 namespace mlir::standalone::passes {
     LogicalResult OpenReadLowering::matchAndRewrite(OpenRead orOp, PatternRewriter &rewriter) const {
@@ -73,7 +74,7 @@ namespace mlir::standalone::passes {
 
         auto pKeyInfo = constants(T::KeyInfoPtrTy, (KeyInfo*)nullptr);
         Value nField;
-        assert(pOp->p4type == P4_INT32 || pOp->p4type == P4_KEYINFO);
+        LLVMSQLITE_ASSERT(pOp->p4type == P4_INT32 || pOp->p4type == P4_KEYINFO);
         if (pOp->p4type == P4_INT32) {
             nField = constants(orOp.P4Attr().getUInt(), 32);
         } else {

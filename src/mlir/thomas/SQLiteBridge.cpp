@@ -2,6 +2,7 @@
 #include "Standalone/StandalonePassManager.h"
 #include "Standalone/StandaloneDialect.h"
 #include "Standalone/ErrorCodes.h"
+#include "Standalone/DebugUtils.h"
 
 #include "SQLiteBridge.h"
 
@@ -77,11 +78,6 @@ static auto runners = std::unordered_map<Vdbe*, VdbeRunner*>{};
 
 unsigned long long functionPreparationTime;
 unsigned long long functionOptimisationTime;
-
-// TODO: This is temporary
-#ifndef DEBUG_MACHINE
-#define DEBUG_MACHINE
-#endif
 
 static void initRuntime() {
     mlir::registerAllDialects();
@@ -178,10 +174,10 @@ struct VdbeRunner {
 
             { // Initialize LLVM targets.
                 bool error = llvm::InitializeNativeTarget();
-                assert(!error);
+                ALWAYS_ASSERT(!error && "InitializeNativeTarget returned an error!");
 
                 error = llvm::InitializeNativeTargetAsmPrinter();
-                assert(!error);
+                ALWAYS_ASSERT(!error && "InitializeNativeTargetAsmPrinter returned an error!");
 
                 // TODO: Get that to work: llvm::InitializeNativeTargetDisassembler();
             } // End Initialize LLVM targets.
@@ -198,7 +194,9 @@ struct VdbeRunner {
                     exit(SQLITE_BRIDGE_FAILURE);
                 }
 #endif
-                ALWAYS_ASSERT(!broken && "Generated IR Module is invalid");
+                if(broken) {
+                    llvm_unreachable("Generated IR Module is invalid");
+                }
 
                 auto maybeHost = llvm::orc::JITTargetMachineBuilder::detectHost();
                 if (!maybeHost) {
@@ -257,11 +255,11 @@ struct VdbeRunner {
                                 .setVerifyModules(true)
                                 .create();
 
-                assert(engine != nullptr && "ExecutionEngine is null!");
+                ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");
                 jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(
                     engine->getFunctionAddress(JIT_MAIN_FN_NAME)
                 );
-                assert(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
+                ALWAYS_ASSERT(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
             }
 
             auto tock = system_clock::now();
@@ -279,10 +277,14 @@ struct VdbeRunner {
 
         sqlite3VdbeLeave(vdbe);
 
+#if LLVMSQLITE_DEBUG
         debug("Value returned by VdbeStep: " << returnedValue);
+#endif
 
         if (returnedValue == SQLITE_DONE) {
+#ifdef LLVMSQLITE_DEBUG
             debug("Removing VDBE " << (void*)vdbe << " from VDBERunner cache");
+#endif
             // TODO: Fix this memory leak
             // delete runners[vdbe];
             runners.erase(vdbe);
@@ -297,7 +299,9 @@ int jitVdbeStep(Vdbe* p) {
 
     VdbeRunner* runner = nullptr;
     if (runners.find(p) == runners.end()) {
+#if LLVMSQLITE_DEBUG
         debug("Creating a new VDBERunner");
+#endif
         auto tick = std::chrono::system_clock::now();
         runners[p] = new VdbeRunner(p);
         printTimeDifference(tick, "VdbeRunner creation");

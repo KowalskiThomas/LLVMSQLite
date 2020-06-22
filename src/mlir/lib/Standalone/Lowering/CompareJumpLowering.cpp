@@ -3,7 +3,7 @@
 #include "Standalone/AllIncludes.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
-
+#include "Standalone/DebugUtils.h"
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
@@ -37,7 +37,7 @@ namespace mlir::standalone::passes {
 
         USE_DEFAULT_BOILERPLATE
 
-        ALWAYS_ASSERT(lhs == pOp->p1 && rhs == pOp->p3 && "Attributes don't match VDBE operation");
+        LLVMSQLITE_ASSERT(lhs == pOp->p1 && rhs == pOp->p3 && "Attributes don't match VDBE operation");
 
         auto jumpTo = cjOp.ifTrue();
         auto fallthrough = cjOp.ifFalse();

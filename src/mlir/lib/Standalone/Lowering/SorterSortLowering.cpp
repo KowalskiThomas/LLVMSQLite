@@ -23,7 +23,7 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
-        assert(false && "SorterSortLowering should not be called!");
+        llvm_unreachable("SorterSortLowering should not be called!");
 
         auto firstBlock = rewriter.getBlock();
 

@@ -3,7 +3,7 @@
 #include "Standalone/AllIncludes.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
-
+#include "Standalone/DebugUtils.h"
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
@@ -30,8 +30,8 @@ namespace mlir::standalone::passes {
         auto p4 = (KeyInfo*) oeOp.btIndexAttr().getUInt();
         auto p5 = oeOp.flagsAttr().getUInt();
 
-        assert(p1 >= 0);
-        assert(p2 >= 0);
+        LLVMSQLITE_ASSERT(p1 >= 0);
+        LLVMSQLITE_ASSERT(p2 >= 0);
 
         USE_DEFAULT_BOILERPLATE
 

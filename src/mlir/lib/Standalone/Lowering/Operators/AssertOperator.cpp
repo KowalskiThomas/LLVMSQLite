@@ -1,9 +1,15 @@
 #include "Standalone/Lowering/AssertOperator.h"
 
-#define ENABLE_JIT_ASSERT true
+#define LLVMSQLITE_FORCE_ENABLE_ASSERT false
+
+#if LLVMSQLITE_DEBUG || LLVMSQLITE_FORCE_ENABLE_ASSERT
+#define LLVMSQLITE_ENABLE_JIT_ASSERT true
+#else
+#define LLVMSQLITE_ENABLE_JIT_ASSERT false
+#endif
 
 void MyAssertOperator::operator()(const mlir::Location loc, const size_t line, mlir::Value val) {
-#if ENABLE_JIT_ASSERT
+#if LLVMSQLITE_ENABLE_JIT_ASSERT
     auto d = ctx->getRegisteredDialect<LLVMDialect>();
     if (val.getType().isInteger(1) || val.getType() == LLVMType::getIntNTy(d, 1))
         rewriter.template create<CallOp>(loc, f_assert, ValueRange{

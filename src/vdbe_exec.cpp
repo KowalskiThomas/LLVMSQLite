@@ -1,4 +1,5 @@
 #include "vdbe_exec.h"
+#include "mlir/include/Standalone/DebugUtils.h"
 #include <chrono>
 
 using namespace std::chrono;
@@ -38,11 +39,11 @@ int sqlite3VdbeExec(Vdbe *p) {
 #endif
 
 #if ENABLE_JIT && !ENABLE_DEFAULT
-    assert(enableJit == -1);
+    LLVMSQLITE_ASSERT(enableJit == -1);
     auto step_return = jitVdbeStep(p);
 #else
 #if ENABLE_DEFAULT && !ENABLE_JIT
-    assert(enableJit == -1);
+    LLVMSQLITE_ASSERT(enableJit == -1);
     auto step_return = sqlite3VdbeExec2(p);
 #else
 #if ENABLE_DEFAULT && ENABLE_JIT
@@ -59,7 +60,7 @@ int sqlite3VdbeExec(Vdbe *p) {
 
     auto tock = system_clock::now();
 
-#ifdef DEBUG_MACHINE
+#ifdef LLVMSQLITE_DEBUG
     auto diff = (unsigned long long)(duration_cast<milliseconds>(tock - tick).count());
     printf("Total step time: %llu ms. RC = %d\n", diff, step_return);
 #endif

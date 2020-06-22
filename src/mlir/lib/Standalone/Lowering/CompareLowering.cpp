@@ -3,6 +3,7 @@
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
 #include "Standalone/StandalonePasses.h"
+#include "Standalone/DebugUtils.h"
 
 ExternFuncOp f_sqlite3MemCompare;
 
@@ -51,9 +52,9 @@ namespace mlir::standalone::passes {
             store(LOC, constants(T::i32PtrTy, (int*)nullptr), aPermuteAddr);
             aPermuteInitValue = nullptr;
         } else {
-            assert(pOp > vdbe->aOp);
-            assert(pOp[-1].opcode == OP_Permutation);
-            assert(pOp[-1].p4type == P4_INTARRAY);
+            LLVMSQLITE_ASSERT(pOp > vdbe->aOp);
+            LLVMSQLITE_ASSERT(pOp[-1].opcode == OP_Permutation);
+            LLVMSQLITE_ASSERT(pOp[-1].p4type == P4_INTARRAY);
             /// aPermute = pOp[-1].p4.ai + 1;
             // This can't be changed to a simple GEP easily
             aPermuteInitValue = pOp[-1].p4.ai + 1;
