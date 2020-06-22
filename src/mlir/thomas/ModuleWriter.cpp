@@ -152,6 +152,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     // Our goal here: check the value of vdbe->pc and jump to the right block
     auto pcAddr = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->p, 0, 10);
     auto pcValue = load(LOC, pcAddr);
+    // print(LOCL, pcValue, "PC: ");
 
     Block* targetBlock = nullptr;
     Block* blockAfterJump = nullptr;
@@ -168,7 +169,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
             ) {
             if (!anyDefaultImplUsed()) {
                 // TODO: Fix (and uncomment) this (to generate less branching)
-                /// continue;
+                continue;
             }
         }
 
