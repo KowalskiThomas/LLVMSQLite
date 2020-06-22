@@ -836,6 +836,7 @@ int sqlite3VdbeExec2(
         pOrigOp = pOp;
 #endif
 
+#if LLVMSQLITE_DEBUG
         {
             static Vdbe* firstVdbe = NULL;
             if (firstVdbe && p != firstVdbe) {
@@ -844,6 +845,7 @@ int sqlite3VdbeExec2(
                 firstVdbe = p;
             }
         }
+#endif
 
         switch (pOp->opcode) {
 

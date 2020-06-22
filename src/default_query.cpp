@@ -133,7 +133,7 @@ bool llvmsqliteGetDefaultQuery(char *);
 }
 
 static string selected_query;
-static size_t query_count = 1;
+static size_t query_count = -1;
 
 static void parseArgv() {
     static bool parsed = false;
@@ -157,6 +157,8 @@ static void parseArgv() {
 
     if (selected_query == "") {
         std::cerr << "Warning: no query selected. Please use -jit-query <TPC-H Query Number>" << std::endl;
+    } else if (query_count == -1) {
+        query_count = 1;
     }
 }
 
@@ -164,7 +166,7 @@ bool llvmsqliteGetDefaultQuery(char *default_query) {
     parseArgv();
 
     static size_t call_count = 0;
-    if (call_count == query_count)
+    if (query_count == -1 || call_count == query_count)
         return false;
     else
         call_count++;
