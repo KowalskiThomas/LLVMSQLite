@@ -78,13 +78,8 @@ namespace mlir::standalone::passes {
             /// pFree = 0;
             store(LOC, nullptr, pFreeAddr);
         } else {
-            print(LOCL, "TODO: ExpandBlob");
             /// rc = ExpandBlob(pIn3);
-            auto rc = call(LOC, f_sqlite3VdbeMemExpandBlob, pIn3).getValue();
-            { // if (rc) goto no_mem;
-                auto rcNull = iCmp(LOC, Pred::eq, rc, 0);
-                myAssert(LOCL, rcNull);
-            } // end if (rc) goto no_mem;
+            auto rc = expandBlob(LOC, pIn3);
 
             /// pFree = pIdxKey = sqlite3VdbeAllocUnpackedRecord(pC->pKeyInfo);
             auto pKeyInfoAddr = getElementPtrImm(LOC, T::KeyInfoPtrTy.getPointerTo(), pC, 0, 13);

@@ -72,6 +72,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
     using namespace mlir;
     auto builder = MyBuilder(ctx, constants, rewriter);
+    auto myAssert = MyAssertOperator(rewriter, constants, ctx, __FILE_NAME__);
     myOperators
     { // Load "globals"
 

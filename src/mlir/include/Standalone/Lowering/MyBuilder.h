@@ -225,4 +225,23 @@ auto memSetTypeFlag = [&](Value flagsAddr, int flag) { \
     flagsOut = bitOr(LOC, flagsOut, flag); \
     store(LOC, flagsOut, flagsAddr); \
 }; \
-
+auto expandBlob = [&](Location loc, Value pIn2) { \
+    auto stackState = saveStack(loc); \
+    auto rcAddr = alloca(LOC, T::i32PtrTy); \
+    store(loc, 0, rcAddr); \
+    auto flagsAddr = getElementPtrImm(loc, T::i16PtrTy, pIn2, 0, 1); \
+    auto flags = load(loc, flagsAddr); \
+    auto memAndZero = bitAnd(loc, flags, MEM_Zero); \
+    auto memIsZero = iCmp(loc, ICmpPredicate::ne, memAndZero, 0); \
+    auto curBlock = rewriter.getBlock(); \
+    auto blockAfter = SPLIT_GO_BACK_TO(curBlock); \
+    auto blockCall = SPLIT_GO_BACK_TO(curBlock); \
+    condBranch(loc, memIsZero, blockCall, blockAfter); \
+    ip_start(blockCall); \
+    auto rc = call(loc, f_sqlite3VdbeMemExpandBlob, pIn2).getValue(); \
+    store(loc, rc, rcAddr); \
+    branch(LOC, blockAfter); \
+    ip_start(blockAfter); \
+    restoreStack(loc, stackState); \
+    return load(loc, rcAddr); \
+}; \

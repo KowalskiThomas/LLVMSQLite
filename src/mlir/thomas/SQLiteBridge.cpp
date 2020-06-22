@@ -52,6 +52,7 @@ void printTimeDifference(time_point<T> tick, std::string msg) {
 }
 
 void writeToFile(const char* const fileName, std::string s) {
+    // out("Writing to file " << fileName);
     auto fd = fopen(fileName, "w");
     fwrite(s.c_str(), sizeof(char), s.size(), fd);
     fclose(fd);

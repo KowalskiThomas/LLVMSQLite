@@ -47,31 +47,12 @@ namespace mlir::standalone::passes {
             // TODO: p->nChange++
         }
 
-        auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn2, 0, 1);
-        auto flags = load(LOC, flagsAddr);
-        auto flagsAndZero = bitAnd(LOC, flags, MEM_Zero);
-
-        curBlock = rewriter.getBlock();
-        auto blockAfterMemIsZero = SPLIT_GO_BACK_TO(curBlock);
-        auto blockMemIsZero = SPLIT_GO_BACK_TO(curBlock);
-
-        auto condMemIsZero = iCmp(LOC, Pred::ne, flagsAndZero, 0);
-
-        condBranch(LOC, condMemIsZero, blockMemIsZero, blockAfterMemIsZero);
-        { // if (pIn2->flags & MEM_Zero)
-            ip_start(blockMemIsZero);
-
-            auto rc = call(LOC, f_sqlite3VdbeMemExpandBlob, pIn2).getValue();
-
-            { // if (rc) goto abort_due_to_error;
-                auto rcNull = iCmp(LOC, Pred::eq, rc, 0);
-                myAssert(LOCL, rcNull);
-            } // end if (rc) goto abort_due_to_error;
-
-            branch(LOC, blockAfterMemIsZero);
-         } // end if (pIn2->flags & MEM_Zero)
-
-        ip_start(blockAfterMemIsZero);
+        // rc = ExpandBlob(pIn2)
+        auto rc = expandBlob(LOC, pIn2);
+        { // if (rc) goto abort_due_to_error;
+            auto rcNull = iCmp(LOC, Pred::eq, rc, 0);
+            myAssert(LOCL, rcNull);
+        } // end if (rc) goto abort_due_to_error;
 
         auto stackState = saveStack(LOC);
         auto x = alloca(LOC, T::BtreePayloadPtrTy);
@@ -99,7 +80,6 @@ namespace mlir::standalone::passes {
         auto nMem = constants(p4, 16);
         store(LOC, nMem, nMemAddr);
 
-        Value rc;
         {
             auto pCursorAddr = getElementPtrImm(LOC, T::BtCursorPtrTy, pC, 0, 12, 0);
             auto pCursor = load(LOC, pCursorAddr);

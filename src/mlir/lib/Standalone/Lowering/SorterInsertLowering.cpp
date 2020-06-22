@@ -37,56 +37,34 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(siOp); GO_BACK_TO(curBlock);
 
+        /// pC = p->apCsr[pOp->p1];
         auto pCValueAddr = getElementPtrImm(LOC, T::VdbeCursorPtrPtrTy, vdbeCtx->apCsr, curIdx);
-        auto pIn = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, reg);
-
         auto pC = load(LOC, pCValueAddr);
 
-        mlir::Value rcTemp;
-        auto rc = alloca(LOC, T::i32PtrTy);
-        {
-            auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn, 0, 1);
-            auto flagsValue = load(LOC, flagsAddr);
-            auto flagsAndMemZero = bitAnd(LOC, flagsValue, MEM_Zero);
-            auto flagsAndMemZeroNotNull = iCmp(LOC, Pred::ne, flagsAndMemZero, 0);
+        /// pIn2 = &aMem[pOp->p2];
+        auto pIn = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, reg);
 
-            store(LOC, 0, rc);
-
-            auto curBlock = rewriter.getBlock();
-            auto blockAfter = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-            auto blockFlagsAndMemZeroNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-
-            condBranch(LOC, flagsAndMemZeroNotNull, blockFlagsAndMemZeroNotNull, blockAfter);
-
-            { // if pIn->flags & MEM_Zero
-                ip_start(blockFlagsAndMemZeroNotNull);
-
-                auto rcTemp = call(LOC, f_sqlite3VdbeMemExpandBlob, pIn).getValue();
-                store(LOC, rcTemp, rc);
-
-                branch(LOC, blockAfter);
-            } // end if pIn->flags & MEM_Zero
-
-            ip_start(blockAfter);
-            rcTemp = load(LOC, rc);
-        }
+        /// rc = ExpandBlob(pIn2);
+        auto rc = expandBlob(LOC, pIn);
 
         { // if (rc) goto abort_due_to_error;
-            auto rcIs0 = iCmp(LOC, Pred::eq, rcTemp, 0);
+            auto rcIs0 = iCmp(LOC, Pred::eq, rc, 0);
             myAssert(LOCL, rcIs0);
         } // end if (rc) goto abort_due_to_error;
 
-        rcTemp = call(LOC, f_sqlite3VdbeSorterWrite, pC, pIn).getValue();
+        /// rc = sqlite3VdbeSorterWrite(pC, pIn2);
+        rc = call(LOC, f_sqlite3VdbeSorterWrite, pC, pIn).getValue();
 
         { // if (rc) goto abort_due_to_error;
-            auto rcIs0 = iCmp(LOC, Pred::eq, rcTemp, 0);
+            auto rcIs0 = iCmp(LOC, Pred::eq, rc, 0);
             myAssert(LOCL, rcIs0);
         } // end if (rc) goto abort_due_to_error;
 
         branch(LOC, endBlock);
-
         ip_start(endBlock);
+
         restoreStack(LOC, stackState);
+
         rewriter.eraseOp(siOp);
 
         return success();
