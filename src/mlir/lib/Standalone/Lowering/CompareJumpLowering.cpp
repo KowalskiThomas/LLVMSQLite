@@ -396,7 +396,7 @@ namespace mlir::standalone::passes {
             auto result = call(LOC, f_sqlite3MemCompare,
                 pIn3,
                 pIn1,
-                constants(T::CollSeqPtrTy, (CollSeq *)collSeq)
+                constants(T::CollSeqPtrTy, collSeq)
             ).getValue();
             store(LOC, result, resAddr);
 

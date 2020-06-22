@@ -73,6 +73,7 @@ namespace mlir::standalone::passes {
 
             auto lhs = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstLhs + idx);
             auto rhs = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstRhs + idx);
+            // TODO: Remove IntToPtr
             auto iCompareValue = call(LOC, f_sqlite3MemCompare, lhs, rhs, constants(T::CollSeqPtrTy, pColl)).getValue();
             store(LOC, iCompareValue, vdbeCtx->iCompare);
             auto iCompareNotNull = iCmp(LOC, Pred::ne, iCompareValue, 0);

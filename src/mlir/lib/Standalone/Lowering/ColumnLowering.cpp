@@ -38,17 +38,17 @@ namespace mlir::standalone::passes {
         auto dbEncAddr = getElementPtrImm(LOC, T::i8PtrTy, vdbeCtx->db, 0, 16);
         auto dbEnc = load(LOC, dbEncAddr);
 
-        auto curIdxAttr = colOp.getAttrOfType<mlir::IntegerAttr>("curIdx");
-        auto columnAttr = colOp.getAttrOfType<mlir::IntegerAttr>("column");
-        auto extractToAttr = colOp.getAttrOfType<mlir::IntegerAttr>("extractTo");
-        auto defaultValueAttr = colOp.getAttrOfType<mlir::IntegerAttr>("defaultValue");
-        auto flagsAttr = colOp.getAttrOfType<mlir::IntegerAttr>("flags");
+        auto curIdxAttr = colOp.curIdxAttr().getSInt();
+        auto columnAttr = colOp.columnAttr().getSInt();
+        auto extractToAttr = colOp.extractToAttr().getSInt();
+        auto defaultValueAttr = colOp.defaultValueAttr().getUInt();
+        auto flagsAttr = colOp.flagsAttr().getUInt();
 
-        auto curIdxValue = constants(curIdxAttr.getSInt(), 32);
-        auto columnValue = constants(columnAttr.getSInt(), 32);
-        auto extractToValue = constants(extractToAttr.getSInt(), 32);
-        auto defaultValueValue = constants(defaultValueAttr.getUInt(), 64);
-        auto flagsValue = constants(flagsAttr.getUInt(), 16);
+        auto curIdxValue = constants(curIdxAttr, 32);
+        auto columnValue = constants(columnAttr, 32);
+        auto extractToValue = constants(extractToAttr, 32);
+        auto defaultValueValue = constants(defaultValueAttr, 64);
+        auto flagsValue = constants(flagsAttr, 16);
         auto pc = colOp.counterAttr().getSInt();
 
         USE_DEFAULT_BOILERPLATE
@@ -57,7 +57,7 @@ namespace mlir::standalone::passes {
         rewriter.create<StoreOp>(LOC, curIdxValue, curIdx);
 
         // The address of the array of (pointers to) cursors in the VDBE
-        auto apCsr = constants(T::VdbeCursorPtrPtrTy, vdbe->apCsr);
+        auto apCsr = vdbeCtx->apCsr;
         // The address of this particular pointer-to-cursor
         auto cursorAddr = rewriter.create<GEPOp>
                 (LOC, T::VdbeCursorPtrPtrTy, apCsr, ValueRange{
@@ -971,7 +971,7 @@ namespace mlir::standalone::passes {
                 { // if (pC->nHdrParsed <= p2)
                     rewriter.setInsertionPointToStart(blockNHdrParsedLtP2_2);
 
-                    auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, pc);
+                    auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
                     auto p4TypeAddr = rewriter.create<GEPOp>
                         (LOC, T::i8PtrTy, pOp, ValueRange {
                             constants(0, 32),
@@ -994,7 +994,7 @@ namespace mlir::standalone::passes {
                         /// sqlite3VdbeMemShallowCopy(pDest, pOp->p4.pMem, MEM_Static);
                         rewriter.create<mlir::LLVM::CallOp>(LOC, f_sqlite3VdbeMemShallowCopy, ValueRange {
                             pDest,
-                            constants(T::sqlite3_valuePtrTy, (sqlite3_value*)defaultValueAttr.getUInt()),
+                            constants(T::sqlite3_valuePtrTy, (sqlite3_value*)defaultValueAttr),
                             constants(MEM_Static)
                         });
 
@@ -1102,7 +1102,7 @@ namespace mlir::standalone::passes {
             // Get pc->szRow
             auto sZRowVal = rewriter.create<LoadOp>(LOC, szRowAddress);
             // Get &aOffset[p2 + 1]
-            auto aOffsetP2Plus1Addr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, aOffset, constants(columnAttr.getSInt() + 1, 32));
+            auto aOffsetP2Plus1Addr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, aOffset, constants(columnAttr + 1, 32));
             // Load aOffset[p2 + 1]
             auto aOffsetP2Plus1 = rewriter.create<LoadOp>(LOC, aOffsetP2Plus1Addr);
             // Check whether pC->szRow >= aOffset[p2 + 1]
@@ -1116,7 +1116,7 @@ namespace mlir::standalone::passes {
                 /// zData = pC->aRow + aOffset[p2];
                 auto aRowValue = rewriter.create<LoadOp>(LOC, pCaRowAddress);
                 auto aRowAsInteger = rewriter.create<PtrToIntOp>(LOC, T::i64Ty, aRowValue);
-                auto aOffsetP2Addr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, aOffset, constants(columnAttr.getSInt(), 32));
+                auto aOffsetP2Addr = rewriter.create<GEPOp>(LOC, T::i32PtrTy, aOffset, constants(columnAttr, 32));
                 auto aOffsetP2_u32 = rewriter.create<LoadOp>(LOC, aOffsetP2Addr);
                 auto aOffsetP2 = rewriter.create<ZExtOp>(LOC, T::i64Ty, aOffsetP2_u32);
                 auto aRowPlusAOffsetP2 = rewriter.create<AddOp>(LOC, aRowAsInteger, aOffsetP2);

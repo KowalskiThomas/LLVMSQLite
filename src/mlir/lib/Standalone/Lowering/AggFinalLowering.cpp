@@ -22,13 +22,13 @@ namespace mlir::standalone::passes {
 
         auto firstBlock = rewriter.getBlock();
 
-        auto functionAttr = afOp.functionAttr();
-        auto nArgsAttr = afOp.nArgsAttr();
-        auto toRegAttr = afOp.toRegAttr();
+        auto functionAttr = afOp.functionAttr().getUInt();
+        auto nArgsAttr = afOp.nArgsAttr().getUInt();
+        auto toRegAttr = afOp.toRegAttr().getSInt();
         auto pc = afOp.pcAttr().getUInt();
 
-        auto accumReg = toRegAttr.getSInt();
-        auto pFunc = constants(T::FuncDefPtrTy, (void*)functionAttr.getUInt());
+        auto accumReg = toRegAttr;
+        auto pFunc = constants(T::FuncDefPtrTy, (void*)functionAttr);
 
         print(LOCL, "-- AggFinal");
         USE_DEFAULT_BOILERPLATE

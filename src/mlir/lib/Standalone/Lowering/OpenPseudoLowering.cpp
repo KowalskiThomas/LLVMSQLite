@@ -30,7 +30,7 @@ namespace mlir::standalone::passes {
         auto endBlock = curBlock->splitBlock(opOp); GO_BACK_TO(curBlock);
 
         auto pCx = call(LOC, f_allocateCursor,
-            constants(T::VdbePtrTy, vdbe),
+            vdbeCtx->p,
             constants(curIdx, 32),
             constants(nFields, 32),
             constants(-1, 32),

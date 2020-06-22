@@ -38,7 +38,7 @@ namespace mlir::standalone::passes {
 
         rewriter.eraseOp(nxtOp);
 
-        auto pCAddr = constants(T::VdbeCursorPtrPtrTy, &vdbe->apCsr[curIdxValue]);
+        auto pCAddr = getElementPtrImm(LOC, T::VdbeCursorPtrPtrTy, vdbeCtx->apCsr, curIdxValue);
         auto pCValue = load(LOC, pCAddr);
 
         { // assert pC != 0
@@ -98,6 +98,7 @@ namespace mlir::standalone::passes {
 
 
             /// p->aCounter[pOp->p5]++
+            // TODO: Remove IntToPtr
             auto aCounterAddr = constants(T::i32PtrTy, (int*)&vdbe->aCounter[p5Value]);
             auto aCounterValue = load(LOC, aCounterAddr);
             auto aCounterValuePlus1 = add(LOC, aCounterValue, 1);

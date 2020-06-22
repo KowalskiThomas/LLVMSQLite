@@ -33,17 +33,16 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(oOp); GO_BACK_TO(curBlock);
 
-        auto pVdbe = constants(T::VdbePtrTy, vdbe);
-        auto pFrameAddr = getElementPtrImm(LOC, T::VdbeFramePtrTy.getPointerTo(), pVdbe, 0, 43);
+        auto pFrameAddr = getElementPtrImm(LOC, T::VdbeFramePtrTy.getPointerTo(), vdbeCtx->p, 0, 43);
         auto pFrameValue = load(LOC, pFrameAddr);
         auto pFrameValueInt = ptrToInt(LOC, pFrameValue);
 
         // Get p->aOp[0].p1
-        auto initValueAddress = constants(T::i32PtrTy, &vdbe->aOp[0].p1);
+        auto initValueAddress = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->aOp, 0, 3);
         auto initValue = load(LOC, initValueAddress);
 
         // Get &pOp->p1
-        auto p1Address = constants(T::i32PtrTy, &vdbe->aOp[pc].p1);
+        auto p1Address = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->aOp, (int)pc, 3);
 
         curBlock = rewriter.getBlock();
         auto blockAfterFrameNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
