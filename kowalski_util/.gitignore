@@ -1,3 +1,4 @@
 *.ll
 __pycache__
 prog.txt
+script.sh
