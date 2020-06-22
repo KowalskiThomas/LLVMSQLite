@@ -140,6 +140,7 @@ add_library(sqlite
         ${PROJECT_SOURCE_DIR}/src/where.c
         ${PROJECT_SOURCE_DIR}/src/wherecode.c
         ${PROJECT_SOURCE_DIR}/src/whereexpr.c
+        ${PROJECT_SOURCE_DIR}/src/default_query.cpp
         ${PROJECT_SOURCE_DIR}/src/whereInt.h
         ${PROJECT_SOURCE_DIR}/src/window.c
         ${PROJECT_SOURCE_DIR}/opcodes.c
