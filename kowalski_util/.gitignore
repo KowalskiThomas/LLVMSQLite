@@ -1,0 +1,3 @@
+*.ll
+__pycache__
+prog.txt
