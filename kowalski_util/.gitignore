@@ -1,3 +1,5 @@
+stdout.txt
+stderr.txt
 *.ll
 __pycache__
 prog.txt

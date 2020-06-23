@@ -5,7 +5,7 @@ db = argv[1]
 
 do_run = "echo" not in argv
 
-queries = [1, 3, 6, 19]
+queries = [1, 3, 6, 10, 12, 14 19]
 jit_config = ["jit", "nojit"]
 count = 50
 
