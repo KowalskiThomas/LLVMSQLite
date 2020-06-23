@@ -36,12 +36,6 @@ if (SANITIZE)
     endif()
 endif()
 
-if (OPTIMIZE_O1)
-    message("Using -O1")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O1")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O1")
-endif()
-
 find_package (Threads)
 
 include_directories(${PROJECT_SOURCE_DIR})
