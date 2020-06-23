@@ -148,7 +148,6 @@ namespace mlir::standalone::passes {
 
                 } else /* of if (flags & SQLITE_STOREP2) */ {
 
-                    print(LOCL, "Not StoreP2");
                     rewriter.create<mlir::LLVM::StackRestoreOp>(LOC, stackState);
                     if (flags & SQLITE_JUMPIFNULL)
                         branch(LOC, jumpTo);

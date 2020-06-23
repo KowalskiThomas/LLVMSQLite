@@ -27,6 +27,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.IdxCompare", false },
     { "standalone.IdxInsert", false },
     { "standalone.If", false },
+    { "standalone.IfNot", false },
     { "standalone.IfNotZero", false },
     { "standalone.IfPos", false },
     { "standalone.Init", false },

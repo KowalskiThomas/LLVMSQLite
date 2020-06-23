@@ -991,6 +991,31 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 newWriteBranchOut = false;
                 break;
             }
+            case OP_IfNot: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+
+                auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
+                auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;
+
+                auto op = rewriter.create<VdbeOps::IfNot>
+                        (LOC,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(32, true, p3),
+                         jumpToBlock,
+                         fallthroughBlock
+                        );
+
+                if (jumpToBlock == entryBlock)
+                    operations_to_update[p2].emplace_back(op, 0);
+                if (fallthroughBlock == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op, 1);
+
+                newWriteBranchOut = false;
+                break;
+            }
             case OP_Last: {
                 auto p1 = op.p1;
                 auto p2 = op.p2;

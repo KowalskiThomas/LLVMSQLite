@@ -21,10 +21,6 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
-        USE_DEFAULT_BOILERPLATE
-
-        auto firstBlock = rewriter.getBlock();
-
         auto pc = txnOp.pcAttr().getUInt();
         auto p1 = txnOp.p1Attr().getSInt();
         auto p2 = txnOp.p2Attr().getSInt();
@@ -32,6 +28,9 @@ namespace mlir::standalone::passes {
         auto p4 = txnOp.p4Attr().getUInt();
         auto p5 = txnOp.p5Attr().getSInt();
 
+        USE_DEFAULT_BOILERPLATE
+
+        auto firstBlock = rewriter.getBlock();
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
 

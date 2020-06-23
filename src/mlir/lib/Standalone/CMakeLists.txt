@@ -48,6 +48,7 @@ set(LOWERING_FILES
     Lowering/SeekRowidLowering.cpp
     Lowering/SequenceLowering.cpp
     Lowering/IfNotZeroLowering.cpp
+    Lowering/IfNotLowering.cpp
     Lowering/LastLowering.cpp
     Lowering/IdxCompareLowering.cpp
     Lowering/DeleteLowering.cpp

@@ -184,6 +184,24 @@ def Standalone_IfNot : Standalone_Op<"IfNot", [Terminator]> {
     let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
 }
 
+def Standalone_IsNull : Standalone_Op<"IsNull", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$reg);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
+}
+
+def Standalone_NotNull : Standalone_Op<"NotNull", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$reg);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
+}
+
+def Standalone_IfNullRow : Standalone_Op<"IfNullRow", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$cur, I32Attr:$reg);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallthrough);
+}
+
 def Standalone_IfPos : Standalone_Op<"IfPos", [Terminator]> {
     let arguments = (ins I64Attr:$pc, I32Attr:$integerReg, I32Attr:$toSubtract);
 
