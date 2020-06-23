@@ -111,6 +111,9 @@ void VdbeToLLVM::runOnOperation() {
         patterns.insert<NotFoundLowering>(&getContext());
         patterns.insert<RowSetTestLowering>(&getContext());
         patterns.insert<IfNotLowering>(&getContext());
+        patterns.insert<IfNullRowLowering>(&getContext());
+        patterns.insert<IsNullLowering>(&getContext());
+        patterns.insert<NotNullLowering>(&getContext());
 
         mlir::populateStdToLLVMConversionPatterns(typeConverter, patterns);
     }

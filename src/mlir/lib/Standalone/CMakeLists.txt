@@ -57,6 +57,9 @@ set(LOWERING_FILES
     Lowering/RowSetTestLowering.cpp
     Lowering/NotFoundLowering.cpp
     Lowering/AffinityLowering.cpp
+    Lowering/NotNullLowering.cpp
+    Lowering/IfNullRowLowering.cpp
+    Lowering/IsNullLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone
