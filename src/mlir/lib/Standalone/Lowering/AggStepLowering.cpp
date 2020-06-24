@@ -368,7 +368,7 @@ namespace mlir::standalone::passes {
 
             { // assert rc != 0
                 auto rcVal = load(LOC, rcAddr);
-                auto rcIs0 = iCmp(LOC, Pred::ne, rcVal, 0);
+                auto rcIs0 = iCmp(LOC, Pred::eq, rcVal, 0);
                 myAssert(LOCL, rcIs0);
             } // end assert rc != 0
 
