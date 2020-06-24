@@ -19,7 +19,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.CompareJump", false },
     { "standalone.Copy", false },
     { "standalone.CollSeq", false },
-    { "standalone.DecrJumpZero", true },
+    { "standalone.DecrJumpZero", false },
     { "standalone.DeferredSeek", false },
     { "standalone.Delete", false },
     { "standalone.FunctionOp", false },

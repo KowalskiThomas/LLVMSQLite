@@ -10,8 +10,8 @@
 
 
 namespace mlir::standalone::passes {
-    LogicalResult DecrJumpZeroLowering::matchAndRewrite(DecrJumpZero txnOp, PatternRewriter &rewriter) const {
-        auto op = &txnOp;
+    LogicalResult DecrJumpZeroLowering::matchAndRewrite(DecrJumpZero djzOp, PatternRewriter &rewriter) const {
+        auto op = &djzOp;
         LOWERING_PASS_HEADER
         LOWERING_NAMESPACE
 
@@ -21,24 +21,52 @@ namespace mlir::standalone::passes {
         Printer print(ctx, rewriter, __FILE_NAME__);
         myOperators
 
-        auto pc = txnOp.pcAttr().getSInt();
-        auto p1 = txnOp.p1Attr().getSInt();
-        auto p2 = txnOp.p2Attr().getSInt();
+        auto pc = djzOp.pcAttr().getSInt();
+        auto p1 = djzOp.p1Attr().getSInt();
+        auto p2 = djzOp.p2Attr().getSInt();
 
-        auto jumpTo = txnOp.jumpTo();
-        auto fallThrough = txnOp.fallThrough();
+        auto jumpTo = djzOp.jumpTo();
+        auto fallThrough = djzOp.fallThrough();
 
         USE_DEFAULT_BOILERPLATE
 
         auto firstBlock = rewriter.getBlock();
         auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
+        auto endBlock = curBlock->splitBlock(djzOp); GO_BACK_TO(curBlock);
 
+        /// pIn1 = &aMem[pOp->p1];
+        auto pIn1 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p1);
+
+        /// if (pIn1->u.i > SMALLEST_INT64) pIn1->u.i--;
+        auto inUAddr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0);
+        auto inIntegerAddr = bitCast(LOC, inUAddr, T::i64PtrTy);
+        auto inInteger = load(LOC, inIntegerAddr);
+
+        curBlock = rewriter.getBlock();
+        auto blockAfterDecrement = SPLIT_GO_BACK_TO(curBlock);
+        auto blockDecrement = SPLIT_GO_BACK_TO(curBlock);
+
+        auto intGtSmallestInt64 = iCmp(LOC, Pred::sgt, inInteger, SMALLEST_INT64);
+
+        condBranch(LOC, intGtSmallestInt64, blockDecrement, blockAfterDecrement);
+        { // if (pIn1->u.i > SMALLEST_INT64)
+            ip_start(blockDecrement);
+
+            /// pIn1->u.i--;
+            auto newInValue = sub(LOC, inInteger, constants(1, 64));
+            store(LOC, newInValue, inIntegerAddr);
+
+            branch(LOC, blockAfterDecrement);
+        } // end if (pIn1->u.i > SMALLEST_INT64)
+        ip_start(blockAfterDecrement);
         branch(LOC, endBlock);
         ip_start(endBlock);
 
-        rewriter.eraseOp(txnOp);
-        branch(LOC, fallThrough);
+        inInteger = load(LOC, inIntegerAddr);
+        auto intIsZero = iCmp(LOC, Pred::eq, inInteger, 0);
+        condBranch(LOC, intIsZero, jumpTo, fallThrough);
+
+        rewriter.eraseOp(djzOp);
 
         return success();
     } // matchAndRewrite
