@@ -66,7 +66,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.String", false },
     { "standalone.Transaction", false },
     { "standalone.Variable", true },  // TODO: Implement
-    { "standalone.Yield", true },  // TODO: Implement
+    { "standalone.Yield", false },
     { "standalone.EndCoroutine", false },
     { "standalone.InitCoroutine", false },
     { "standalone.NullRow", false },

@@ -31,9 +31,31 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
 
-        branch(LOC, endBlock);
+        /// pIn1 = &aMem[pOp->p1];
+        auto pIn1 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p1);
 
+        /// pIn1->flags = MEM_Int;
+        auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn1, 0, 1);
+        store(LOC, MEM_Int, flagsAddr);
+
+        /// pcDest = (int) pIn1->u.i;
+        auto inUAddr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0);
+        auto inIntegerAddr = bitCast(LOC, inUAddr, T::i64PtrTy);
+        auto pcDest = load(LOC, inIntegerAddr);
+        pcDest = add(LOC, pcDest, 1);
+
+        /// pIn1->u.i = (int) (pOp - aOp);
+        store(LOC, pc, inIntegerAddr);
+
+        /// pOp = &aOp[pcDest];
+        auto pcAddr = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->p, 0, 10);
+        pcDest = trunc(LOC, pcDest, T::i32Ty);
+        store(LOC, pcDest, pcAddr);
+
+        branch(LOC, endBlock);
         ip_start(endBlock);
+
+        branch(LOC, vdbeCtx->jumpsBlock);
         rewriter.eraseOp(txnOp);
 
         return success();
