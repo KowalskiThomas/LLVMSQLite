@@ -31,6 +31,15 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
 
+        /// pIn1 = &aMem[pOp->p1];
+        auto pIn1 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p1);
+
+        /// pOut = &aMem[pOp->p2];
+        auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p2);
+
+        /// sqlite3VdbeMemShallowCopy(pOut, pIn1, MEM_Ephem);
+        call(LOC, f_sqlite3VdbeMemShallowCopy, pOut, pIn1, constants(MEM_Ephem, 32));
+
         branch(LOC, endBlock);
 
         ip_start(endBlock);
