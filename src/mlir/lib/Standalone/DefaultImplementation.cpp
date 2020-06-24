@@ -57,7 +57,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Rowid", false },
     { "standalone.SCopy", false },
     { "standalone.SeekRowid", false },
-    { "standalone.SeekGE", true },
+    { "standalone.SeekGE", false },
     { "standalone.Sequence", false },
     { "standalone.SorterData", false },
     { "standalone.SorterInsert", false },

@@ -1279,6 +1279,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
                 auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;
+                auto skipNextBlock = blocks.find(pc + 2) != blocks.end() ? blocks[pc + 2] : entryBlock;
 
                 auto op = rewriter.create<VdbeOps::SeekGE>
                         (LOC,
@@ -1288,13 +1289,16 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                          INTEGER_ATTR(32, true, p3),
                          INTEGER_ATTR(64, false, p4),
                          jumpToBlock,
-                         fallthroughBlock
+                         fallthroughBlock,
+                         skipNextBlock
                         );
 
                 if (jumpToBlock == entryBlock)
                     operations_to_update[p2].emplace_back(op, 0);
                 if (fallthroughBlock == entryBlock)
                     operations_to_update[pc + 1].emplace_back(op, 1);
+                if (skipNextBlock == entryBlock)
+                    operations_to_update[pc + 2].emplace_back(op, 2);
 
                 newWriteBranchOut = false;
                 break;

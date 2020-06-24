@@ -104,6 +104,9 @@ LLVMFuncOp f_sqlite3RowSetTest;
 LLVMFuncOp f_sqlite3RowSetInsert;
 LLVMFuncOp f_sqlite3VdbeIntValue;
 LLVMFuncOp f_sqlite3BtreeClearCursor;
+LLVMFuncOp f_sqlite3BtreeCursorHasHint;
+LLVMFuncOp f_sqlite3BtreeEof;
+LLVMFuncOp f_sqlite3BtreePrevious;
 
 LLVMFuncOp f_memCpy;
 
@@ -200,6 +203,9 @@ public:
     DECLARE_FUNCTION(sqlite3RowSetInsert);
     DECLARE_FUNCTION(sqlite3VdbeIntValue);
     DECLARE_FUNCTION(sqlite3BtreeClearCursor);
+    DECLARE_FUNCTION(sqlite3BtreeCursorHasHint);
+    DECLARE_FUNCTION(sqlite3BtreeEof);
+    DECLARE_FUNCTION(sqlite3BtreePrevious);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1277,6 +1283,16 @@ void Prerequisites::generateReferenceTosqlite3VdbeIntValue(ModuleOp m, LLVMDiale
    GENERATE_SYMBOL(f_sqlite3VdbeIntValue, sqlite3VdbeIntValue, "sqlite3VdbeIntValue");
 }
 
+void Prerequisites::generateReferenceTosqlite3BtreeCursorHasHint(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::BtCursorPtrTy,
+                T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeCursorHasHint, sqlite3BtreeCursorHasHint, "sqlite3BtreeCursorHasHint");
+}
+
 void Prerequisites::generateReferenceTosqlite3BtreeClearCursor(ModuleOp m, LLVMDialect *d) {
     auto funcTy = LLVMType::getFunctionTy(
             T::voidTy, {
@@ -1284,6 +1300,25 @@ void Prerequisites::generateReferenceTosqlite3BtreeClearCursor(ModuleOp m, LLVMD
             }, false);
 
     GENERATE_SYMBOL(f_sqlite3BtreeClearCursor, sqlite3BtreeClearCursor, "sqlite3BtreeClearCursor");
+}
+
+void Prerequisites::generateReferenceTosqlite3BtreeEof(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::BtCursorPtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeEof, sqlite3BtreeEof, "sqlite3BtreeEof");
+}
+
+void Prerequisites::generateReferenceTosqlite3BtreePrevious(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::BtCursorPtrTy,
+                T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreePrevious, sqlite3BtreePrevious, "sqlite3BtreePrevious");
 }
 
 #undef GENERATE_SYMBOL
@@ -1374,6 +1409,9 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3RowSetInsert);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeIntValue);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeClearCursor);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeCursorHasHint);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeEof);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreePrevious);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 
