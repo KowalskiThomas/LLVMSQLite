@@ -69,7 +69,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Yield", true },  // TODO: Implement
     { "standalone.EndCoroutine", true },  // TODO: Implement
     { "standalone.InitCoroutine", true },  // TODO: Implement
-    { "standalone.NullRow", true },  // TODO: Implement
+    { "standalone.NullRow", false },
 
     { "standalone.Template", true },  // TODO: Implement
 };
