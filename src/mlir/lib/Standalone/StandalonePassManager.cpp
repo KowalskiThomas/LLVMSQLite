@@ -119,6 +119,7 @@ void VdbeToLLVM::runOnOperation() {
         patterns.insert<NullRowLowering>(&getContext());
         patterns.insert<YieldLowering>(&getContext());
         patterns.insert<EndCoroutineLowering>(&getContext());
+        patterns.insert<CollSeqLowering>(&getContext());
 
         mlir::populateStdToLLVMConversionPatterns(typeConverter, patterns);
     }

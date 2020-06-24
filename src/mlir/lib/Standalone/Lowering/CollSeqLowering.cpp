@@ -22,7 +22,6 @@ namespace mlir::standalone::passes {
         myOperators
 
         auto pc = txnOp.pcAttr().getUInt();
-        auto p1 = txnOp.p1Attr().getSInt();
         auto p4 = txnOp.p4Attr().getUInt();
 
         USE_DEFAULT_BOILERPLATE
@@ -31,6 +30,28 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
 
+        // The value of P1 is changed at run-time
+        auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto p1Addr = getElementPtrImm(LOC, T::i32PtrTy, pOp, 0, 3);
+        auto p1 = load(LOC, p1Addr);
+
+        curBlock = rewriter.getBlock();
+        auto blockAfterP1NotNull = SPLIT_GO_BACK_TO(curBlock);
+        auto blockP1NotNull = SPLIT_GO_BACK_TO(curBlock);
+
+        auto condP1NotNull = iCmp(LOC, Pred::ne, p1, 0);
+
+        condBranch(LOC, condP1NotNull, blockP1NotNull, blockAfterP1NotNull);
+        { // if (pOp->p1)
+            ip_start(blockP1NotNull);
+
+            auto out = getElementPtr(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p1);
+            call(LOC, f_sqlite3VdbeMemSetInt64, out, constants(0, 64));
+
+            branch(LOC, blockAfterP1NotNull);
+        } // end if (pOp->p1)
+
+        ip_start(blockAfterP1NotNull);
         branch(LOC, endBlock);
 
         ip_start(endBlock);
