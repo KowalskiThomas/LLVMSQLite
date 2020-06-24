@@ -260,6 +260,8 @@ types1 = ["STANDARD", "SMALL", "MEDIUM", "LARGE", "ECONOMY", "PROMO"]
 types2 = ["ANODIZED", "BURNISHED", "PLATED", "POLISHED", "BRUSHED"]
 types3 = ["TIN", "NICKEL", "BRASS", "STEEL", "COPPER"]
 regions = ["AFRICA," "AMERICA", "ASIA", "EUROPE", "MIDDLE EAST"]
+containers1 = ["SM", "LG", "MED", "JUMBO", "WRAP"]
+containers2 = ["CASE", "BOX", "BAG", "JAR", "PKG", "PACK", "CAN", "DRUM"]
 nations = ['ALGERIA', 'ARGENTINA', 'BRAZIL', 'CANADA', 'EGYPT', 'ETHIOPIA', 'FRANCE', 'GERMANY', 'INDIA', 'INDONESIA', 'IRAN', 'IRAQ', 'JAPAN', 'JORDAN', 'KENYA', 'MOROCCO', 'MOZAMBIQUE', 'PERU', 'CHINA', 'ROMANIA', 'SAUDI ARABIA', 'VIETNAM', 'RUSSIA', 'UNITED KINGDOM', 'UNITED STATES']
 p_name_words = ["almond", "antique", "aquamarine", "azure", "beige", "bisque", "black", "blanched", "blue",
 "blush", "brown", "burlywood", "burnished", "chartreuse", "chiffon", "chocolate", "coral",
