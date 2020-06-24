@@ -18,6 +18,8 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Compare", false },
     { "standalone.CompareJump", false },
     { "standalone.Copy", false },
+    { "standalone.CollSeq", true },
+    { "standalone.DecrJumpZero", true },
     { "standalone.DeferredSeek", false },
     { "standalone.Delete", false },
     { "standalone.FunctionOp", false },
@@ -53,7 +55,9 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Rewind", false },
     { "standalone.RowSetTest", false },
     { "standalone.Rowid", false },
+    { "standalone.SCopy", true },
     { "standalone.SeekRowid", false },
+    { "standalone.SeekGE", true },
     { "standalone.Sequence", false },
     { "standalone.SorterData", false },
     { "standalone.SorterInsert", false },
@@ -62,6 +66,10 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.String", false },
     { "standalone.Transaction", false },
     { "standalone.Variable", true },  // TODO: Implement
+    { "standalone.Yield", true },  // TODO: Implement
+    { "standalone.EndCoroutine", true },  // TODO: Implement
+    { "standalone.InitCoroutine", true },  // TODO: Implement
+    { "standalone.NullRow", true },  // TODO: Implement
 
     { "standalone.Template", true },  // TODO: Implement
 };

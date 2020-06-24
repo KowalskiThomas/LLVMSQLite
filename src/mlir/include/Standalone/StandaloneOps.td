@@ -298,9 +298,48 @@ def Standalone_NotFound : Standalone_Op<"NotFound", [Terminator]> {
     let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallThrough);
 }
 
+def Standalone_SeekGE : Standalone_Op<"SeekGE", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2, I32Attr:$p3, I64Attr:$p4);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallThrough);
+}
+
+def Standalone_DecrJumpZero : Standalone_Op<"DecrJumpZero", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2);
+
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallThrough);
+}
+
+def Standalone_CollSeq : Standalone_Op<"CollSeq"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I64Attr:$p4);
+}
+
+def Standalone_SCopy : Standalone_Op<"SCopy"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2);
+}
+
+def Standalone_InitCoroutine : Standalone_Op<"InitCoroutine", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p3);
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallThrough);
+}
+
+def Standalone_NullRow : Standalone_Op<"NullRow"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$curIdx);
+}
+
+def Standalone_Yield : Standalone_Op<"Yield", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2);
+}
+
+def Standalone_EndCoroutine : Standalone_Op<"EndCoroutine", [Terminator]> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1);
+}
+
+
 /*
 def Standalone_ : Standalone_Op<""> {
     let arguments = (ins I64Attr:$pc, I32Attr:$curIdx, I32Attr:$reg, I32Attr:$nFields);
+    let successors = (successor AnySuccessor:$jumpTo, AnySuccessor:$fallThrough);
 }
 */
 

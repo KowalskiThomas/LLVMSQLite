@@ -895,6 +895,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 break;
             }
+            case OP_OpenAutoindex:
             case OP_OpenEphemeral: {
                 auto p1 = op.p1;
                 auto p2 = op.p2;
@@ -915,6 +916,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 break;
             }
+            case OP_IdxRowid:
             case OP_DeferredSeek: {
                 auto p1 = op.p1;
                 auto p3 = op.p3;
@@ -1194,6 +1196,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 break;
             }
+            case OP_Found:
             case OP_NotFound: {
                 auto p1 = op.p1;
                 auto p2 = op.p2;
@@ -1263,6 +1266,152 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                          INTEGER_ATTR(64, false, (uint64_t)p4)
                     );
 
+                break;
+            }
+            case OP_SeekLE:
+            case OP_SeekLT:
+            case OP_SeekGE:
+            case OP_SeekGT: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+                auto p4 = op.p4.i;
+
+                auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
+                auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;
+
+                auto op = rewriter.create<VdbeOps::SeekGE>
+                        (LOC,
+                         INTEGER_ATTR(64, true, pc),
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(32, true, p2),
+                         INTEGER_ATTR(32, true, p3),
+                         INTEGER_ATTR(64, false, p4),
+                         jumpToBlock,
+                         fallthroughBlock
+                        );
+
+                if (jumpToBlock == entryBlock)
+                    operations_to_update[p2].emplace_back(op, 0);
+                if (fallthroughBlock == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op, 1);
+
+                newWriteBranchOut = false;
+                break;
+            }
+            case OP_DecrJumpZero: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+                auto p4 = op.p4.i;
+
+                auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
+                auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;
+
+                auto op = rewriter.create<VdbeOps::DecrJumpZero>
+                        (LOC,
+                         INTEGER_ATTR(64, true, pc),
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(32, true, p2),
+                         jumpToBlock,
+                         fallthroughBlock
+                        );
+
+                if (jumpToBlock == entryBlock)
+                    operations_to_update[p2].emplace_back(op, 0);
+                if (fallthroughBlock == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op, 1);
+
+                newWriteBranchOut = false;
+                break;
+            }
+            case OP_CollSeq: {
+                auto p1 = op.p1;
+                auto p4 = op.p4.pColl;
+
+                rewriter.create<VdbeOps::CollSeq>
+                        (LOC,
+                            INTEGER_ATTR(64, false, pc),
+                            INTEGER_ATTR(32, true, p1),
+                            INTEGER_ATTR(64, false, (uint64_t)p4)
+                        );
+
+                break;
+            }
+            case OP_SCopy:{
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+
+                rewriter.create<VdbeOps::SCopy>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2)
+                    );
+
+                break;
+            }
+            case OP_InitCoroutine: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+                auto p4 = op.p4.i;
+
+                auto jumpToBlock = blocks.find(p2) != blocks.end() ? blocks[p2] : entryBlock;
+                auto fallthroughBlock = blocks.find(pc + 1) != blocks.end() ? blocks[pc + 1] : entryBlock;
+
+                auto op = rewriter.create<VdbeOps::InitCoroutine>
+                        (LOC,
+                         INTEGER_ATTR(64, false, pc),
+                         INTEGER_ATTR(32, true, p1),
+                         INTEGER_ATTR(32, true, p3),
+                         jumpToBlock,
+                         fallthroughBlock
+                        );
+
+                if (jumpToBlock == entryBlock)
+                    operations_to_update[p2].emplace_back(op, 0);
+                if (fallthroughBlock == entryBlock)
+                    operations_to_update[pc + 1].emplace_back(op, 1);
+
+                newWriteBranchOut = false;
+                break;
+            }
+            case OP_NullRow: {
+                auto p1 = op.p1;
+
+                rewriter.create<VdbeOps::NullRow>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1)
+                    );
+
+                break;
+            }
+            case OP_Yield: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+
+                rewriter.create<VdbeOps::Yield>
+                        (LOC,
+                             INTEGER_ATTR(64, false, pc),
+                             INTEGER_ATTR(32, true, p1),
+                             INTEGER_ATTR(32, true, p2)
+                        );
+
+                newWriteBranchOut = false;
+                break;
+            }
+            case OP_EndCoroutine: {
+                auto p1 = op.p1;
+
+                rewriter.create<VdbeOps::EndCoroutine>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1)
+                    );
+
+                newWriteBranchOut = false;
                 break;
             }
         }

@@ -73,6 +73,14 @@ namespace mlir::standalone::passes {
     DECLARE_LOWERING(NotFound)
     DECLARE_LOWERING(RowSetTest)
     DECLARE_LOWERING(Affinity)
+    DECLARE_LOWERING(SeekGE)
+    DECLARE_LOWERING(DecrJumpZero)
+    DECLARE_LOWERING(CollSeq)
+    DECLARE_LOWERING(SCopy)
+    DECLARE_LOWERING(InitCoroutine)
+    DECLARE_LOWERING(NullRow)
+    DECLARE_LOWERING(Yield)
+    DECLARE_LOWERING(EndCoroutine)
 } // namespace mlir::standalone::passes
 
 #undef DECLARE_LOWERING

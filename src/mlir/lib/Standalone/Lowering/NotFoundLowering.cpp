@@ -183,10 +183,9 @@ namespace mlir::standalone::passes {
         store(LOC, CACHE_STALE, cacheStatusAddr);
 
         if (vdbe->aOp[pc].opcode == OP_Found) {
-            llvm_unreachable("Unimplemented OP_Found");
-            /// VdbeBranchTaken(alreadyExists != 0, 2);
             /// if (alreadyExists) goto jump_to_p2;
             restoreStack(LOC, stackState);
+            condBranch(LOC, alreadyExistsBool, jumpTo, endBlock);
         } else {
             /// VdbeBranchTaken(takeJump || alreadyExists == 0, 2);
 
@@ -207,8 +206,8 @@ namespace mlir::standalone::passes {
             // goto jump_to_p2
             condBranch(LOC, takeJumpOrAlreadyExists, jumpTo, blockAfter);
             ip_start(blockAfter);
+            branch(LOC, endBlock);
         }
-        branch(LOC, endBlock);
         ip_start(endBlock);
 
         branch(LOC, fallthrough);

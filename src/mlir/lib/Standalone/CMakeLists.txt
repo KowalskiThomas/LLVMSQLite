@@ -60,6 +60,15 @@ set(LOWERING_FILES
     Lowering/NotNullLowering.cpp
     Lowering/IfNullRowLowering.cpp
     Lowering/IsNullLowering.cpp
+    Lowering/DecrJumpZeroLowering.cpp
+    Lowering/SeekGELowering.cpp
+    Lowering/CollSeqLowering.cpp
+    Lowering/SCopyLowering.cpp
+    Lowering/InitCoroutineLowering.cpp
+    # Lowering/OpenAutoindex.cpp
+    Lowering/NullRowLowering.cpp
+    Lowering/YieldLowering.cpp
+    Lowering/EndCoroutineLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone
