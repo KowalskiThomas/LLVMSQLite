@@ -116,6 +116,7 @@ void VdbeToLLVM::runOnOperation() {
         patterns.insert<CloseLowering>(&getContext());
         patterns.insert<InsertLowering>(&getContext());
         patterns.insert<NewRowidLowering>(&getContext());
+        patterns.insert<SCopyLowering>(&getContext());
         patterns.insert<ParseSchemaLowering>(&getContext());
         patterns.insert<ReadCookieLowering>(&getContext());
         patterns.insert<SetCookieLowering>(&getContext());

@@ -34,7 +34,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.IfNullRow", true },
     { "standalone.IfPos", false },
     { "standalone.Init", false },
-    { "standalone.IsNull", true },
+    { "standalone.IsNull", false },
     { "standalone.Integer", false },
     { "standalone.Jump", false },
     { "standalone.Last", false },

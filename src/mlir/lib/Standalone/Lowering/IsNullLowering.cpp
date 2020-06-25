@@ -24,15 +24,22 @@ namespace mlir::standalone::passes {
         auto pc = txnOp.pcAttr().getUInt();
         auto p1 = txnOp.regAttr().getSInt();
 
+        auto jumpTo = txnOp.jumpTo();
+        auto fallThrough = txnOp.fallthrough();
+
         USE_DEFAULT_BOILERPLATE
 
-        auto firstBlock = rewriter.getBlock();
-        auto curBlock = rewriter.getBlock();
-        auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
+        /// pIn1 = &aMem[pOp->p1];
+        auto pIn1 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p1);
 
-        branch(LOC, endBlock);
+        /// if ((pIn1->flags & MEM_Null) != 0) ...
+        auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn1, 0, 1);
+        auto flags = load(LOC, flagsAddr);
+        auto flagsAndNull = bitAnd(LOC, flags, MEM_Null);
+        auto inIsNull = iCmp(LOC, Pred::ne, flagsAndNull, 0);
 
-        ip_start(endBlock);
+        /// ... goto jump_to_p2;
+        condBranch(LOC, inIsNull, jumpTo, fallThrough);
         rewriter.eraseOp(txnOp);
 
         return success();
