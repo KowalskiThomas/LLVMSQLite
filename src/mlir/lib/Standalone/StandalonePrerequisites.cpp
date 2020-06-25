@@ -108,6 +108,7 @@ LLVMFuncOp f_sqlite3BtreeCursorHasHint;
 LLVMFuncOp f_sqlite3BtreeEof;
 LLVMFuncOp f_sqlite3BtreePrevious;
 LLVMFuncOp f_sqlite3VdbeMemCast;
+LLVMFuncOp f_sqlite3BtreeGetMeta;
 
 LLVMFuncOp f_memCpy;
 
@@ -208,6 +209,7 @@ public:
     DECLARE_FUNCTION(sqlite3BtreeEof);
     DECLARE_FUNCTION(sqlite3BtreePrevious);
     DECLARE_FUNCTION(sqlite3VdbeMemCast);
+    DECLARE_FUNCTION(sqlite3BtreeGetMeta);
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1334,6 +1336,17 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemCast(ModuleOp m, LLVMDialec
     GENERATE_SYMBOL(f_sqlite3VdbeMemCast, sqlite3VdbeMemCast, "sqlite3VdbeMemCast");
 }
 
+void Prerequisites::generateReferenceTosqlite3BtreeGetMeta(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::voidTy, {
+                T::BtreePtrTy,
+                T::i32Ty,
+                T::i32PtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeGetMeta, sqlite3BtreeGetMeta, "sqlite3BtreeGetMeta");
+}
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, d)
 
@@ -1426,6 +1439,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3BtreeEof);
     CALL_SYMBOL_GENERATOR(sqlite3BtreePrevious);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemCast);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeGetMeta);
 
     CALL_SYMBOL_GENERATOR(memCpy);
 
