@@ -111,6 +111,8 @@ LLVMFuncOp f_sqlite3VdbeMemCast;
 LLVMFuncOp f_sqlite3BtreeGetMeta;
 LLVMFuncOp f_sqlite3VdbeMemSetStr;
 LLVMFuncOp f_sqlite3VdbeFreeCursor;
+LLVMFuncOp f_sqlite3BtreeUpdateMeta;
+LLVMFuncOp f_sqlite3ExpirePreparedStatements;
 
 // Step 1
 
@@ -216,6 +218,8 @@ public:
     DECLARE_FUNCTION(sqlite3BtreeGetMeta);
     DECLARE_FUNCTION(sqlite3VdbeMemSetStr);
     DECLARE_FUNCTION(sqlite3VdbeFreeCursor);
+    DECLARE_FUNCTION(sqlite3BtreeUpdateMeta);
+    DECLARE_FUNCTION(sqlite3ExpirePreparedStatements);
 
     // Step 2
 
@@ -1378,6 +1382,27 @@ void Prerequisites::generateReferenceTosqlite3VdbeFreeCursor(ModuleOp m, LLVMDia
     GENERATE_SYMBOL(f_sqlite3VdbeFreeCursor, sqlite3VdbeFreeCursor, "sqlite3VdbeFreeCursor");
 }
 
+void Prerequisites::generateReferenceTosqlite3BtreeUpdateMeta(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::BtreePtrTy,
+                T::i32Ty,
+                T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3BtreeUpdateMeta, sqlite3BtreeUpdateMeta, "sqlite3BtreeUpdateMeta");
+}
+
+void Prerequisites::generateReferenceTosqlite3ExpirePreparedStatements(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::sqlite3PtrTy,
+                T::i32Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3ExpirePreparedStatements, sqlite3ExpirePreparedStatements, "sqlite3ExpirePreparedStatements");
+}
+
 // Step 4
 
 #undef GENERATE_SYMBOL
@@ -1475,6 +1500,8 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3BtreeGetMeta);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemSetStr);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeFreeCursor);
+    CALL_SYMBOL_GENERATOR(sqlite3BtreeUpdateMeta);
+    CALL_SYMBOL_GENERATOR(sqlite3ExpirePreparedStatements);
 
     // Step 3
 
