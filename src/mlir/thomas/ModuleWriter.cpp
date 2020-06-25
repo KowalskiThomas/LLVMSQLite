@@ -1421,6 +1421,19 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 newWriteBranchOut = false;
                 break;
             }
+            case OP_Cast: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+
+                rewriter.create<VdbeOps::Cast>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2)
+                    );
+
+                break;
+            }
         }
 
         // Add the block to the blocks map (for use in branches)
