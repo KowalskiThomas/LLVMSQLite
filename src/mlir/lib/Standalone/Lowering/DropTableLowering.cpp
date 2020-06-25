@@ -10,7 +10,7 @@
 
 
 namespace mlir::standalone::passes {
-    LogicalResult InsertLowering::matchAndRewrite(Insert txnOp, PatternRewriter &rewriter) const {
+    LogicalResult DropTableLowering::matchAndRewrite(DropTable txnOp, PatternRewriter &rewriter) const {
         auto op = &txnOp;
         LOWERING_PASS_HEADER
         LOWERING_NAMESPACE
@@ -23,10 +23,7 @@ namespace mlir::standalone::passes {
 
         auto pc = txnOp.pcAttr().getUInt();
         auto p1 = txnOp.p1Attr().getSInt();
-        auto p2 = txnOp.p2Attr().getSInt();
-        auto p3 = txnOp.p3Attr().getSInt();
         auto p4 = txnOp.p4Attr().getUInt();
-        auto p5 = txnOp.p5Attr().getUInt();
 
         USE_DEFAULT_BOILERPLATE
 

@@ -120,6 +120,7 @@ void VdbeToLLVM::runOnOperation() {
         patterns.insert<ParseSchemaLowering>(&getContext());
         patterns.insert<ReadCookieLowering>(&getContext());
         patterns.insert<SetCookieLowering>(&getContext());
+        patterns.insert<DropTableLowering>(&getContext());
 
         mlir::populateStdToLLVMConversionPatterns(typeConverter, patterns);
     }

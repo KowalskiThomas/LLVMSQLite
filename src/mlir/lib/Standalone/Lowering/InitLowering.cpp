@@ -40,8 +40,8 @@ namespace mlir::standalone::passes {
             rewriter.create<StoreOp>(LOC, valPlus1, p1Addr);
         }
 
-        if (vdbe->aOp[0].p2 > 0)
-            print(LOCL, constants(vdbe->aOp[0].p2, 32), "Init: Jumping to");
+        // if (vdbe->aOp[0].p2 > 0)
+        //     print(LOCL, constants(vdbe->aOp[0].p2, 32), "Init: Jumping to");
 
         rewriter.create<BranchOp>(LOC, jumpToAttr);
 

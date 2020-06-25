@@ -282,6 +282,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 newWriteBranchOut = false;
                 break;
             }
+            case OP_OpenWrite:
             case OP_OpenRead: {
                 auto curIdx = op.p1;
                 auto rootPage = op.p2;
@@ -903,7 +904,8 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 auto p5 = op.p5;
 
                 // TODO: Fix the memory leaks caused by this:
-                p4->nRef++;
+                if (p4)
+                    p4->nRef += 5;
 
                 rewriter.create<VdbeOps::OpenEphemeral>
                     (LOC,
@@ -1430,6 +1432,122 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                         INTEGER_ATTR(64, false, pc),
                         INTEGER_ATTR(32, true, p1),
                         INTEGER_ATTR(32, true, p2)
+                    );
+
+                break;
+            }
+            case OP_ReadCookie: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+
+                rewriter.create<VdbeOps::ReadCookie>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(32, true, p3)
+                    );
+
+                break;
+            }
+            case OP_SetCookie: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+
+                rewriter.create<VdbeOps::SetCookie>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(32, true, p3)
+                    );
+
+                break;
+            }
+            case OP_Blob: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p4 = op.p4.z;
+
+                rewriter.create<VdbeOps::Blob>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(64, false, (uint64_t)p4)
+                    );
+
+                break;
+            }
+            case OP_Close: {
+                auto p1 = op.p1;
+
+                rewriter.create<VdbeOps::Close>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1)
+                    );
+
+                break;
+            }
+            case OP_Insert: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+                auto p4 = op.p4.z;
+                auto p5 = op.p5;
+
+                rewriter.create<VdbeOps::Insert>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(32, true, p3),
+                        INTEGER_ATTR(64, false, (uint64_t)p4),
+                        INTEGER_ATTR(16, false, p5)
+                    );
+
+                break;
+            }
+            case OP_ParseSchema: {
+                auto p1 = op.p1;
+                auto p4 = op.p4.p;
+
+                rewriter.create<VdbeOps::ParseSchema>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(64, false, (uint64_t)p4)
+                    );
+
+                break;
+            }
+            case OP_NewRowid: {
+                auto p1 = op.p1;
+                auto p2 = op.p2;
+                auto p3 = op.p3;
+
+                rewriter.create<VdbeOps::NewRowid>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(32, true, p2),
+                        INTEGER_ATTR(32, true, p3)
+                    );
+
+                break;
+            }
+            case OP_DropTable: {
+                auto p1 = op.p1;
+                auto p4 = op.p4.p;
+
+                rewriter.create<VdbeOps::DropTable>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1),
+                        INTEGER_ATTR(64, false, (uint64_t)p4)
                     );
 
                 break;

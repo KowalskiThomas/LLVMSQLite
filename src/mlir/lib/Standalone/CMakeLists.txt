@@ -77,6 +77,7 @@ set(LOWERING_FILES
     Lowering/BlobLowering.cpp
     Lowering/CastLowering.cpp
     Lowering/CloseLowering.cpp
+    Lowering/DropTableLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

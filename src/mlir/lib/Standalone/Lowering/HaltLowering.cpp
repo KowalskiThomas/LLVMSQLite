@@ -21,7 +21,7 @@ namespace mlir::standalone::passes {
         // TODO: This is not complete at all (in comparison with the vdbe.c implementation)
         print(LOCL, "-- Halt");
 
-        print(LOCL, "Halting execution");
+        // print(LOCL, "Halting execution");
         {
             auto& builder = rewriter;
             rewriter.create<CallOp>(LOC, f_sqlite3VdbeHalt, ValueRange {

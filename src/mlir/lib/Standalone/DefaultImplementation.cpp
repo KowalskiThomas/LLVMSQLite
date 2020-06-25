@@ -48,7 +48,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Once", false },
     { "standalone.OpenEphemeral", false },
     { "standalone.OpenPseudo", false },
-    { "standalone.OpenRead", false },
+    { "standalone.OpenRead", true }, // TODO: Implement OP_OpenWrite
     { "standalone.Real", false },
     { "standalone.ResultRow", false },
     { "standalone.Return", false },
@@ -74,6 +74,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Cast", false },
     { "standalone.ReadCookie", true },  // TODO: Implement
     { "standalone.SetCookie", true },  // TODO: Implement
+    { "standalone.DropTable", true },  // TODO: Implement
     { "standalone.OpenWrite", true },  // TODO: Implement
     { "standalone.NewRowid", true },  // TODO: Implement
     { "standalone.Blob", true },  // TODO: Implement

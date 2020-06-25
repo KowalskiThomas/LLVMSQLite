@@ -68,6 +68,7 @@ namespace mlir::standalone::passes {
         condBranch(LOC, pCxNotNull, blockPCxNotNull, blockNotAlreadyOpen);
         { // if (pCx)
             ip_start(blockPCxNotNull);
+            // Ephemeral table is already open
 
             auto pCx = initialPCxValue;
 
@@ -167,7 +168,6 @@ namespace mlir::standalone::passes {
 
                 branch(LOC, blockAfterRcIsOk);
             } // end if (rc == SQLITE_OK)
-
             ip_start(blockAfterRcIsOk);
 
             curBlock = rewriter.getBlock();
@@ -182,12 +182,14 @@ namespace mlir::standalone::passes {
                 ip_start(blockRcIsOk2);
 
                 auto pKeyInfo = constants(T::KeyInfoPtrTy, p4);
+                /*
                 {
                     auto keyInfoRefCount = getElementPtrImm(LOC, T::i32PtrTy, pKeyInfo, 0, 0);
                     auto refCountVal = load(LOC, keyInfoRefCount);
                     refCountVal = add(LOC, refCountVal, 1);
                     store(LOC, refCountVal, keyInfoRefCount);
                 }
+                */
 
                 auto pCxKeyInfoAddr = getElementPtrImm(LOC, T::KeyInfoPtrTy.getPointerTo(), pCx, 0, 13);
                 store(LOC, pKeyInfo, pCxKeyInfoAddr);
