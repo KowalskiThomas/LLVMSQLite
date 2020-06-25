@@ -79,7 +79,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.NewRowid", true }, // TODO: Implement
     { "standalone.Blob", false },
     { "standalone.Insert", true },  // TODO: Implement
-    { "standalone.Close", true },  // TODO: Implement
+    { "standalone.Close", false },
     { "standalone.OpenWrite", true },  // TODO: Implement
     { "standalone.ParseSchema", true },  // TODO: Implement
 

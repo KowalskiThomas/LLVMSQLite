@@ -9,6 +9,8 @@
 #include "Standalone/TypeDefinitions.h"
 
 
+extern LLVMFuncOp f_sqlite3VdbeFreeCursor;
+
 namespace mlir::standalone::passes {
     LogicalResult CloseLowering::matchAndRewrite(Close txnOp, PatternRewriter &rewriter) const {
         auto op = &txnOp;
@@ -29,6 +31,14 @@ namespace mlir::standalone::passes {
         auto firstBlock = rewriter.getBlock();
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
+
+        auto apCsrAddr = getElementPtrImm(LOC, T::VdbeCursorPtrPtrTy.getPointerTo(), vdbeCtx->p, 0, 21);
+        auto apCsr = load(LOC, apCsrAddr);
+        auto pCAddr = getElementPtrImm(LOC, T::VdbeCursorPtrTy.getPointerTo(), apCsr, p1);
+        auto pC = load(LOC, pCAddr);
+
+        call(LOC, f_sqlite3VdbeFreeCursor, vdbeCtx->p, pC);
+        store(LOC, constants(T::VdbeCursorPtrTy, (VdbeCursor*)nullptr), pCAddr);
 
         branch(LOC, endBlock);
 

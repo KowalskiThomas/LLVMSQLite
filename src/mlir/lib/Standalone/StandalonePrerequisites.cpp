@@ -110,6 +110,8 @@ LLVMFuncOp f_sqlite3BtreePrevious;
 LLVMFuncOp f_sqlite3VdbeMemCast;
 LLVMFuncOp f_sqlite3BtreeGetMeta;
 LLVMFuncOp f_sqlite3VdbeMemSetStr;
+LLVMFuncOp f_sqlite3VdbeFreeCursor;
+
 // Step 1
 
 LLVMFuncOp f_memCpy;
@@ -213,6 +215,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeMemCast);
     DECLARE_FUNCTION(sqlite3BtreeGetMeta);
     DECLARE_FUNCTION(sqlite3VdbeMemSetStr);
+    DECLARE_FUNCTION(sqlite3VdbeFreeCursor);
 
     // Step 2
 
@@ -1365,6 +1368,15 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemSetStr(ModuleOp m, LLVMDial
     GENERATE_SYMBOL(f_sqlite3VdbeMemSetStr, sqlite3VdbeMemSetStr, "sqlite3VdbeMemSetStr");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeFreeCursor(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::voidTy, {
+                T::VdbePtrTy,
+                T::VdbeCursorPtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeFreeCursor, sqlite3VdbeFreeCursor, "sqlite3VdbeFreeCursor");
+}
 
 // Step 4
 
@@ -1462,6 +1474,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemCast);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeGetMeta);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemSetStr);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeFreeCursor);
 
     // Step 3
 
