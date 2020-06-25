@@ -74,7 +74,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Cast", false },
     { "standalone.ReadCookie", false },
     { "standalone.SetCookie", false },
-    { "standalone.DropTable", true },  // TODO: Implement
+    { "standalone.DropTable", false },
     { "standalone.OpenWrite", true },  // TODO: Implement
     { "standalone.NewRowid", true }, // TODO: Implement
     { "standalone.Blob", false },

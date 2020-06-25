@@ -8,6 +8,7 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
+extern LLVMFuncOp f_sqlite3UnlinkAndDeleteTable;
 
 namespace mlir::standalone::passes {
     LogicalResult DropTableLowering::matchAndRewrite(DropTable txnOp, PatternRewriter &rewriter) const {
@@ -30,6 +31,12 @@ namespace mlir::standalone::passes {
         auto firstBlock = rewriter.getBlock();
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
+
+        call(LOC, f_sqlite3UnlinkAndDeleteTable,
+                vdbeCtx->db,
+                constants(p1, 32),
+                constants(T::i8PtrTy, (char*)p4)
+            );
 
         branch(LOC, endBlock);
 

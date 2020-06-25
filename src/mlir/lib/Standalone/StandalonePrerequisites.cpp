@@ -113,6 +113,7 @@ LLVMFuncOp f_sqlite3VdbeMemSetStr;
 LLVMFuncOp f_sqlite3VdbeFreeCursor;
 LLVMFuncOp f_sqlite3BtreeUpdateMeta;
 LLVMFuncOp f_sqlite3ExpirePreparedStatements;
+LLVMFuncOp f_sqlite3UnlinkAndDeleteTable;
 
 // Step 1
 
@@ -220,6 +221,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeFreeCursor);
     DECLARE_FUNCTION(sqlite3BtreeUpdateMeta);
     DECLARE_FUNCTION(sqlite3ExpirePreparedStatements);
+    DECLARE_FUNCTION(sqlite3UnlinkAndDeleteTable);
 
     // Step 2
 
@@ -1403,6 +1405,17 @@ void Prerequisites::generateReferenceTosqlite3ExpirePreparedStatements(ModuleOp 
     GENERATE_SYMBOL(f_sqlite3ExpirePreparedStatements, sqlite3ExpirePreparedStatements, "sqlite3ExpirePreparedStatements");
 }
 
+void Prerequisites::generateReferenceTosqlite3UnlinkAndDeleteTable(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::voidTy, {
+                T::sqlite3PtrTy,
+                T::i32Ty,
+                T::i8PtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3UnlinkAndDeleteTable, sqlite3UnlinkAndDeleteTable, "sqlite3UnlinkAndDeleteTable");
+}
+
 // Step 4
 
 #undef GENERATE_SYMBOL
@@ -1502,6 +1515,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeFreeCursor);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeUpdateMeta);
     CALL_SYMBOL_GENERATOR(sqlite3ExpirePreparedStatements);
+    CALL_SYMBOL_GENERATOR(sqlite3UnlinkAndDeleteTable);
 
     // Step 3
 
