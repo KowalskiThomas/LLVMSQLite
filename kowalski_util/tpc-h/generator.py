@@ -27,6 +27,13 @@ def get_arg(name: str, default):
 
     return default
             
+def output(sql: str):
+    out_file_name = get_arg("o", None)
+    if out_file_name is None:
+        print(sql)
+    else:
+        with open(out_file_name, 'w') as f:
+            f.write(sql)
 
 query_number = get_arg("query", None)
 query_count = int(get_arg("query-count", 1))
@@ -67,7 +74,7 @@ def generate_segment(info):
     return random.choice(data.segments)
 
 def generate_brand(info):
-    return f"Brand##{random.randint(1, 5)}{random.randint(1, 5)}"
+    return f"Brand#{random.randint(1, 5)}{random.randint(1, 5)}"
 
 def generate_type(info):
     if "syllables" in info:
@@ -133,6 +140,7 @@ def generate_dict(cons):
 
     return parameters
 
+result = ""
 for query_number in queries:
     constraints = q_types[query_number]
     parameter_dict = generate_dict(constraints)
@@ -140,5 +148,9 @@ for query_number in queries:
     with open(f"{query_number}.sql") as f:
         sql = f.read()
 
+
     sql = sql.format(**parameter_dict)
-    print(sql.replace("\n", "    "))
+    sql = sql.replace("\n", "    ")
+    result += sql
+
+output(result)

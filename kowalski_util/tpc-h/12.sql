@@ -20,6 +20,6 @@ where o_orderkey = l_orderkey
     and l_commitdate < l_receiptdate
     and l_shipdate < l_commitdate
     and l_receiptdate >= date('{date}')
-    and l_receiptdate < date('{date}', '+1year')
+    and l_receiptdate < date('{date}', '+1 year')
 group by l_shipmode
 order by l_shipmode;

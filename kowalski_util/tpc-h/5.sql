@@ -14,6 +14,6 @@ where c_custkey = o_custkey
     and n_regionkey = r_regionkey
     and r_name = '{region}'
     and o_orderdate >= date('{date}')
-    and o_orderdate < date('{date}', '+1year')
+    and o_orderdate < date('{date}', '+1 year')
 group by n_name
 order by revenue desc;

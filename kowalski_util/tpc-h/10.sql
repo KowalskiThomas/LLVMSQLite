@@ -13,7 +13,7 @@ from customer,
 where c_custkey = o_custkey
     and l_orderkey = o_orderkey
     and o_orderdate >= date('{date}')
-    and o_orderdate < date('{date}', '+3month')
+    and o_orderdate < date('{date}', '+3 month')
     and l_returnflag = 'R'
     and c_nationkey = n_nationkey
 group by c_custkey,

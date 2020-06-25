@@ -8,4 +8,4 @@ from lineitem,
     part
 where l_partkey = p_partkey
     and l_shipdate >= date('{date}')
-    and l_shipdate < date('{date}', '+1month');
+    and l_shipdate < date('{date}', '+1 month');

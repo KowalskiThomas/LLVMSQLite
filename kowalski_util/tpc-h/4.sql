@@ -2,7 +2,7 @@ select o_orderpriority,
     count(*) as order_count
 from orders
 where o_orderdate >= date('{date}')
-    and o_orderdate < date('{date}', '+3month')
+    and o_orderdate < date('{date}', '+3 month')
     and exists (
         select *
         from lineitem

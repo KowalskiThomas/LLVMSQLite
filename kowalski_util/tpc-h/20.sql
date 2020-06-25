@@ -16,7 +16,7 @@ where s_suppkey in (
                 where l_partkey = ps_partkey
                     and l_suppkey = ps_suppkey
                     and l_shipdate >= date('{date}')
-                    and l_shipdate < date('{date}', '+1year')
+                    and l_shipdate < date('{date}', '+1 year')
             )
     )
     and s_nationkey = n_nationkey
