@@ -31,7 +31,6 @@ protected:
     using LLVMDialect = mlir::LLVM::LLVMDialect;
 
     VdbeContext* getVdbeContext();
-    void createBlocks();
 
 public:
     void runOnOperation() final;

@@ -38,15 +38,6 @@ namespace mlir {
     } // namespace standalone
 } // namespace mlir
 
-void VdbeToLLVM::createBlocks() {
-    auto mod = getOperation();
-
-    auto vdbe = getVdbeContext()->vdbe;
-    for(auto i = 0; i < vdbe->nOp; i++) {
-        // auto block = mod
-    }
-}
-
 VdbeContext* VdbeToLLVM::getVdbeContext() {
     return &getContext().getRegisteredDialect<mlir::standalone::StandaloneDialect>()->vdbeContext;
 }
@@ -120,6 +111,14 @@ void VdbeToLLVM::runOnOperation() {
         patterns.insert<YieldLowering>(&getContext());
         patterns.insert<EndCoroutineLowering>(&getContext());
         patterns.insert<CollSeqLowering>(&getContext());
+        patterns.insert<BlobLowering>(&getContext());
+        patterns.insert<CastLowering>(&getContext());
+        patterns.insert<CloseLowering>(&getContext());
+        patterns.insert<InsertLowering>(&getContext());
+        patterns.insert<NewRowidLowering>(&getContext());
+        patterns.insert<ParseSchemaLowering>(&getContext());
+        patterns.insert<ReadCookieLowering>(&getContext());
+        patterns.insert<SetCookieLowering>(&getContext());
 
         mlir::populateStdToLLVMConversionPatterns(typeConverter, patterns);
     }

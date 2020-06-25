@@ -69,6 +69,14 @@ set(LOWERING_FILES
     Lowering/NullRowLowering.cpp
     Lowering/YieldLowering.cpp
     Lowering/EndCoroutineLowering.cpp
+    Lowering/SetCookieLowering.cpp
+    Lowering/ParseSchemaLowering.cpp
+    Lowering/ReadCookieLowering.cpp
+    Lowering/NewRowidLowering.cpp
+    Lowering/InsertLowering.cpp
+    Lowering/BlobLowering.cpp
+    Lowering/CastLowering.cpp
+    Lowering/CloseLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

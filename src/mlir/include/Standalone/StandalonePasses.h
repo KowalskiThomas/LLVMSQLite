@@ -81,6 +81,14 @@ namespace mlir::standalone::passes {
     DECLARE_LOWERING(NullRow)
     DECLARE_LOWERING(Yield)
     DECLARE_LOWERING(EndCoroutine)
+    DECLARE_LOWERING(Cast)
+    DECLARE_LOWERING(ReadCookie)
+    DECLARE_LOWERING(SetCookie)
+    DECLARE_LOWERING(NewRowid)
+    DECLARE_LOWERING(Blob)
+    DECLARE_LOWERING(Insert)
+    DECLARE_LOWERING(Close)
+    DECLARE_LOWERING(ParseSchema)
 } // namespace mlir::standalone::passes
 
 #undef DECLARE_LOWERING

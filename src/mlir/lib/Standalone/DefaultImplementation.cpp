@@ -43,7 +43,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Next", false },
     { "standalone.Noop", false },
     { "standalone.NotFound", false },
-    { "standalone.NotNull", true },
+        { "standalone.NotNull", true },
     { "standalone.Null", false },
     { "standalone.Once", false },
     { "standalone.OpenEphemeral", false },
@@ -70,6 +70,18 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.EndCoroutine", false },
     { "standalone.InitCoroutine", false },
     { "standalone.NullRow", false },
+
+    { "standalone.Cast", true },  // TODO: Implement
+    { "standalone.ReadCookie", true },  // TODO: Implement
+    { "standalone.SetCookie", true },  // TODO: Implement
+    { "standalone.OpenWrite", true },  // TODO: Implement
+    { "standalone.NewRowid", true },  // TODO: Implement
+    { "standalone.Blob", true },  // TODO: Implement
+    { "standalone.Insert", true },  // TODO: Implement
+    { "standalone.Close", true },  // TODO: Implement
+    { "standalone.OpenWrite", true },  // TODO: Implement
+    { "standalone.ParseSchema", true },  // TODO: Implement
+
 
     { "standalone.Template", true },  // TODO: Implement
 };

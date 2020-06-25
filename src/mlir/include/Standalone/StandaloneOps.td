@@ -335,6 +335,37 @@ def Standalone_EndCoroutine : Standalone_Op<"EndCoroutine", [Terminator]> {
     let arguments = (ins I64Attr:$pc, I32Attr:$p1);
 }
 
+def Standalone_Cast : Standalone_Op<"Cast"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2);
+}
+
+def Standalone_ReadCookie : Standalone_Op<"ReadCookie"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2, I32Attr:$p3);
+}
+
+def Standalone_SetCookie : Standalone_Op<"SetCookie"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2, I32Attr:$p3);
+}
+
+def Standalone_NewRowid : Standalone_Op<"NewRowid"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2, I32Attr:$p3);
+}
+
+def Standalone_Blob : Standalone_Op<"Blob"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p3, I64Attr:$p4);
+}
+
+def Standalone_Insert : Standalone_Op<"Insert"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I32Attr:$p2, I32Attr:$p3, I64Attr:$p4, I16Attr:$p5);
+}
+
+def Standalone_Close : Standalone_Op<"Close"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1);
+}
+
+def Standalone_ParseSchema : Standalone_Op<"ParseSchema"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1, I64Attr:$p4);
+}
 
 /*
 def Standalone_ : Standalone_Op<""> {
