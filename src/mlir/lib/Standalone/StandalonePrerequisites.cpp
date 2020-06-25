@@ -109,6 +109,8 @@ LLVMFuncOp f_sqlite3BtreeEof;
 LLVMFuncOp f_sqlite3BtreePrevious;
 LLVMFuncOp f_sqlite3VdbeMemCast;
 LLVMFuncOp f_sqlite3BtreeGetMeta;
+LLVMFuncOp f_sqlite3VdbeMemSetStr;
+// Step 1
 
 LLVMFuncOp f_memCpy;
 
@@ -210,6 +212,9 @@ public:
     DECLARE_FUNCTION(sqlite3BtreePrevious);
     DECLARE_FUNCTION(sqlite3VdbeMemCast);
     DECLARE_FUNCTION(sqlite3BtreeGetMeta);
+    DECLARE_FUNCTION(sqlite3VdbeMemSetStr);
+
+    // Step 2
 
     DECLARE_FUNCTION(memCpy);
 
@@ -1347,6 +1352,22 @@ void Prerequisites::generateReferenceTosqlite3BtreeGetMeta(ModuleOp m, LLVMDiale
     GENERATE_SYMBOL(f_sqlite3BtreeGetMeta, sqlite3BtreeGetMeta, "sqlite3BtreeGetMeta");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeMemSetStr(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::sqlite3_valuePtrTy,
+                T::i8PtrTy,
+                T::i32Ty,
+                T::i8Ty,
+                T::i8PtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemSetStr, sqlite3VdbeMemSetStr, "sqlite3VdbeMemSetStr");
+}
+
+
+// Step 4
+
 #undef GENERATE_SYMBOL
 #define CALL_SYMBOL_GENERATOR(f) generateReferenceTo##f(m, d)
 
@@ -1440,6 +1461,9 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3BtreePrevious);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemCast);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeGetMeta);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemSetStr);
+
+    // Step 3
 
     CALL_SYMBOL_GENERATOR(memCpy);
 

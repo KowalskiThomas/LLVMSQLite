@@ -31,7 +31,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.If", false },
     { "standalone.IfNot", false },
     { "standalone.IfNotZero", false },
-    { "standalone.IfNullRow", true },
+    { "standalone.IfNullRow", false },
     { "standalone.IfPos", false },
     { "standalone.Init", false },
     { "standalone.IsNull", false },
@@ -43,7 +43,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Next", false },
     { "standalone.Noop", false },
     { "standalone.NotFound", false },
-    { "standalone.NotNull", true },
+    { "standalone.NotNull", false },
     { "standalone.Null", false },
     { "standalone.Once", false },
     { "standalone.OpenEphemeral", false },
@@ -72,12 +72,12 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.NullRow", false },
 
     { "standalone.Cast", false },
-    { "standalone.ReadCookie", false },  // TODO: Implement
+    { "standalone.ReadCookie", false },
     { "standalone.SetCookie", true },  // TODO: Implement
     { "standalone.DropTable", true },  // TODO: Implement
     { "standalone.OpenWrite", true },  // TODO: Implement
-    { "standalone.NewRowid", true },  // TODO: Implement
-    { "standalone.Blob", true },  // TODO: Implement
+    { "standalone.NewRowid", true }, // TODO: Implement
+    { "standalone.Blob", false },
     { "standalone.Insert", true },  // TODO: Implement
     { "standalone.Close", true },  // TODO: Implement
     { "standalone.OpenWrite", true },  // TODO: Implement
