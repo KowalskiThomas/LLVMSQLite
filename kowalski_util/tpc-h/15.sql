@@ -1,22 +1,27 @@
-drop view if exists revenue{stream_id};
-create view revenue{stream_id} (supplier_no, total_revenue) as
-select l_suppkey,
-    sum(l_extendedprice * (1 - l_discount))
-from lineitem
-where l_shipdate >= date('{date}')
-    and l_shipdate < date('{date}', '+3 month')
-group by l_suppkey;
 select s_suppkey,
     s_name,
     s_address,
     s_phone,
     total_revenue
 from supplier,
-    revenue{stream_id}
+    (
+        select l_suppkey as supplier_no,
+            sum(l_extendedprice * (1 - l_discount)) as total_revenue
+        from lineitem
+        where l_shipdate >= date('{date}')
+            and l_shipdate < date('{date}', '+3 month')
+        group by l_suppkey
+    )
 where s_suppkey = supplier_no
     and total_revenue = (
         select max(total_revenue)
-        from revenue{stream_id}
+        from (
+            select l_suppkey as supplier_no,
+                sum(l_extendedprice * (1 - l_discount)) as total_revenue
+            from lineitem
+            where l_shipdate >= date('1997-04-03')
+                and l_shipdate < date('1997-04-03', '+3 month')
+            group by l_suppkey
+        )
     )
 order by s_suppkey;
-drop view revenue{stream_id};
