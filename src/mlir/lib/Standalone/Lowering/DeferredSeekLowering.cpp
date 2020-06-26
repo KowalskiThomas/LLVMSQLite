@@ -4,6 +4,7 @@
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
 #include "Standalone/Lowering/OutToPrerelease.h"
+#include "Standalone/Lowering/MemSetNull.h"
 
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
@@ -22,6 +23,7 @@ namespace mlir::standalone::passes {
         MyBuilder builder(ctx, constants, rewriter);
         MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
         Printer print(ctx, rewriter, __FILE_NAME__);
+        Inlining::MemSetNull memSetNull(*vdbeCtx, *ctx, rewriter, print, constants);
         myOperators
 
         auto firstBlock = rewriter.getBlock();
@@ -110,7 +112,8 @@ namespace mlir::standalone::passes {
             ip_start(blockNotNullRowNull);
 
             auto mem = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, curToMove);
-            call(LOC, f_sqlite3VdbeMemSetNull, mem);
+            memSetNull(LOC, mem);
+            // call(LOC, f_sqlite3VdbeMemSetNull, mem);
 
             branch(LOC, blockAfterNullRowNull);
         } // end else of if (!pC->nullRow)

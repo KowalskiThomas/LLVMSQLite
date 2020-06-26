@@ -3,6 +3,7 @@
 #include "Standalone/Lowering/NumericType.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
+#include "Standalone/Lowering/MemSetNull.h"
 
 #include "Standalone/StandalonePasses.h"
 
@@ -25,6 +26,7 @@ namespace mlir::standalone::passes {
         MyBuilder builder(ctx, constants, rewriter);
         MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
         Printer print(ctx, rewriter, __FILE_NAME__);
+        Inlining::MemSetNull memSetNull(*vdbeCtx, *ctx, rewriter, print, constants);
         myOperators
 
         auto pc = mathOp.pcAttr().getUInt();
@@ -362,7 +364,8 @@ namespace mlir::standalone::passes {
             ip_start(blockResultIsNull);
 
             print(LOCL, "Arithmetic: Result is NULL");
-            call(LOC, f_sqlite3VdbeMemSetNull, pOut);
+            memSetNull(LOC, pOut);
+            // call(LOC, f_sqlite3VdbeMemSetNull, pOut);
 
             branch(LOC, endBlock);
         } // end arithmetic_result_is_null:

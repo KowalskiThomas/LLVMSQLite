@@ -118,6 +118,7 @@ LLVMFuncOp f_sqlite3VdbeMemIntegerify;
 LLVMFuncOp f_sqlite3_randomness;
 LLVMFuncOp f_sqlite3AtoF;
 LLVMFuncOp f_sqlite3VdbeIntegerAffinity;
+LLVMFuncOp f_vdbeMemClearExternAndSetNull;
 
 // Step 1
 
@@ -230,6 +231,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeMemIntegerify);
     DECLARE_FUNCTION(sqlite3_randomness);
     DECLARE_FUNCTION(sqlite3VdbeIntegerAffinity);
+    DECLARE_FUNCTION(vdbeMemClearExternAndSetNull);
 
     // Step 2
 
@@ -1471,6 +1473,19 @@ void Prerequisites::generateReferenceTosqlite3VdbeIntegerAffinity(ModuleOp m, LL
     GENERATE_SYMBOL(f_sqlite3VdbeIntegerAffinity, sqlite3VdbeIntegerAffinity, "sqlite3VdbeIntegerAffinity");
 }
 
+extern "C" {
+void vdbeMemClearExternAndSetNull(Mem *p);
+}
+
+void Prerequisites::generateReferenceTovdbeMemClearExternAndSetNull(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::voidTy, {
+                T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_vdbeMemClearExternAndSetNull, vdbeMemClearExternAndSetNull, "vdbeMemClearExternAndSetNull");
+}
+
 // Step 4
 
 #undef GENERATE_SYMBOL
@@ -1575,6 +1590,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3_randomness);
     CALL_SYMBOL_GENERATOR(sqlite3AtoF);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeIntegerAffinity);
+    CALL_SYMBOL_GENERATOR(vdbeMemClearExternAndSetNull);
 
     // Step 3
 

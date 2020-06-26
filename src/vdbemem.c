@@ -483,7 +483,7 @@ int sqlite3VdbeMemAggValue(Mem *pAccum, Mem *pOut, FuncDef *pFunc){
 ** for sqlite3VdbeMemRelease().  Use those other routines as the
 ** entry point for releasing Mem resources.
 */
-static SQLITE_NOINLINE void vdbeMemClearExternAndSetNull(Mem *p){
+SQLITE_NOINLINE void vdbeMemClearExternAndSetNull(Mem *p){
   assert( p->db==0 || sqlite3_mutex_held(p->db->mutex) );
   assert( VdbeMemDynamic(p) );
   if( p->flags&MEM_Agg ){

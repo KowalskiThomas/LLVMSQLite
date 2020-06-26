@@ -19,16 +19,15 @@ namespace mlir::standalone::passes::Inlining {
      * Mem *applyNumericAffinity(Mem*, int);
      * ```
      */
-    struct ApplyNumericAffinity {
+    struct MemSetNull {
         Printer& printer;
         ConstantManager& constantManager;
         MLIRContext& mlirContext;
         OpBuilder& rewriter;
         VdbeContext& vdbeCtx;
 
-        ApplyNumericAffinity(VdbeContext&, MLIRContext&, OpBuilder&, Printer&, ConstantManager&);
+        MemSetNull(VdbeContext&, MLIRContext&, OpBuilder&, Printer&, ConstantManager&);
 
-        Value operator()(Location, Value, Value);
-        Value alsoAnInt(Location loc, Value pRec, Value rValue, Value out);
+        Value operator()(Location, Value pMem);
     };
 }

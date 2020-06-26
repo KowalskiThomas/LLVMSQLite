@@ -3,6 +3,7 @@
 #include "Standalone/Lowering/OutToPrerelease.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
+#include "Standalone/Lowering/MemSetNull.h"
 
 #include "Standalone/StandalonePasses.h"
 
@@ -17,6 +18,7 @@ namespace mlir::standalone::passes {
         MyBuilder builder(ctx, constants, rewriter);
         MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
         Printer print(ctx, rewriter, __FILE_NAME__);
+        Inlining::MemSetNull memSetNull(*vdbeCtx, *ctx, rewriter, print, constants);
         myOperators
 
         auto firstBlock = rewriter.getBlock();
@@ -33,6 +35,7 @@ namespace mlir::standalone::passes {
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(nullOp); GO_BACK_TO(curBlock);
+        auto midBlock = SPLIT_GO_BACK_TO(curBlock);
 
         /// pOut = out2Prerelease(p, pOp);
         auto outToPrerelease = Inlining::OutToPrerelease(*vdbeCtx,context, rewriter, print, constants);
@@ -42,8 +45,8 @@ namespace mlir::standalone::passes {
         /// cnt = pOp->p3 - pOp->p2;
         auto cnt = lastReg - firstReg;
 
-        branch(LOC, endBlock);
-        rewriter.setInsertionPointToStart(endBlock);
+        branch(LOC, midBlock);
+        ip_start(midBlock);
 
         /// pOut->flags = nullFlag = pOp->p1 ? (MEM_Null | MEM_Cleared) : MEM_Null;
         auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
@@ -60,7 +63,8 @@ namespace mlir::standalone::passes {
             pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, pOut, 1);
 
             /// sqlite3VdbeMemSetNull(pOut);
-            call(LOC, f_sqlite3VdbeMemSetNull, pOut);
+            memSetNull(LOC, pOut);
+            // call(LOC, f_sqlite3VdbeMemSetNull, pOut);
 
             /// pOut->flags = nullFlag;
             auto flagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
@@ -73,6 +77,8 @@ namespace mlir::standalone::passes {
             cnt--;
         }
 
+        branch(LOC, endBlock);
+        ip_start(endBlock);
         rewriter.eraseOp(nullOp);
 
         return success();

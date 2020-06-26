@@ -3,6 +3,7 @@
 #include "Standalone/Lowering/MyBuilder.h"
 #include "Standalone/Lowering/GetVarint32Operator.h"
 #include "Standalone/Lowering/Printer.h"
+#include "Standalone/Lowering/MemSetNull.h"
 #include "Standalone/StandalonePasses.h"
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
@@ -48,6 +49,7 @@ namespace mlir::standalone::passes {
         GetVarint32Operator generate_getVarint32(rewriter, constants, ctx);
         Printer print(ctx, rewriter, __FILE_NAME__);
         MyBuilder builder(ctx, constants, rewriter);
+        Inlining::MemSetNull memSetNull(*vdbeCtx, *ctx, rewriter, print, constants);
         myOperators
 
         print(LOCL, "-- Column");
@@ -421,9 +423,10 @@ namespace mlir::standalone::passes {
                     rewriter.setInsertionPointToStart(blockNotCurTypePseudo);
                     // print(LOCL, "NOT pC->eCurType == CURTYPE_PSEUDO");
 
-                    rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange{
-                        pDest
-                    });
+                    memSetNull(LOC, pDest);
+                    //rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange{
+                    //    pDest
+                    //});
 
                     rewriter.create<BranchOp>(LOC, blockColumnEnd);
                 } // end else of if pC->eCurType == CURTYPE_PSEUDO
@@ -1020,9 +1023,10 @@ namespace mlir::standalone::passes {
                         rewriter.setInsertionPointToStart(blockP4IsNotMem);
 
                         /// sqlite3VdbeMemSetNull(pDest);
-                        rewriter.create<mlir::LLVM::CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange {
-                            pDest
-                        });
+                        memSetNull(LOC, pDest);
+                        //rewriter.create<mlir::LLVM::CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange {
+                        //    pDest
+                        //});
 
                         /// goto op_column_out;
                         rewriter.create<mlir::BranchOp>(LOC, blockColumnEnd);
@@ -1084,7 +1088,8 @@ namespace mlir::standalone::passes {
                 rewriter.setInsertionPointToStart(blockVdbeMemDynamic);
 
                 /// sqlite3VdbeMemSetNull(pDest);
-                rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange{pDest});
+                memSetNull(LOC, pDest);
+                // rewriter.create<CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange{pDest});
 
                 rewriter.create<BranchOp>(LOC, blockAfterVdbeMemDynamic);
             } // end if (VdbeMemDynamic(pDest))
