@@ -227,11 +227,10 @@ namespace mlir::standalone::passes {
         } // end if (pTab)
 
         ip_start(blockAfterPTabNotNull);
-
-
         branch(LOC, endBlock);
-
         ip_start(endBlock);
+
+        restoreStack(LOC, stackState);
         rewriter.eraseOp(txnOp);
 
         return success();

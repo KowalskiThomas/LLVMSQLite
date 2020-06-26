@@ -114,6 +114,8 @@ LLVMFuncOp f_sqlite3VdbeFreeCursor;
 LLVMFuncOp f_sqlite3BtreeUpdateMeta;
 LLVMFuncOp f_sqlite3ExpirePreparedStatements;
 LLVMFuncOp f_sqlite3UnlinkAndDeleteTable;
+LLVMFuncOp f_sqlite3VdbeMemIntegerify;
+LLVMFuncOp f_sqlite3_randomness;
 
 // Step 1
 
@@ -222,6 +224,8 @@ public:
     DECLARE_FUNCTION(sqlite3BtreeUpdateMeta);
     DECLARE_FUNCTION(sqlite3ExpirePreparedStatements);
     DECLARE_FUNCTION(sqlite3UnlinkAndDeleteTable);
+    DECLARE_FUNCTION(sqlite3VdbeMemIntegerify);
+    DECLARE_FUNCTION(sqlite3_randomness);
 
     // Step 2
 
@@ -1416,6 +1420,32 @@ void Prerequisites::generateReferenceTosqlite3UnlinkAndDeleteTable(ModuleOp m, L
     GENERATE_SYMBOL(f_sqlite3UnlinkAndDeleteTable, sqlite3UnlinkAndDeleteTable, "sqlite3UnlinkAndDeleteTable");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeMemIntegerify(ModuleOp m, LLVMDialect* d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::voidTy, {
+            T::sqlite3_valuePtrTy
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemIntegerify, sqlite3VdbeMemIntegerify, "sqlite3VdbeMemIntegerify");
+}
+
+#define temp sqlite3_randomness
+#undef sqlite3_randomness
+extern "C" {
+void sqlite3_randomness(int N, void *pBuf);
+}
+
+void Prerequisites::generateReferenceTosqlite3_randomness(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::voidTy, {
+            T::i32Ty,
+            T::i8PtrTy
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3_randomness, sqlite3_randomness, "sqlite3_randomness");
+}
+#define sqlite3_randomness temp
+
 // Step 4
 
 #undef GENERATE_SYMBOL
@@ -1516,6 +1546,8 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3BtreeUpdateMeta);
     CALL_SYMBOL_GENERATOR(sqlite3ExpirePreparedStatements);
     CALL_SYMBOL_GENERATOR(sqlite3UnlinkAndDeleteTable);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemIntegerify);
+    CALL_SYMBOL_GENERATOR(sqlite3_randomness);
 
     // Step 3
 
