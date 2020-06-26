@@ -1,5 +1,6 @@
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
+#include "Standalone/Lowering/ApplyNumericAffinity.h"
 #include "Standalone/AllIncludes.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
@@ -8,7 +9,7 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
-ExternFuncOp f_applyNumericAffinity;
+// ExternFuncOp f_applyNumericAffinity;
 ExternFuncOp f_sqlite3VdbeMemStringify;
 ExternFuncOp f_sqlite3MemCompare;
 
@@ -22,6 +23,7 @@ namespace mlir::standalone::passes {
         MyBuilder builder(ctx, constants, rewriter);
         MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
         Printer print(ctx, rewriter, __FILE_NAME__);
+        Inlining::ApplyNumericAffinity applyNumericAffinity(*vdbeCtx, *ctx, rewriter, print, constants);
         myOperators
 
         auto firstBlock = rewriter.getBlock();
@@ -191,10 +193,11 @@ namespace mlir::standalone::passes {
                         ip_start(blockIn1IsString);
 
                         /// applyNumericAffinity(pIn1, 0);
-                        call(LOC, f_applyNumericAffinity,
+                        applyNumericAffinity(LOC, pIn1, constants(0, 32));
+                        /*call(LOC, f_applyNumericAffinity,
                              pIn1,
                              constants(0, 32)
-                        );
+                        );*/
 
                         /// flags3 = pIn3->flags;
                         auto newFlags3 = load(LOC, in3FlagsAddr);
@@ -220,10 +223,11 @@ namespace mlir::standalone::passes {
                         ip_start(blockIn3IsString);
 
                         /// applyNumericAffinity(pIn3, 0);
-                        call(LOC, f_applyNumericAffinity,
-                             pIn1,
+                        applyNumericAffinity(LOC, pIn3, constants(0, 32));
+                        /*call(LOC, f_applyNumericAffinity,
+                             pIn3,
                              constants(0, 32)
-                        );
+                        );*/
 
                         branch(LOC, blockAfterIn3IsString);
                     } // end if ((flags3 & (MEM_Int | MEM_IntReal | MEM_Real | MEM_Str)) == MEM_Str)

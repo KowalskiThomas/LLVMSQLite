@@ -116,6 +116,8 @@ LLVMFuncOp f_sqlite3ExpirePreparedStatements;
 LLVMFuncOp f_sqlite3UnlinkAndDeleteTable;
 LLVMFuncOp f_sqlite3VdbeMemIntegerify;
 LLVMFuncOp f_sqlite3_randomness;
+LLVMFuncOp f_sqlite3AtoF;
+LLVMFuncOp f_sqlite3VdbeIntegerAffinity;
 
 // Step 1
 
@@ -187,6 +189,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeRealValue);
     DECLARE_FUNCTION(sqlite3IsNaN);
     DECLARE_FUNCTION(applyNumericAffinity);
+    DECLARE_FUNCTION(sqlite3AtoF);
     DECLARE_FUNCTION(sqlite3VdbeMemStringify);
     DECLARE_FUNCTION(sqlite3VdbeMemTooBig);
     DECLARE_FUNCTION(sqlite3VdbeBooleanValue);
@@ -226,6 +229,7 @@ public:
     DECLARE_FUNCTION(sqlite3UnlinkAndDeleteTable);
     DECLARE_FUNCTION(sqlite3VdbeMemIntegerify);
     DECLARE_FUNCTION(sqlite3_randomness);
+    DECLARE_FUNCTION(sqlite3VdbeIntegerAffinity);
 
     // Step 2
 
@@ -1446,6 +1450,27 @@ void Prerequisites::generateReferenceTosqlite3_randomness(ModuleOp m, LLVMDialec
 }
 #define sqlite3_randomness temp
 
+void Prerequisites::generateReferenceTosqlite3AtoF(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::i8PtrTy,
+                T::doublePtrTy,
+                T::i32Ty,
+                T::i8Ty
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3AtoF, sqlite3AtoF, "sqlite3AtoF");
+}
+
+void Prerequisites::generateReferenceTosqlite3VdbeIntegerAffinity(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::voidTy, {
+                T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeIntegerAffinity, sqlite3VdbeIntegerAffinity, "sqlite3VdbeIntegerAffinity");
+}
+
 // Step 4
 
 #undef GENERATE_SYMBOL
@@ -1548,6 +1573,8 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3UnlinkAndDeleteTable);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemIntegerify);
     CALL_SYMBOL_GENERATOR(sqlite3_randomness);
+    CALL_SYMBOL_GENERATOR(sqlite3AtoF);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeIntegerAffinity);
 
     // Step 3
 

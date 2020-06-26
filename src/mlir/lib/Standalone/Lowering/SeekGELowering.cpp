@@ -1,5 +1,6 @@
 #include "Standalone/ConstantManager.h"
 #include "Standalone/Lowering/MyBuilder.h"
+#include "Standalone/Lowering/ApplyNumericAffinity.h"
 #include "Standalone/AllIncludes.h"
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
@@ -26,6 +27,7 @@ namespace mlir::standalone::passes {
         MyBuilder builder(ctx, constants, rewriter);
         MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
         Printer print(ctx, rewriter, __FILE_NAME__);
+        Inlining::ApplyNumericAffinity applyNumericAffinity(*vdbeCtx, *ctx, rewriter, print, constants);
         myOperators
 
         auto pc = skOp.pcAttr().getSInt();
@@ -114,7 +116,7 @@ namespace mlir::standalone::passes {
                 ip_start(blockApplyNumericAff);
 
                 /// applyNumericAffinity(pIn3, 0);
-                call(LOC, f_applyNumericAffinity, pIn3, constants(0, 32));
+                applyNumericAffinity(LOC, pIn3, constants(0, 32));
 
                 branch(LOC, blockAfterApplyNumericAff);
             } // end if ((flags3 & (MEM_Int | MEM_Real | MEM_IntReal | MEM_Str)) == MEM_Str)

@@ -6,6 +6,7 @@ set(LOWERING_FILES
     Lowering/Operators/GetVarint32.cpp
     Lowering/Operators/NumericType.cpp
     Lowering/Operators/ConstantManager.cpp
+    Lowering/Operators/ApplyNumericAffinity.cpp
 
     Lowering/AggFinalLowering.cpp
     Lowering/AggStepLowering.cpp
