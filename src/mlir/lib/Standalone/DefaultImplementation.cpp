@@ -48,7 +48,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Once", false },
     { "standalone.OpenEphemeral", false },
     { "standalone.OpenPseudo", false },
-    { "standalone.OpenRead", true }, // TODO: Implement OP_OpenWrite
+    { "standalone.OpenRead", false },
     { "standalone.Real", false },
     { "standalone.ResultRow", false },
     { "standalone.Return", false },

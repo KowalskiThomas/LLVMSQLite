@@ -282,7 +282,9 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                 newWriteBranchOut = false;
                 break;
             }
-            case OP_OpenWrite:
+            case OP_OpenWrite: {
+                llvm_unreachable("OpenWrite is not implemented.");
+            }
             case OP_OpenRead: {
                 auto curIdx = op.p1;
                 auto rootPage = op.p2;
