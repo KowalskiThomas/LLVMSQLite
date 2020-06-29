@@ -26,6 +26,10 @@ char enableJit = -1;
 int jitVdbeStep(Vdbe *);
 
 int sqlite3VdbeExec(Vdbe *p) {
+#ifdef VTUNE
+    __itt_resume();
+#endif
+
     static Vdbe* lastVdbe = nullptr;
     static auto initialTick = decltype(system_clock::now()){};
     if (lastVdbe != p) {
@@ -90,7 +94,9 @@ int sqlite3VdbeExec(Vdbe *p) {
         lastVdbe = nullptr;
     }
 
-
+#ifdef VTUNE
+    __itt_pause();
+#endif
     return step_return;
 }
 
