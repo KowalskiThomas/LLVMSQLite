@@ -103,9 +103,11 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         auto db = load(LOC, dbAddr);
         vdbeCtx->db = db;
 
-        if (false) { // TODO: Remove this testing code
+#ifdef LLVMSQLITE_DEBUG
+        {
             // The code in this scope allows us to check that the offsets we assume in the structs
-            // are indeed the right ones. Otherwise, the code will behave very weirdly. 
+            // are indeed the right ones. Otherwise, the code will behave very weirdly.
+            // Ideally, it should work the offsets for every possible GEP instruction ever.
             MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
 
             // Get &aOp[1]
@@ -129,6 +131,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
             myAssert(LOCL, addressesMatch);
         }
+#endif
     }
 
     // Each time we translate an instruction, we need to branch from its block to the next block
@@ -168,7 +171,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
                  || vdbe->aOp[targetPc - 1].opcode == OP_Gosub))
             ) {
             if (!anyDefaultImplUsed()) {
-                // TODO: Fix (and uncomment) this (to generate less branching)
+                // Uncomment this when you're sure it works (to generate less branching)
                 continue;
             }
         }
