@@ -127,8 +127,33 @@ namespace mlir::standalone::passes {
                     ip_start(blockNotOperandsEqual);
 
                     // res = ((flags3 & MEM_Null) ? -1 : +1);  /* Operands are not equal */
-                    print(LOCL, "TODO: res = ((flags3 & MEM_Null) ? -1 : +1);");
-                    myAssert(LOCL, constants(0, 1));
+                    auto flags3 = load(LOC, flags3Addr);
+                    auto flags3AndNull = bitAnd(LOC, flags3, MEM_Null);
+
+                    auto curBlock = rewriter.getBlock();
+                    auto blockAfterIn3IsNull = SPLIT_GO_BACK_TO(curBlock);
+                    auto blockNotIn3IsNull = SPLIT_GO_BACK_TO(curBlock);
+                    auto blockIn3IsNull = SPLIT_GO_BACK_TO(curBlock);
+
+                    auto condIn3IsNull = iCmp(LOC, Pred::ne, flags3AndNull, 0);
+
+                    condBranch(LOC, condIn3IsNull, blockIn3IsNull, blockNotIn3IsNull);
+                    { // if (flags3 & MEM_Null)
+                        ip_start(blockIn3IsNull);
+
+                        store(LOC, -1, resAddr);
+
+                        branch(LOC, blockAfterIn3IsNull);
+                    } // end if (flags3 & MEM_Null)
+                    { // else of if (flags3 & MEM_Null)
+                        ip_start(blockNotIn3IsNull);
+
+                        store(LOC, 1, resAddr);
+
+                        branch(LOC, blockAfterIn3IsNull);
+                    } // end else of if (flags3 & MEM_Null)
+
+                    ip_start(blockAfterIn3IsNull);
 
                     branch(LOC, blockAfterOperandsEqual);
                 } // end else of if ((flags1 & flags3 & MEM_Null) != 0 && (flags3 & MEM_Cleared) == 0
