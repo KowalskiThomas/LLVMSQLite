@@ -7,7 +7,11 @@ do_run = "echo" not in argv
 
 queries = [x for x in range(1, 22)]
 jit_config = ["jit", "nojit"]
-count = 1
+
+count = 5
+for i, arg in enumerate(argv):
+    if arg == "count":
+        count = int(argv[i + 1])
 
 total_line = ""
 for q in queries:

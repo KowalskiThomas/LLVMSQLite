@@ -114,6 +114,6 @@ assert len(data) > 0, "Didn't find any data points in the output. Check the valu
 data = data[1:]
 
 date = date_to_string(now())
-with open(f"Results-{'jit' if enable_jit else 'nojit'}-{query_index}-{date}.txt", 'w') as f:
+with open(f"Results-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
     f.write('\n'.join([str(x) for x in data]))
     f.write('\n')
