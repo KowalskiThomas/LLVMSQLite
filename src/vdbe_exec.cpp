@@ -1,6 +1,12 @@
-#include "vdbe_exec.h"
-#include "mlir/include/Standalone/DebugUtils.h"
 #include <chrono>
+
+#include "mlir/include/Standalone/DebugUtils.h"
+
+#ifdef VTUNE
+#include "ittnotify.h"
+#endif
+
+#include "vdbe_exec.h"
 
 #define INCONSISTENT_STATE 110
 
