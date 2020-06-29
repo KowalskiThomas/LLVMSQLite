@@ -104,20 +104,13 @@ namespace mlir::standalone::passes {
                         1   // Get &p4type
                     );
 
-                // TODO: Merge these:
-                auto p4UnionAddr = getElementPtrImm
-                    (LOC, T::p4unionPtrTy,
-                        vdbeCtx->aOp,
-                        (long long)pc,
-                        6 // Get &u
-                    );
                 auto p4UnionValueAddr = getElementPtrImm
                     (LOC, T::i8PtrTy.getPointerTo(),
-                        p4UnionAddr,
-                        0,
+                        vdbeCtx->aOp,
+                        (long long)pc,
+                        6, // Get &u
                         0
                     );
-
 
                 /// (Mem *) &(pCtx->argv[n]);
                 auto pOutValueUncasted = getElementPtrImm(LOC, T::sqlite3_valuePtrPtrTy, argvAddr, nReg);
