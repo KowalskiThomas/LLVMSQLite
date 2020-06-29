@@ -65,12 +65,10 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.SorterOpen", false },
     { "standalone.String", false },
     { "standalone.Transaction", false },
-    { "standalone.Variable", true },  // TODO: Implement
     { "standalone.Yield", false },
     { "standalone.EndCoroutine", false },
     { "standalone.InitCoroutine", false },
     { "standalone.NullRow", false },
-
     { "standalone.Cast", false },
     { "standalone.ReadCookie", false },
     { "standalone.SetCookie", false },
@@ -79,9 +77,11 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Blob", false },
     { "standalone.Insert", false },
     { "standalone.Close", false },
-    { "standalone.OpenWrite", true },  // TODO: Implement
-    { "standalone.ParseSchema", true },  // TODO: Implement
 
+    /* For later */
+    // { "standalone.Variable", true },
+    // { "standalone.OpenWrite", true },
+    // { "standalone.ParseSchema", true },
 
     { "standalone.Template", true },  // TODO: Implement
 };

@@ -196,7 +196,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 #endif
 
     // Whether this operation should have branching to the next block appended to it
-    // TODO: Remove this and use isKnownTerminator()
     bool writeBranchOut = true;
 
     // Flag to exit sqlite if we find an unsupported opcode

@@ -8,6 +8,7 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 #include "Standalone/ErrorCodes.h"
+#include "Standalone/DebugUtils.h"
 
 #ifdef ExternFuncOp
 #undef ExternFuncOp
@@ -758,16 +759,9 @@ extern "C" {
 }
 
 void Prerequisites::generateReferenceTocallXInversePtr(mlir::ModuleOp m, LLVMDialect *d) {
-    static auto calleeType = LLVMType::getFunctionTy(
-            T::voidTy, {
-                    T::sqlite3_contextPtrTy,
-                    T::i32Ty,
-                    T::sqlite3_valuePtrPtrTy
-            }, false);
-
     auto funcTy = LLVMType::getFunctionTy(
             T::voidTy, {
-                    calleeType.getPointerTo(),
+                    T::i64Ty,
                     T::sqlite3_contextPtrTy,
                     T::i32Ty,
                     T::sqlite3_valuePtrPtrTy
@@ -784,13 +778,6 @@ extern "C" {
 }
 
 void Prerequisites::generateReferenceTocallXSFuncPtr(mlir::ModuleOp m, LLVMDialect* d) {
-    static auto calleeType = LLVMType::getFunctionTy(
-            T::voidTy, {
-                    T::sqlite3_contextPtrTy,
-                    T::i32Ty,
-                    T::sqlite3_valuePtrPtrTy
-            }, false);
-
     auto funcTy = LLVMType::getFunctionTy(
             T::voidTy, {
                     T::i64Ty,

@@ -263,9 +263,11 @@ namespace mlir::standalone::passes {
             }, false);
         auto argcValue = load(LOC, argcAddr);
         if (p1) {
-            llvm_unreachable("TODO: AggStepLowering.cpp:273");
             auto xInverseAddr = getElementPtrImm(LOC, funcType.getPointerTo(), funcDefAddr, 0, 7);
-            // TODO: call(LOC, f_callXInversePtr, load(LOC, xInverseAddr), pCtxValue, argcValue, argvAddr);
+            auto xInverseAddrAsI64Ptr = bitCast(LOC, xInverseAddr, T::i64PtrTy);
+            auto xInverseFunc = load(LOC, xInverseAddrAsI64Ptr);
+            auto argcValue32 = rewriter.create<ZExtOp>(LOC, T::i32Ty, argcValue);
+            call(LOC, f_callXInversePtr, xInverseFunc, pCtxValue, argcValue32, argvAddr);
         } else {
             auto xSFuncAddr = getElementPtrImm(LOC, funcType.getPointerTo().getPointerTo(), funcDefAddr, 0, 4);
             auto xsFuncAddrAsI64Ptr = bitCast(LOC, xSFuncAddr, T::i64PtrTy);
