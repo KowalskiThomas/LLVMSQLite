@@ -2,6 +2,8 @@
 #include "mlir/include/Standalone/DebugUtils.h"
 #include <chrono>
 
+#define INCONSISTENT_STATE 110
+
 using namespace std::chrono;
 
 extern "C" {
@@ -48,10 +50,17 @@ int sqlite3VdbeExec(Vdbe *p) {
 #else
 #if ENABLE_DEFAULT && ENABLE_JIT
     int step_return;
-    if (enableJit)
+    if (enableJit == 1)
         step_return = jitVdbeStep(p);
-    else
+    else if (enableJit == 0)
         step_return = sqlite3VdbeExec2(p);
+    else if (enableJit == -1) {
+        fprintf(stderr, "Please select a mode with -jit or -nojit\n");
+        exit(INCONSISTENT_STATE);
+    } else {
+        fprintf(stderr, "enableJit has an unexpected value!\n");
+        exit(INCONSISTENT_STATE);
+    }
 #else
 #error "Nothing is enabled"
 #endif
