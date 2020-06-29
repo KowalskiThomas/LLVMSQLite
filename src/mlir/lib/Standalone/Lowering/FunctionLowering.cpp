@@ -10,6 +10,7 @@
 
 ExternFuncOp f_sqlite3_value_text;
 ExternFuncOp f_sqlite3VdbeError;
+ExternFuncOp f_sqlite3VdbeMemTooBig;
 
 namespace mlir::standalone::passes {
     LogicalResult FunctionLowering::matchAndRewrite(Function fnOp, PatternRewriter &rewriter) const {
@@ -173,7 +174,11 @@ namespace mlir::standalone::passes {
 
             call(LOC, f_sqlite3VdbeChangeEncoding, pOut, constants(vdbe->db->enc, 32));
 
-            // TODO: if (sqlite3VdbeMemTooBig(pOut)) goto too_big;
+            { // end if (sqlite3VdbeMemTooBig(pOut)) goto too_big;
+                auto tooBig = call(LOC, f_sqlite3VdbeMemTooBig, pOut).getValue();
+                auto notTooBig = iCmp(LOC, Pred::eq, tooBig, 0);
+                myAssert(LOCL, notTooBig);
+            } // if (sqlite3VdbeMemTooBig(pOut)) goto too_big;
 
             branch(LOC, blockAfterOutStrOrBlob);
          } // end if (pOut->flags & (MEM_Str | MEM_Blob)
