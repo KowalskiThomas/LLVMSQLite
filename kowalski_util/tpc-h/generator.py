@@ -1,6 +1,8 @@
+import os
 import sys
 import random
 import datetime
+from typing import Union
 
 import static_data as data
 from static_data import types as q_types
@@ -34,17 +36,6 @@ def output(sql: str):
     else:
         with open(out_file_name, 'w') as f:
             f.write(sql)
-
-
-query_number = get_arg("query", None)
-query_count = int(get_arg("query-count", 1))
-
-queries = list()
-if query_number is not None:
-    queries = [query_number] * query_count
-else:
-    queries = [random.choice(list(q_types.keys())) for _ in range(query_count)]
-
 
 def generate_int(info):
     min = info["min"]
@@ -154,16 +145,37 @@ def generate_dict(cons):
     return parameters
 
 
-result = ""
-for query_number in queries:
-    constraints = q_types[query_number]
+def generate_query(number: Union[str, int]):
+    if isinstance(number, int):
+        number = str(number)
+    assert os.path.isfile(f"{number}.sql"), f"Couldn't find template for Query {number}"
+
+    constraints = q_types[number]
     parameter_dict = generate_dict(constraints)
 
-    with open(f"{query_number}.sql") as f:
+    with open(f"{number}.sql") as f:
         sql = f.read()
 
     sql = sql.format(**parameter_dict)
-    sql = sql.replace("\n", "    ")
-    result += sql
+    return sql
 
-output(result)
+
+def main():
+    query_number = get_arg("query", None)
+    query_count = int(get_arg("query-count", 1))
+
+    if query_number is not None:
+        queries = [query_number] * query_count
+    else:
+        queries = [random.choice(list(q_types.keys())) for _ in range(query_count)]
+
+    result = ""
+    for query_number in queries:
+        sql = generate_query(query_number)
+        sql = sql.replace("\n", "    ")
+        result += sql
+
+    output(result)
+
+if __name__ == '__main__':
+    main()
