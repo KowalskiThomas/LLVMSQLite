@@ -504,8 +504,18 @@ namespace mlir::standalone::passes {
 
             if ((pOp->p5 & SQLITE_KEEPNULL) != 0) {
                 /// if ((pOp->opcode == OP_Eq) == res2) break;
-                print(LOCL, "TODO: Implement Line 2193");
-                myAssert(LOCL, constants(0, 1));
+                auto res2 = load(LOC, res2Addr);
+                if (pOp->opcode == OP_Eq) {
+                    auto res2NotNull = iCmp(LOC, Pred::ne, res2, 0);
+                    auto curBlock = rewriter.getBlock();
+                    auto blockAfter = SPLIT_GO_BACK_TO(curBlock);
+                    condBranch(LOC, res2NotNull, endBlock, blockAfter);
+                } else {
+                    auto res2Null = iCmp(LOC, Pred::eq, res2, 0);
+                    auto curBlock = rewriter.getBlock();
+                    auto blockAfter = SPLIT_GO_BACK_TO(curBlock);
+                    condBranch(LOC, res2Null, endBlock, blockAfter);
+                }
             }
 
             /// MemSetTypeFlag(pOut, MEM_Int);
