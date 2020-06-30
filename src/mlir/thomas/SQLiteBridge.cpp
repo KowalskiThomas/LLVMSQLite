@@ -38,6 +38,11 @@
 #include <cassert>
 #include <memory>
 
+extern "C" {
+void printTypeOf(const char*, const uint32_t, Vdbe *p, Mem *);
+}
+
+
 using namespace std::chrono;
 
 class VdbeRunner;

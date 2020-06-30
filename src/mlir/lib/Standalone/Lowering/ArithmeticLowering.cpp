@@ -15,6 +15,7 @@ ExternFuncOp f_sqlite3SubInt64;
 ExternFuncOp f_sqlite3MulInt64;
 ExternFuncOp f_sqlite3IsNaN;
 ExternFuncOp f_sqlite3VdbeIntValue;
+ExternFuncOp f_printTypeOf;
 
 namespace mlir::standalone::passes {
     LogicalResult ArithmeticLowering::matchAndRewrite(Arithmetic mathOp, PatternRewriter &rewriter) const {
@@ -69,6 +70,9 @@ namespace mlir::standalone::passes {
 
         /// pIn2 = &aMem[pOp->p2];
         auto pIn2 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p2);
+
+        call(LOC, f_printTypeOf, constants(T::i8PtrTy, __FILE_NAME__), constants(__LINE__, 32), vdbeCtx->p, pIn1);
+        call(LOC, f_printTypeOf, constants(T::i8PtrTy, __FILE_NAME__), constants(__LINE__, 32), vdbeCtx->p, pIn2);
 
         /// type2 = numericType(pIn2);
         // auto type2 = call(LOC, f_numericType, pIn2).getValue();
@@ -357,6 +361,9 @@ namespace mlir::standalone::passes {
         branch(LOC, endBlock);
 
         ip_start(endBlock);
+
+        // call(LOC, f_printTypeOf, constants(T::i8PtrTy, __FILE_NAME__), constants(__LINE__, 32), vdbeCtx->p, pIn1);
+        // call(LOC, f_printTypeOf, constants(T::i8PtrTy, __FILE_NAME__), constants(__LINE__, 32), vdbeCtx->p, pIn2);
         restoreStack(LOC, stackState);
         rewriter.eraseOp(mathOp);
 

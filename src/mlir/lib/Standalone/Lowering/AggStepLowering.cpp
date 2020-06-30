@@ -324,7 +324,8 @@ namespace mlir::standalone::passes {
             { // if (pCtx->skipFlag)
                 ip_start(blockSkipFlagNN);
 
-                LLVMSQLITE_ASSERT(pOp[-1].opcode == OP_CollSeq);
+                /// assert(pOp[-1].opcode == OP_CollSeq);
+                myAssert(LOCL,constants(pOp[-1].opcode == OP_CollSeq));
 
                 /// i = pOp[-1].p1
                 auto newIValue = pOp[-1].p1;

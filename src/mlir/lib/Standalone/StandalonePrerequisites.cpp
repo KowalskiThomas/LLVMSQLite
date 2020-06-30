@@ -10,6 +10,8 @@
 #include "Standalone/ErrorCodes.h"
 #include "Standalone/DebugUtils.h"
 
+#include <unordered_set>
+
 #ifdef ExternFuncOp
 #undef ExternFuncOp
 #endif
@@ -120,6 +122,7 @@ LLVMFuncOp f_sqlite3_randomness;
 LLVMFuncOp f_sqlite3AtoF;
 LLVMFuncOp f_sqlite3VdbeIntegerAffinity;
 LLVMFuncOp f_vdbeMemClearExternAndSetNull;
+LLVMFuncOp f_printTypeOf;
 
 // Step 1
 
@@ -233,6 +236,7 @@ public:
     DECLARE_FUNCTION(sqlite3_randomness);
     DECLARE_FUNCTION(sqlite3VdbeIntegerAffinity);
     DECLARE_FUNCTION(vdbeMemClearExternAndSetNull);
+    DECLARE_FUNCTION(printTypeOf);
 
     // Step 2
 
@@ -1473,6 +1477,70 @@ void Prerequisites::generateReferenceTovdbeMemClearExternAndSetNull(ModuleOp m, 
     GENERATE_SYMBOL(f_vdbeMemClearExternAndSetNull, vdbeMemClearExternAndSetNull, "vdbeMemClearExternAndSetNull");
 }
 
+
+extern "C" {
+void printTypeOf(const char* fileName, const uint32_t line, Vdbe* p, sqlite3_value* pMem) {
+    static Vdbe* lastVdbe = nullptr;
+    static std::unordered_map<int, std::string> types;
+    static std::unordered_set<int> printed;
+    if (p != lastVdbe) {
+        lastVdbe = p;
+        types.clear();
+        printed.clear();
+    }
+
+    auto flag = pMem->flags;
+    std::string memType;
+    if (flag & MEM_Int) {
+        memType = "Int";
+    } else if (flag & MEM_Real) {
+        memType = "Real";
+    } else if (flag & MEM_IntReal) {
+        memType = "IntReal";
+    } else if (flag & MEM_Null) {
+        memType = "Null";
+    } else if (flag & MEM_Str) {
+        memType = "String";
+    } else if (flag & MEM_Blob) {
+        memType = "Blob";
+    } else if (flag & MEM_Undefined) {
+        memType = "Undefined";
+    } else {
+        memType = "Unknown " + std::to_string(flag);
+    }
+
+    auto memIndex = pMem - p->aMem;
+
+    // if (printed.find(memIndex) == printed.cend())
+    //     out("Register " << memIndex << " type: " << memType);
+
+    if (types.find(memIndex) != types.cend()) {
+        auto lastType = types[memIndex];
+        LLVMSQLITE_ASSERT(
+                lastType == memType // Current type is the same as the old one
+                    || memType == "Null" || memType == "Undefined" // Current row is undefined / null
+                    || lastType == "Real" && (memType == "IntReal" || memType == "Int") // Last type was Real, current is Numeric
+                    || lastType == "Int" && (memType == "Real" || memType == "IntReal") // Last type was Int, current is Numeric
+                    || lastType == "IntReal" && (memType == "Real" || memType == "Int")); // Last type was IntReal, current is Numeric
+    } else {
+        printed.emplace(memIndex);
+        types.try_emplace(memIndex, memType);
+    }
+}
+}
+
+void Prerequisites::generateReferenceToprintTypeOf(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::voidTy, {
+                T::i8PtrTy,
+                T::i32Ty,
+                T::VdbePtrTy,
+                T::sqlite3_valuePtrTy
+            }, false);
+
+    GENERATE_SYMBOL(f_printTypeOf, printTypeOf, "printTypeOf");
+}
+
 // Step 4
 
 #undef GENERATE_SYMBOL
@@ -1578,6 +1646,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3AtoF);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeIntegerAffinity);
     CALL_SYMBOL_GENERATOR(vdbeMemClearExternAndSetNull);
+    CALL_SYMBOL_GENERATOR(printTypeOf);
 
     // Step 3
 

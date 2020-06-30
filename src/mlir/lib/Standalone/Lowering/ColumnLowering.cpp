@@ -11,6 +11,8 @@
 
 ExternFuncOp f_sqlite3BtreeCursorIsValid;
 ExternFuncOp f_sqlite3VdbeExec2;
+ExternFuncOp f_printTypeOf;
+
 extern int64_t maxVdbeSteps;
 
 static const u8 sqlite3SmallTypeSizes[] = {
@@ -632,7 +634,7 @@ namespace mlir::standalone::passes {
                         rewriter.setInsertionPointToStart(blockRowIsNull);
                         print(LOCL, "TODO: memset(&sMem, 0, sizeof(sMem));");
                         // TODO: memset(&sMem, 0, sizeof(sMem));
-                        // TODO: Lines 144-147
+                        /// and lines 144-147
                         rewriter.create<BranchOp>(LOC, blockAfterRowIsNull);
                     } // end of if (pC->aRow == 0)
                     { // else of if (pC->aRow == 0)
@@ -1417,6 +1419,7 @@ namespace mlir::standalone::passes {
         } // End after cacheStatus != cacheCtr
 
         rewriter.setInsertionPointToStart(blockColumnEnd);
+        call(LOC, f_printTypeOf, constants(T::i8PtrTy, __FILE_NAME__), constants(__LINE__, 32), vdbeCtx->p, pDest);
         rewriter.create<mlir::LLVM::StackRestoreOp>(LOC, stackState);
         rewriter.eraseOp(colOp);
         return success();

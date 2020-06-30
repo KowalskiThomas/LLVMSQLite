@@ -1,6 +1,10 @@
 #include <chrono>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "mlir/include/Standalone/DebugUtils.h"
+
 
 #ifdef VTUNE
 #include "ittnotify.h"
