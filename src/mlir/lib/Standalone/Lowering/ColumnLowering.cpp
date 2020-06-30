@@ -1419,7 +1419,7 @@ namespace mlir::standalone::passes {
         } // End after cacheStatus != cacheCtr
 
         rewriter.setInsertionPointToStart(blockColumnEnd);
-        call(LOC, f_printTypeOf, constants(T::i8PtrTy, __FILE_NAME__), constants(__LINE__, 32), vdbeCtx->p, pDest);
+        // call(LOC, f_printTypeOf, constants(T::i8PtrTy, __FILE_NAME__), constants(__LINE__, 32), vdbeCtx->p, pDest);
         rewriter.create<mlir::LLVM::StackRestoreOp>(LOC, stackState);
         rewriter.eraseOp(colOp);
         return success();

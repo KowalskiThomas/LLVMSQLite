@@ -1831,7 +1831,7 @@ void sqlite3VdbeLeave(Vdbe *p){
 }
 #endif
 
-#if defined(VDBE_PROFILE) || defined(SQLITE_DEBUG) || 1
+#if defined(VDBE_PROFILE) || defined(SQLITE_DEBUG)
 /*
 ** Print a single opcode.  This routine is used for debugging only.
 */
