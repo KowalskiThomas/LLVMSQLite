@@ -87,8 +87,8 @@ namespace mlir::standalone::passes {
         /// pIn3 = &aMem[pOp->p3];
         auto pIn3 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, rhs);
 
-        call(LOC, f_printTypeOf, constants(T::i8PtrTy, __FILE_NAME__), constants(__LINE__, 32), vdbeCtx->p, pIn1);
-        call(LOC, f_printTypeOf, constants(T::i8PtrTy, __FILE_NAME__), constants(__LINE__, 32), vdbeCtx->p, pIn3);
+        // call(LOC, f_printTypeOf, constants(T::i8PtrTy, __FILE_NAME__), constants(__LINE__, 32), vdbeCtx->p, pIn1);
+        // call(LOC, f_printTypeOf, constants(T::i8PtrTy, __FILE_NAME__), constants(__LINE__, 32), vdbeCtx->p, pIn3);
 
         /// u16 flags1 = pIn1->flags
         auto in1FlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn1, 0, 1);
