@@ -472,11 +472,13 @@ namespace mlir::standalone::passes {
                             );
                     myAssert(LOCL, pCrsrNotNull);
 
+#ifdef LLVMSQLITE_DEBUG
                     { // assert(sqlite3BtreeCursorIsValid(pCrsr));
                         auto isValid = rewriter.create<mlir::LLVM::CallOp>
                                 (LOC, f_sqlite3BtreeCursorIsValid, ValueRange { pCrsr }).getResult(0);
                         myAssert(LOCL, isValid);
                     } // end assert(sqlite3BtreeCursorIsValid(pCrsr));
+#endif
                 }
 
                 //// pC->payloadSize = sqlite3BtreePayloadSize(pCrsr);
