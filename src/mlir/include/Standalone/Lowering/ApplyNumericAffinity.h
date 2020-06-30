@@ -28,7 +28,7 @@ namespace mlir::standalone::passes::Inlining {
 
         ApplyNumericAffinity(VdbeContext&, MLIRContext&, OpBuilder&, Printer&, ConstantManager&);
 
-        Value operator()(Location, Value, Value);
+        void operator()(Location, Value, Value);
         Value alsoAnInt(Location loc, Value pRec, Value rValue, Value out);
     };
 }

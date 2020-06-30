@@ -31,7 +31,7 @@ namespace mlir::standalone::passes::Inlining {
         return constants(1, 1);
     }
 
-    Value ApplyNumericAffinity::operator()(Location loc, Value mem, Value bTryForInt) {
+    void ApplyNumericAffinity::operator()(Location loc, Value mem, Value bTryForInt) {
         auto& constants = constantManager;
         auto& context = mlirContext;
         auto ctx = &context;
