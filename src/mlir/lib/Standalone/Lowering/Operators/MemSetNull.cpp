@@ -24,7 +24,7 @@ namespace mlir::standalone::passes::Inlining {
     {
     }
 
-    Value MemSetNull::operator()(Location loc, Value pMem) {
+    void MemSetNull::operator()(Location loc, Value pMem) {
         auto& constants = constantManager;
         auto& context = mlirContext;
         auto ctx = &context;

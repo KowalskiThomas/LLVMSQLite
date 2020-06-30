@@ -28,6 +28,6 @@ namespace mlir::standalone::passes::Inlining {
 
         MemSetNull(VdbeContext&, MLIRContext&, OpBuilder&, Printer&, ConstantManager&);
 
-        Value operator()(Location, Value pMem);
+        void operator()(Location, Value pMem);
     };
 }
