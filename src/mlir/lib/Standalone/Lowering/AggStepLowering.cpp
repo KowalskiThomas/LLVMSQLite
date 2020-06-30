@@ -262,18 +262,15 @@ namespace mlir::standalone::passes {
                     T::sqlite3_valuePtrPtrTy
             }, false);
         auto argcValue = load(LOC, argcAddr);
+        auto argcValue32 = rewriter.create<ZExtOp>(LOC, T::i32Ty, argcValue);
         if (p1) {
             auto xInverseAddr = getElementPtrImm(LOC, funcType.getPointerTo(), funcDefAddr, 0, 7);
-            auto xInverseAddrAsI64Ptr = bitCast(LOC, xInverseAddr, T::i64PtrTy);
-            auto xInverseFunc = load(LOC, xInverseAddrAsI64Ptr);
-            auto argcValue32 = rewriter.create<ZExtOp>(LOC, T::i32Ty, argcValue);
-            call(LOC, f_callXInversePtr, xInverseFunc, pCtxValue, argcValue32, argvAddr);
+            auto xInverseFunc = load(LOC, xInverseAddr);
+            call(LOC, xInverseFunc, pCtxValue, argcValue32, argvAddr);
         } else {
             auto xSFuncAddr = getElementPtrImm(LOC, funcType.getPointerTo().getPointerTo(), funcDefAddr, 0, 4);
-            auto xsFuncAddrAsI64Ptr = bitCast(LOC, xSFuncAddr, T::i64PtrTy);
-            auto xsFunc = load(LOC, xsFuncAddrAsI64Ptr);
-            auto argcValue32 = rewriter.create<ZExtOp>(LOC, T::i32Ty, argcValue);
-            call(LOC, f_callXSFuncPtr, xsFunc, pCtxValue, argcValue32, argvAddr);
+            auto xsFunc = load(LOC, xSFuncAddr);
+            call(LOC, xsFunc, pCtxValue, argcValue32, argvAddr);
         }
 
         auto isErrorVal = load(LOC, isErrorAddr);

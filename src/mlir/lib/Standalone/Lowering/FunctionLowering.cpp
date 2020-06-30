@@ -104,16 +104,9 @@ namespace mlir::standalone::passes {
                             T::sqlite3_valuePtrPtrTy
                     }, false);
             auto xSFuncAddr = getElementPtrImm(LOC, funcType.getPointerTo().getPointerTo(), funcDefAddr, 0, 4);
-            auto xsFuncAddrAsI64Ptr = bitCast(LOC, xSFuncAddr, T::i64PtrTy);
-            auto xsFunc = load(LOC, xsFuncAddrAsI64Ptr);
-
-            call(LOC, f_callXSFuncPtr,
-                xsFunc,
-                pCtx,
-                argcValue32,
-                argvAddr
-            );
-        }
+            auto xsFunc = load(LOC, xSFuncAddr);
+            call(LOC, xsFunc, pCtx, argcValue32, argvAddr);
+        } // end (*pCtx->pFunc->xSFunc)(pCtx, pCtx->argc, pCtx->argv);
 
         auto isErrorAddr = getElementPtrImm(LOC, T::i32PtrTy, pCtx, 0, 5);
         auto isError = load(LOC, isErrorAddr);
