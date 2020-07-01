@@ -236,8 +236,9 @@ struct VdbeRunner {
                 machine->adjustPassManager(passManagerBuilder);
 
                 llvm::SMDiagnostic diag;
-                auto loadedModule = llvm::parseIRFile("test.ll", diag, llvmDialect->getLLVMContext());
-                loadedModule->dump();
+                auto loadedModule = llvm::parseIRFile("btree.ll", diag, llvmDialect->getLLVMContext());
+                loadedModule->getFunction("sqlite3BtreeNext")->setName("sqlite3BtreeNext2");
+                LLVMSQLITE_ASSERT(loadedModule != nullptr);
 
                 // Create the FunctionPassManager
                 llvm::legacy::FunctionPassManager functionPassManager(&*llvmModule);

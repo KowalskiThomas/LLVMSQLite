@@ -630,7 +630,13 @@ void Prerequisites::generateReferenceTosqlite3BtreeNext(ModuleOp m, LLVMDialect*
                 T::i32Ty
             }, false);
 
-    GENERATE_SYMBOL(f_sqlite3BtreeNext, sqlite3BtreeNext, "sqlite3BtreeNext");
+    auto builder = mlir::OpBuilder(m);
+    builder.setInsertionPointToStart(m.getBody());
+    auto ctx = d->getContext();
+    auto attrs = llvm::SmallVector<mlir::NamedAttribute, 16>{};
+    f_sqlite3BtreeNext = builder.create<LLVMFuncOp>(m.getLoc(), "sqlite3BtreeNext2", funcTy, Linkage::External, attrs);
+
+    // GENERATE_SYMBOL(f_sqlite3BtreeNext, sqlite3BtreeNext, "sqlite3BtreeNext");
 }
 
 void Prerequisites::generateReferenceTosqlite3VdbeHalt(ModuleOp m, LLVMDialect* d) {
@@ -1205,7 +1211,14 @@ void Prerequisites::generateReferenceTosqlite3BtreeMovetoUnpacked(ModuleOp m, LL
                 T::i32PtrTy
             }, false);
 
-    // TODO restore: GENERATE_SYMBOL(f_sqlite3BtreeMovetoUnpacked, sqlite3BtreeMovetoUnpacked, "sqlite3BtreeMovetoUnpacked");
+    // /*
+    auto builder = mlir::OpBuilder(m);
+    builder.setInsertionPointToStart(m.getBody());
+    auto ctx = d->getContext();
+    auto attrs = llvm::SmallVector<mlir::NamedAttribute, 16>{};
+    f_sqlite3BtreeMovetoUnpacked = builder.create<LLVMFuncOp>(m.getLoc(), "sqlite3BtreeMovetoUnpacked2", funcTy, Linkage::External, attrs);
+    // */
+    // GENERATE_SYMBOL(f_sqlite3BtreeMovetoUnpacked, sqlite3BtreeMovetoUnpacked, "sqlite3BtreeMovetoUnpacked");
 }
 
 void Prerequisites::generateReferenceTosqlite3BtreeOpen(ModuleOp m, LLVMDialect *d) {
