@@ -78,7 +78,11 @@ namespace mlir::standalone::passes {
         if (pOp->p4type == P4_INT32) {
             nField = constants(orOp.P4Attr().getUInt(), 32);
         } else {
-            pKeyInfo = constants(T::KeyInfoPtrTy, (KeyInfo*)orOp.P4Attr().getUInt());
+            auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+            auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+            auto p4KeyInfoPtrAddr = bitCast(LOC, p4UAddr, T::KeyInfoPtrTy.getPointerTo());
+            auto p4KeyInfoPtr = load(LOC, p4KeyInfoPtrAddr);
+            pKeyInfo = p4KeyInfoPtr;
             auto nAllFieldAddr = getElementPtrImm(LOC, T::i16PtrTy, pKeyInfo, 0, 3);
             nField = load(LOC, nAllFieldAddr);
             nField = zExt(LOC, nField, T::i32Ty);

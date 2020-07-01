@@ -33,7 +33,8 @@ namespace mlir::standalone::passes {
         auto curTarget = dsOp.curTargetAttr().getSInt();
         // curToMove = p2
         auto curToMove = dsOp.curToMoveAttr().getSInt();
-        auto array = (const int *) dsOp.arrayAttr().getUInt();
+        // array = p4
+        // auto array = (const int *) dsOp.arrayAttr().getUInt();
 
         USE_DEFAULT_BOILERPLATE
 
@@ -90,7 +91,11 @@ namespace mlir::standalone::passes {
 
                 /// pTabCur->aAltMap = pOp->p4.ai;
                 auto aAltMapAddr = getElementPtrImm(LOC, T::i32PtrTy.getPointerTo(), pTabCur, 0, 8);
-                store(LOC, constants(T::i32PtrTy, array), aAltMapAddr);
+                auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+                auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+                auto p4i32PtrAddr = bitCast(LOC, p4UAddr, T::i32PtrTy.getPointerTo());
+                auto p4i32Ptr = load(LOC, p4i32PtrAddr);
+                store(LOC, p4i32Ptr, aAltMapAddr);
 
                 /// pTabCur->pAltCursor = pC;
                 auto pAltCursorAddr = getElementPtrImm(LOC, T::VdbeCursorPtrPtrTy, pTabCur, 0, 11);

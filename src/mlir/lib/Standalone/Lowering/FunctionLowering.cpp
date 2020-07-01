@@ -41,7 +41,10 @@ namespace mlir::standalone::passes {
         auto aMemValue = load(LOC, aMemAddress);
         auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p3);
 
-        auto pCtx = constants(T::sqlite3_contextPtrTy, p4);
+        auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+        auto p4ContextPtrAddr = bitCast(LOC, p4UAddr, T::sqlite3_contextPtrTy.getPointerTo());
+        auto pCtx = load(LOC, p4ContextPtrAddr);
         auto pCtxOutAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), pCtx, 0, 0);
         auto pCtxOutValue = load(LOC, pCtxOutAddr);
         auto pFuncAddr = getElementPtrImm(LOC, T::FuncDefPtrTy.getPointerTo(), pCtx, 0, 1);

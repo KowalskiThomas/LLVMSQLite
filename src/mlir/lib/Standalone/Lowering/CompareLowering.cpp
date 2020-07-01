@@ -56,25 +56,41 @@ namespace mlir::standalone::passes {
             LLVMSQLITE_ASSERT(pOp[-1].opcode == OP_Permutation);
             LLVMSQLITE_ASSERT(pOp[-1].p4type == P4_INTARRAY);
             /// aPermute = pOp[-1].p4.ai + 1;
-            // This can't be changed to a simple GEP easily
-            aPermuteInitValue = pOp[-1].p4.ai + 1;
-            store(LOC, constants(T::i32PtrTy, aPermuteInitValue), aPermuteAddr);
+            auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)(pc - 1));
+            auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+            auto p4i32PtrAddr = bitCast(LOC, p4UAddr, T::i32PtrTy.getPointerTo());
+            auto p4i32Ptr = load(LOC, p4i32PtrAddr);
+            p4i32Ptr = ptrToInt(LOC, p4i32Ptr);
+            p4i32Ptr = add(LOC, p4i32Ptr, 1);
+            p4i32Ptr = rewriter.create<mlir::LLVM::IntToPtrOp>(LOC, T::i32PtrTy, p4i32Ptr);
+            store(LOC, p4i32Ptr, aPermuteAddr);
         }
 
         curBlock = rewriter.getBlock();
         auto blockAfterFor = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
+        auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+        auto p4KeyInfoPtrAddr = bitCast(LOC, p4UAddr, T::KeyInfoPtrTy.getPointerTo());
+        auto p4KeyInfoPtr = load(LOC, p4KeyInfoPtrAddr);
+        auto aColl = getElementPtrImm(LOC, T::CollSeqPtrTy.getPointerTo(), p4KeyInfoPtr, 0, 6, 0);
+        auto aSortFlagsAddr = getElementPtrImm(LOC, T::i8PtrTy, p4KeyInfoPtr, 0, 5);
+        auto aSortFlags = load(LOC, aSortFlagsAddr);
+
         for(auto i = 0llu; i < nReg; i++) {
             auto idx = (int)(aPermuteInitValue ? aPermuteInitValue[i] : i);
 
-            auto pKeyInfo = keyInfo;
-            auto pColl = pKeyInfo->aColl[i];
-            auto bRev = (pKeyInfo->aSortFlags[i] & KEYINFO_ORDER_DESC);
+            auto pCollAddr = getElementPtrImm(LOC, T::CollSeqPtrTy, aColl, (int)i);
+            auto pColl = load(LOC, pCollAddr);
+
+            // auto bRev = (pKeyInfo->aSortFlags[i] & KEYINFO_ORDER_DESC);
+            auto sortFlagsAddr = getElementPtrImm(LOC, T::i8PtrTy, aSortFlags, (int)i);
+            auto sortFlags = load(LOC, sortFlagsAddr);
+            auto bRev = bitAnd(LOC, sortFlags, KEYINFO_ORDER_DESC);
 
             auto lhs = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstLhs + idx);
             auto rhs = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstRhs + idx);
-            // TODO: Remove IntToPtr
-            auto iCompareValue = call(LOC, f_sqlite3MemCompare, lhs, rhs, constants(T::CollSeqPtrTy, pColl)).getValue();
+            auto iCompareValue = call(LOC, f_sqlite3MemCompare, lhs, rhs, pColl).getValue();
             store(LOC, iCompareValue, vdbeCtx->iCompare);
             auto iCompareNotNull = iCmp(LOC, Pred::ne, iCompareValue, 0);
 
@@ -86,7 +102,17 @@ namespace mlir::standalone::passes {
             { // if (iCompare)
                 ip_start(blockICompareNotNull);
 
-                if (pKeyInfo->aSortFlags[i] & KEYINFO_ORDER_BIGNULL) {
+                auto curBlock = rewriter.getBlock();
+                auto blockAfterBigNull = SPLIT_GO_BACK_TO(curBlock);
+                auto blockBigNull = SPLIT_GO_BACK_TO(curBlock);
+
+                auto bigNull = bitAnd(LOC, sortFlags, KEYINFO_ORDER_BIGNULL);
+                auto condBigNull = iCmp(LOC, Pred::ne, bigNull, 0);
+
+                condBranch(LOC, condBigNull, blockBigNull, blockAfterBigNull);
+                { // if (pKeyInfo->aSortFlags[i] & KEYINFO_ORDER_BIGNULL)
+                    ip_start(blockBigNull);
+
                     curBlock = rewriter.getBlock();
                     auto blockAfterAnyNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     auto blockAnyNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -117,13 +143,29 @@ namespace mlir::standalone::passes {
                     } // end (aMem[p1 + idx].flags & MEM_Null) || (aMem[p2 + idx].flags & MEM_Null)
 
                     ip_start(blockAfterAnyNull);
-                }
 
-                if (bRev) {
+                    branch(LOC, blockAfterBigNull);
+                } // end if (pKeyInfo->aSortFlags[i] & KEYINFO_ORDER_BIGNULL)
+
+                ip_start(blockAfterBigNull);
+
+                curBlock = rewriter.getBlock();
+                auto blockAfterBRev = SPLIT_GO_BACK_TO(curBlock);
+                auto blockBRev = SPLIT_GO_BACK_TO(curBlock);
+
+                auto condBRev = iCmp(LOC, Pred::ne, bRev, 0);
+                condBranch(LOC, condBRev, blockBRev, blockAfterBRev);
+                { // if (bRev)
+                    ip_start(blockBRev);
+
                     auto iCompareValue = load(LOC, vdbeCtx->iCompare);
                     auto negICompare = sub(LOC, constants(0, 32), iCompareValue);
                     store(LOC, (Value)negICompare, vdbeCtx->iCompare);
-                }
+
+                    branch(LOC, blockAfterBRev);
+                } // end if (bRev)
+
+                ip_start(blockAfterBRev);
 
                 // Get out of for if iCompare != 0
                 branch(LOC, blockAfterFor);

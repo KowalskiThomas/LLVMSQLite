@@ -124,7 +124,13 @@ namespace mlir::standalone::passes {
 
                 store(LOC, constants(T::sqlite3_valuePtrTy, (Mem*)nullptr), pMemAddr);
                 store(LOC, pOutValue, pOutAddr);
-                store(LOC, constants(T::FuncDefPtrTy, (FuncDef*)functionAddress), pFuncAddr);
+
+                auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+                auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+                auto p4FuncDefPtrAddr = bitCast(LOC, p4UAddr, T::FuncDefPtrTy.getPointerTo());
+                auto p4FuncDefPtr = load(LOC, p4FuncDefPtrAddr);
+
+                store(LOC, p4FuncDefPtr, pFuncAddr);
 
                 LLVMSQLITE_ASSERT(pc == pOp - vdbe->aOp && "pc is assumed to be pOp - vdbe->aOp");
                 store(LOC, constants(pc, 32), iOpAddr);

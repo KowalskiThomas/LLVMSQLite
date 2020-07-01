@@ -40,10 +40,14 @@ namespace mlir::standalone::passes {
         auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
         auto pOut = outToPrerelease(LOC, vdbeCtx->p, pOp);
 
+        auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOp, 0, 6);
+        auto p4i8PtrAddr = bitCast(LOC, p4UAddr, T::i8PtrTy);
+        auto p4i8Ptr = load(LOC, p4i8PtrAddr);
+
         /// sqlite3VdbeMemSetStr(pOut, pOp->p4.z, pOp->p1, 0, 0);
         call(LOC, f_sqlite3VdbeMemSetStr,
                 pOut,
-                constants(T::i8PtrTy, (char*)p4),
+                p4i8Ptr,
                 constants(p1, 32),
                 constants(0, 8),
                 constants(T::i8PtrTy, (void*)nullptr)
