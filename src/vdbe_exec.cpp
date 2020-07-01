@@ -50,7 +50,7 @@ int sqlite3VdbeExec(Vdbe *p) {
         lastVdbe = p;
     }
 
-#ifdef DEBUG_MACHINE
+#ifdef LLVMSQLITE_DEBUG
     auto tick = std::chrono::system_clock::now();
 #endif
 

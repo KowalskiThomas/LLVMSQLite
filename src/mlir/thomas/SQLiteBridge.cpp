@@ -6,6 +6,9 @@
 
 #include "SQLiteBridge.h"
 
+#include "llvm/Bitcode/BitcodeReader.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/IRReader/IRReader.h"
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
@@ -231,6 +234,10 @@ struct VdbeRunner {
                 passManagerBuilder.PerformThinLTO = true;
                 passManagerBuilder.LibraryInfo = new llvm::TargetLibraryInfoImpl(targetTriple);
                 machine->adjustPassManager(passManagerBuilder);
+
+                llvm::SMDiagnostic diag;
+                auto mod2 = llvm::parseIRFile("test.ll", diag, llvmDialect->getLLVMContext());
+                mod2->dump();
 
                 // Create the FunctionPassManager
                 llvm::legacy::FunctionPassManager functionPassManager(&*llvmModule);
