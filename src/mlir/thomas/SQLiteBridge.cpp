@@ -236,8 +236,8 @@ struct VdbeRunner {
                 machine->adjustPassManager(passManagerBuilder);
 
                 llvm::SMDiagnostic diag;
-                auto mod2 = llvm::parseIRFile("test.ll", diag, llvmDialect->getLLVMContext());
-                mod2->dump();
+                auto loadedModule = llvm::parseIRFile("test.ll", diag, llvmDialect->getLLVMContext());
+                loadedModule->dump();
 
                 // Create the FunctionPassManager
                 llvm::legacy::FunctionPassManager functionPassManager(&*llvmModule);
@@ -269,6 +269,7 @@ struct VdbeRunner {
                                 .setOptLevel(llvm::CodeGenOpt::Aggressive)
                                 .setVerifyModules(true)
                                 .create();
+                engine->addModule(std::move(loadedModule));
 
                 ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");
                 jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(

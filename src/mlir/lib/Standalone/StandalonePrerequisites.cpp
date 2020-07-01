@@ -1204,7 +1204,7 @@ void Prerequisites::generateReferenceTosqlite3BtreeMovetoUnpacked(ModuleOp m, LL
                 T::i32PtrTy
             }, false);
 
-    GENERATE_SYMBOL(f_sqlite3BtreeMovetoUnpacked, sqlite3BtreeMovetoUnpacked, "sqlite3BtreeMovetoUnpacked");
+    // TODO restore: GENERATE_SYMBOL(f_sqlite3BtreeMovetoUnpacked, sqlite3BtreeMovetoUnpacked, "sqlite3BtreeMovetoUnpacked");
 }
 
 void Prerequisites::generateReferenceTosqlite3BtreeOpen(ModuleOp m, LLVMDialect *d) {
