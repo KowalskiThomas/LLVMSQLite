@@ -39,8 +39,18 @@ MyBuilder::AllocaOp MyBuilder::insertAllocaOp(Location loc, mlir::Type ty) {
     return rewriter.create<mlir::LLVM::AllocaOp>(loc, ty, constants(1, 32), 0);
 }
 
-llvm::Optional<Value> MyBuilder::insertCallOp(Location loc, MyBuilder::LLVMFuncOp func, ValueRange range) {
+llvm::Optional<Value> MyBuilder::insertCallOp(Location loc, LLVMFuncOp func, ValueRange range) {
     if (func.getNumFuncResults() == 0) {
+        rewriter.create<CallOp>(loc, func, range);
+        return llvm::None;
+    }
+    auto callOp = rewriter.create<CallOp>(loc, func, range);
+    Value result = callOp.getResult(0);
+    return llvm::Optional<Value>(result);
+}
+
+llvm::Optional<Value> MyBuilder::insertCallOp(Location loc, Value func, ValueRange range) {
+    if (func.getType().cast<LLVMType>().getPointerElementTy().getFunctionResultType().isVoidTy()) {
         rewriter.create<CallOp>(loc, func, range);
         return llvm::None;
     }

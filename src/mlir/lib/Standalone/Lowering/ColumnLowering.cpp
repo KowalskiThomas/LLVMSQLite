@@ -746,6 +746,7 @@ namespace mlir::standalone::passes {
                             // Call
                             auto t_u32 = rewriter.create<LoadOp>(LOC, tAddr);
                             auto t = rewriter.create<TruncOp>(LOC, T::i8Ty, t_u32);
+                            // TODO: this will crash
                             auto resultAddr = rewriter.create<GEPOp>(LOC, T::i8PtrTy, constants(T::i8PtrTy, sqlite3SmallTypeSizes), ValueRange { t });
                             auto result_u8 = rewriter.create<LoadOp>(LOC, resultAddr);
                             auto result = rewriter.create<ZExtOp>(LOC, T::i64Ty, result_u8);
@@ -1009,14 +1010,19 @@ namespace mlir::standalone::passes {
                     auto blockP4IsMem = SPLIT_BLOCK; GO_BACK_TO(curBlock);
                     auto blockP4IsNotMem = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
+                    // TODO: Do that at compile time
                     rewriter.create<CondBrOp>(LOC, p4IsMem, blockP4IsMem, blockP4IsNotMem);
                     { // if (pOp->p4type == P4_MEM)
                         rewriter.setInsertionPointToStart(blockP4IsMem);
 
                         /// sqlite3VdbeMemShallowCopy(pDest, pOp->p4.pMem, MEM_Static);
+                        auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+                        auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+                        auto p4MemPtrAddr = bitCast(LOC, p4UAddr, T::sqlite3_valuePtrTy.getPointerTo());
+                        auto p4MemPtr = load(LOC, p4MemPtrAddr);
                         rewriter.create<mlir::LLVM::CallOp>(LOC, f_sqlite3VdbeMemShallowCopy, ValueRange {
                             pDest,
-                            constants(T::sqlite3_valuePtrTy, (sqlite3_value*)defaultValueAttr),
+                            p4MemPtr,
                             constants(MEM_Static)
                         });
 
@@ -1343,6 +1349,7 @@ namespace mlir::standalone::passes {
                     rewriter.setInsertionPointToStart(blockTrue);
 
                     /// sqlite3VdbeSerialGet((u8 *) sqlite3CtypeMap, t, pDest);
+                    // TODO: this will crash
                     auto cTypeMap = constants(T::i8PtrTy, (u8*)sqlite3CtypeMap);
                     rewriter.create<CallOp>(LOC, f_sqlite3VdbeSerialGet, ValueRange {
                         cTypeMap, tValue, pDest
@@ -1421,7 +1428,6 @@ namespace mlir::standalone::passes {
         } // End after cacheStatus != cacheCtr
 
         rewriter.setInsertionPointToStart(blockColumnEnd);
-        // call(LOC, f_printTypeOf, constants(T::i8PtrTy, __FILE_NAME__), constants(__LINE__, 32), vdbeCtx->p, pDest);
         rewriter.create<mlir::LLVM::StackRestoreOp>(LOC, stackState);
         rewriter.eraseOp(colOp);
         return success();

@@ -26,8 +26,9 @@ namespace mlir::standalone::passes {
 
         // regTo = p2
         auto regTo = realOp.regToAttr().getSInt();
+
         // pointerToValueAttr = p4
-        auto pointerToValue = (double*)realOp.pointerToValueAttr().getUInt();
+        // auto pointerToValue = (double*)realOp.pointerToValueAttr().getUInt();
 
         print(LOCL, "-- Real");
         USE_DEFAULT_BOILERPLATE
@@ -36,7 +37,12 @@ namespace mlir::standalone::passes {
         auto endBlock = curBlock->splitBlock(realOp); GO_BACK_TO(curBlock);
 
         // Get the real value pointed by P4
-        auto valueAddr = constants(T::doublePtrTy, pointerToValue);
+        auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+        auto p4DoublePtrAddr = bitCast(LOC, p4UAddr, T::doublePtrTy.getPointerTo());
+        auto p4DoublePtr = load(LOC, p4DoublePtrAddr);
+
+        auto valueAddr = p4DoublePtr;
         auto value = load(LOC, valueAddr);
 
         auto outToPrerelease = Inlining::OutToPrerelease(*vdbeCtx, context, rewriter, print, constants);

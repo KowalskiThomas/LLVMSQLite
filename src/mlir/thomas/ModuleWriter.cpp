@@ -150,6 +150,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     // The iCompare value. It is supposed to be local to sqlite3VdbeExec but I moved it out
     // so we can interleave JIT execution and default implementation
     extern int iCompare;
+    // TODO: Fix iCompare
     vdbeCtx->iCompare = constants(T::i32PtrTy, &iCompare);
 
     // Our goal here: check the value of vdbe->pc and jump to the right block

@@ -50,7 +50,12 @@ namespace mlir::standalone::passes {
         auto pOutNAddr = getElementPtrImm(LOC, T::i32PtrTy, pOut, 0, 4);
         auto pOutZAddr = getElementPtrImm(LOC, T::i8PtrPtrTy, pOut, 0, 5);
         store(LOC, MEM_Str | MEM_Static | MEM_Term, pOutFlagsAddr);
-        store(LOC, constants(T::i8PtrTy, (char*)string), pOutZAddr);
+
+        auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+        auto p4i8PtrAddr = bitCast(LOC, p4UAddr, T::i8PtrTy.getPointerTo());
+        auto p4i8Ptr = load(LOC, p4i8PtrAddr);
+        store(LOC, p4i8Ptr, pOutZAddr);
         store(LOC, len, pOutNAddr);
         store(LOC, vdbe->db->enc, pOutEncAddr);
 

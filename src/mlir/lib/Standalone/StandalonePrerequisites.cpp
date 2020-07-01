@@ -777,6 +777,7 @@ void Prerequisites::generateReferenceTocallXInversePtr(mlir::ModuleOp m, LLVMDia
 extern "C" {
     typedef void (*XSFuncPtr)(sqlite3_context*, int, sqlite3_value**);
     void callXSFuncPtr(XSFuncPtr func, sqlite3_context* ctx, int argc, sqlite3_value** argv) {
+        out((uint64_t)func << " " << (uint64_t)(*func));
         func(ctx, argc, argv);
     }
 }

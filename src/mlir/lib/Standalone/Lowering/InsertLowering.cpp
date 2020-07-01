@@ -90,7 +90,11 @@ namespace mlir::standalone::passes {
             store(LOC, dbName, zDbAddr);
 
             /// pTab = pOp->p4.pTab;
-            store(LOC, constants(T::TablePtrTy, (Table*)p4), pTabAddr);
+            auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+            auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOp, 0, 6);
+            auto p4TablePtrAddr = bitCast(LOC, p4UAddr, T::TablePtrTy.getPointerTo());
+            auto p4TablePtr = load(LOC, p4TablePtrAddr);
+            store(LOC, p4TablePtr, pTabAddr);
 
             branch(LOC, blockAfterTableAndUpdateHook);
         } // end if (pOp->p4type == P4_TABLE && HAS_UPDATE_HOOK(db))
