@@ -15,8 +15,6 @@
 #include "sqliteInt.h"
 #include "vdbeInt.h"
 
-// #define SQLITE_ENABLE_EXPLAIN_COMMENTS /* TODO Comments */
-
 /* Forward references */
 static void freeEphemeralFunction(sqlite3 *db, FuncDef *pDef);
 static void vdbeFreeOpArray(sqlite3 *, Op *, int);

@@ -19,8 +19,6 @@
 #define SQLITE_VDBE_H
 #include <stdio.h>
 
-// #define SQLITE_ENABLE_EXPLAIN_COMMENTS /* TODO Comments */
-
 /*
 ** A single VDBE is an opaque structure named "Vdbe".  Only routines
 ** in the source file sqliteVdbe.c are allowed to see the insides
