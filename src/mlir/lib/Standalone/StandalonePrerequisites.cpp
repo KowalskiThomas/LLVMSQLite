@@ -371,6 +371,18 @@ void Prerequisites::generateReferenceToProgress(ModuleOp m, LLVMDialect *d) {
     llvm::sys::DynamicLibrary::AddSymbol("printPtrAndValue", reinterpret_cast<void*>(printPtrAndValue));
 }
 
+extern "C" {
+struct VdbeCursor;
+typedef struct VdbeCursor VdbeCursor;
+VdbeCursor *allocateCursor(
+        Vdbe *p,              /* The virtual machine */
+        int iCur,             /* Index of the new VdbeCursor */
+        int nField,           /* Number of fields in the table or index */
+        int iDb,              /* Database the cursor belongs to, or -1 */
+        u8 eCurType           /* Type of the new cursor */
+);
+}
+
 void Prerequisites::generateReferenceToAllocateCursor(ModuleOp m, LLVMDialect *d) {
     auto funcTy = LLVMType::getFunctionTy(
             T::VdbeCursorPtrTy, {
