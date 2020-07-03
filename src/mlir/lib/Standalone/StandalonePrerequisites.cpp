@@ -70,7 +70,7 @@ LLVMFuncOp f_sqlite3VdbeMemClearAndResize;
 LLVMFuncOp f_sqlite3PutVarint;
 LLVMFuncOp f_sqlite3VdbeSerialPut;
 LLVMFuncOp f_sqlite3BtreeCursorIsValid;
-LLVMFuncOp f_sqlite3VdbeExec2;
+LLVMFuncOp f_sqlite3VdbeExecDefault;
 LLVMFuncOp f_sqlite3VdbeMemMove;
 LLVMFuncOp f_numericType;
 LLVMFuncOp f_sqlite3AddInt64;
@@ -185,7 +185,7 @@ public:
     DECLARE_FUNCTION(sqlite3PutVarint);
     DECLARE_FUNCTION(sqlite3VdbeSerialPut);
     DECLARE_FUNCTION(sqlite3BtreeCursorIsValid);
-    DECLARE_FUNCTION(sqlite3VdbeExec2);
+    DECLARE_FUNCTION(sqlite3VdbeExecDefault);
     DECLARE_FUNCTION(sqlite3VdbeMemMove);
     DECLARE_FUNCTION(numericType);
     DECLARE_FUNCTION(sqlite3AddInt64);
@@ -638,17 +638,40 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemNulTerminate(ModuleOp m, LL
 void Prerequisites::generateReferenceTosqlite3BtreeNext(ModuleOp m, LLVMDialect* d) {
     auto funcTy = LLVMType::getFunctionTy(
             T::i32Ty, {
-                T::BtCursorPtrTy,
-                T::i32Ty
+                    T::BtCursorPtrTy,
+                    T::i32Ty
             }, false);
 
+/*
     auto builder = mlir::OpBuilder(m);
     builder.setInsertionPointToStart(m.getBody());
     auto ctx = d->getContext();
     auto attrs = llvm::SmallVector<mlir::NamedAttribute, 16>{};
-    f_sqlite3BtreeNext = builder.create<LLVMFuncOp>(m.getLoc(), "sqlite3BtreeNext2", funcTy, Linkage::External, attrs);
+    f_sqlite3BtreeNext = builder.create<LLVMFuncOp>(m.getLoc(), "sqlite3BtreeNext", funcTy, Linkage::External, attrs);
+*/
 
-    // GENERATE_SYMBOL(f_sqlite3BtreeNext, sqlite3BtreeNext, "sqlite3BtreeNext");
+    GENERATE_SYMBOL(f_sqlite3BtreeNext, sqlite3BtreeNext, "sqlite3BtreeNext");
+}
+
+void Prerequisites::generateReferenceTosqlite3BtreeMovetoUnpacked(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+            T::i32Ty, {
+                T::BtCursorPtrTy,
+                T::UnpackedRecordPtrTy,
+                T::i64Ty,
+                T::i32Ty,
+                T::i32PtrTy
+            }, false);
+
+/*
+    auto builder = mlir::OpBuilder(m);
+    builder.setInsertionPointToStart(m.getBody());
+    auto ctx = d->getContext();
+    auto attrs = llvm::SmallVector<mlir::NamedAttribute, 16>{};
+    f_sqlite3BtreeMovetoUnpacked = builder.create<LLVMFuncOp>(m.getLoc(), "sqlite3BtreeMovetoUnpacked2", funcTy, Linkage::External, attrs);
+*/
+
+    GENERATE_SYMBOL(f_sqlite3BtreeMovetoUnpacked, sqlite3BtreeMovetoUnpacked, "sqlite3BtreeMovetoUnpacked");
 }
 
 void Prerequisites::generateReferenceTosqlite3VdbeHalt(ModuleOp m, LLVMDialect* d) {
@@ -949,13 +972,13 @@ void Prerequisites::generateReferenceTosqlite3BtreeCursorIsValid(ModuleOp m, LLV
     GENERATE_SYMBOL(f_sqlite3BtreeCursorIsValid, sqlite3BtreeCursorIsValid, "sqlite3BtreeCursorIsValid");
 }
 
-void Prerequisites::generateReferenceTosqlite3VdbeExec2(mlir::ModuleOp m, LLVMDialect *d) {
+void Prerequisites::generateReferenceTosqlite3VdbeExecDefault(mlir::ModuleOp m, LLVMDialect *d) {
     auto funcTy = LLVMType::getFunctionTy(
             T::i32Ty, {
                 T::VdbePtrTy
             }, false);
 
-    GENERATE_SYMBOL(f_sqlite3VdbeExec2, sqlite3VdbeExec2, "sqlite3VdbeExec2");
+    GENERATE_SYMBOL(f_sqlite3VdbeExecDefault, VDBE_EXEC_NAME, "#VDBE_EXEC_NAME");
 }
 
 void Prerequisites::generateReferenceTosqlite3VdbeMemMove(ModuleOp m, LLVMDialect* d) {
@@ -1211,26 +1234,6 @@ void Prerequisites::generateReferenceTosqlite3BtreeLast(ModuleOp m, LLVMDialect 
             }, false);
 
     GENERATE_SYMBOL(f_sqlite3BtreeLast, sqlite3BtreeLast, "sqlite3BtreeLast");
-}
-
-void Prerequisites::generateReferenceTosqlite3BtreeMovetoUnpacked(ModuleOp m, LLVMDialect *d) {
-    auto funcTy = LLVMType::getFunctionTy(
-            T::i32Ty, {
-                T::BtCursorPtrTy,
-                T::UnpackedRecordPtrTy,
-                T::i64Ty,
-                T::i32Ty,
-                T::i32PtrTy
-            }, false);
-
-    // /*
-    auto builder = mlir::OpBuilder(m);
-    builder.setInsertionPointToStart(m.getBody());
-    auto ctx = d->getContext();
-    auto attrs = llvm::SmallVector<mlir::NamedAttribute, 16>{};
-    f_sqlite3BtreeMovetoUnpacked = builder.create<LLVMFuncOp>(m.getLoc(), "sqlite3BtreeMovetoUnpacked2", funcTy, Linkage::External, attrs);
-    // */
-    // GENERATE_SYMBOL(f_sqlite3BtreeMovetoUnpacked, sqlite3BtreeMovetoUnpacked, "sqlite3BtreeMovetoUnpacked");
 }
 
 void Prerequisites::generateReferenceTosqlite3BtreeOpen(ModuleOp m, LLVMDialect *d) {
@@ -1621,7 +1624,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3PutVarint);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeSerialPut);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeCursorIsValid);
-    CALL_SYMBOL_GENERATOR(sqlite3VdbeExec2);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeExecDefault);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemMove);
     CALL_SYMBOL_GENERATOR(numericType);
     CALL_SYMBOL_GENERATOR(sqlite3AddInt64);

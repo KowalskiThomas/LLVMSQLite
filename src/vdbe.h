@@ -19,6 +19,10 @@
 #define SQLITE_VDBE_H
 #include <stdio.h>
 
+#ifndef VDBE_EXEC_NAME
+#define VDBE_EXEC_NAME sqlite3VdbeExec
+#endif
+
 /*
 ** A single VDBE is an opaque structure named "Vdbe".  Only routines
 ** in the source file sqliteVdbe.c are allowed to see the insides

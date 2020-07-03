@@ -10,7 +10,7 @@
 #include "Standalone/DebugUtils.h"
 
 ExternFuncOp f_sqlite3BtreeCursorIsValid;
-ExternFuncOp f_sqlite3VdbeExec2;
+ExternFuncOp f_sqlite3VdbeExecDefault;
 ExternFuncOp f_printTypeOf;
 
 extern int64_t maxVdbeSteps;

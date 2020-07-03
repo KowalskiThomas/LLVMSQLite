@@ -40,11 +40,67 @@
 #include "llvm/Support/raw_ostream.h"
 #include <cassert>
 #include <memory>
+#include "llvm/Transforms/IPO/FunctionImport.h"
+#include "llvm/Transforms/Utils/Cloning.h"
+
+#include "Standalone/TypeDefinitions.h"
 
 extern "C" {
 void printTypeOf(const char*, const uint32_t, Vdbe *p, Mem *);
 }
 
+namespace llvm {
+    struct TypeRemapper : public ValueMapTypeRemapper {
+        Module& mod;
+        std::unordered_map<Type*, Type*> cache;
+
+        TypeRemapper(Module& m)
+            : mod(m)
+        {
+        }
+
+        virtual Type *remapType(Type *ty) {
+            if (cache.find(ty) != cache.cend()) {
+                return cache[ty];
+            }
+
+            if (ty->isStructTy()) {
+                auto sTy = llvm::cast<llvm::StructType>(ty);
+                if (sTy->isLiteral())
+                    return ty;
+
+                if (ty->getStructName() == "sqlite3_value.0") {
+                    auto newTy = mod.getTypeByName("sqlite3_value");
+                    return cache[ty] = newTy;
+                } else if (ty->getStructName() == "struct.sqlite3") {
+                    return cache[ty] = mod.getTypeByName("sqlite3");
+                } else if (ty->getStructName() == "union.MemValue" || ty->getStructName() == "MemValue") {
+                    return cache[ty] = mod.getTypeByName("MemValue");
+                }
+            } else if (ty->isPointerTy()) {
+                return cache[ty] = remapType(ty->getPointerElementType())->getPointerTo();
+            }
+
+            return ty;
+        }
+
+        std::unordered_map<FunctionType*, FunctionType*> funcCache;
+        FunctionType* remapFunctionType(FunctionType* ty) {
+            if (funcCache.find(ty) != funcCache.cend())
+                return funcCache[ty];
+
+            auto resultTy = remapType(ty->getReturnType());
+            SmallVector<Type*, 16> paramTy;
+            for(int i = 0; i < ty->getNumParams(); i++) {
+                paramTy.push_back(remapType(ty->getParamType(i)));
+            }
+
+            auto result = FunctionType::get(resultTy, paramTy, false);
+            out("In type: " << *ty << " Out ty: " << *result);
+            return funcCache[ty] = result;
+        }
+    };
+}
 
 using namespace std::chrono;
 
@@ -236,9 +292,73 @@ struct VdbeRunner {
                 machine->adjustPassManager(passManagerBuilder);
 
                 llvm::SMDiagnostic diag;
-                auto loadedModule = llvm::parseIRFile("btree.ll", diag, llvmDialect->getLLVMContext());
-                loadedModule->getFunction("sqlite3BtreeNext")->setName("sqlite3BtreeNext2");
+                out("Loading sqlite3.ll");
+                auto loadedModule = llvm::parseIRFile("sqlite3.ll", diag, llvmDialect->getLLVMContext());
+                if (!loadedModule) {
+                    err("Error while loading module: " << diag.getMessage());
+                    exit(SQLITE_BRIDGE_FAILURE);
+                }
+
                 LLVMSQLITE_ASSERT(loadedModule != nullptr);
+
+#define LLVMSQLITE_DUPLICATE_FUNCTIONS true
+#if LLVMSQLITE_DUPLICATE_FUNCTIONS
+                auto typeMap = llvm::TypeRemapper{*llvmModule};
+                for(auto& func : loadedModule->functions())
+                {
+                    auto cloneFrom = &func;
+                    LLVMSQLITE_ASSERT(cloneFrom != nullptr);
+
+                    auto cloneIn = llvmModule->getFunction(cloneFrom->getName());
+                    if (cloneIn == nullptr) {
+                        auto f = llvm::Function::Create(
+                            typeMap.remapFunctionType(cloneFrom->getFunctionType()),
+                            llvm::GlobalValue::ExternalLinkage,
+                            cloneFrom->getName(),
+                            *llvmModule
+                        );
+                        cloneIn = f;
+                    }
+                    LLVMSQLITE_ASSERT(cloneIn != nullptr);
+
+                    llvm::SmallVector<llvm::ReturnInst*, 16> returns;
+                    llvm::ValueToValueMapTy map;
+
+                    auto itFrom = cloneFrom->arg_begin();
+                    auto itTo = cloneIn->arg_begin();
+
+                    while (itFrom != cloneFrom->arg_end()) {
+                        LLVMSQLITE_ASSERT(itTo != cloneIn->arg_end());
+                        map[&*itFrom] = itTo;
+
+                        ++itFrom, ++itTo;
+                    }
+
+                    if (cloneFrom->begin() != cloneFrom->end())
+                        llvm::CloneFunctionInto(cloneIn, cloneFrom, map, false, returns, "", nullptr, &typeMap);
+                }
+
+                writeToFile("debug.ll", *llvmModule);
+
+                for(auto& func : llvmModule->functions()) {
+                    for(auto& bb : func) {
+                        for (auto& i : bb.getInstList()) {
+                            llvm::Instruction& inst = i;
+                            auto callInst = llvm::dyn_cast<llvm::CallBase>(&inst);
+                            if (callInst) {
+                                auto calledFunction = callInst->getCalledFunction();
+                                if (!calledFunction || !calledFunction->hasName())
+                                    continue;
+
+                                auto newCalled = llvmModule->getOrInsertFunction(calledFunction->getName(), typeMap.remapFunctionType(calledFunction->getFunctionType()));
+                                out("OldCalled: " << *(calledFunction->getFunctionType()));
+                                out("NewCalled: " << *(newCalled.getFunctionType()) << " / " << newCalled.getCallee()->getName());
+                                callInst->setCalledFunction(newCalled);
+                            }
+                        }
+                    }
+                }
+#endif
 
                 // Create the FunctionPassManager
                 llvm::legacy::FunctionPassManager functionPassManager(&*llvmModule);
@@ -256,8 +376,10 @@ struct VdbeRunner {
                 passManagerBuilder.populateModulePassManager(modulePassManager);
                 modulePassManager.add(llvm::createTargetTransformInfoWrapperPass(machine->getTargetIRAnalysis()));
 
+#if !LLVMSQLITE_DUPLICATE_FUNCTIONS
                 // Optimise the module
                 modulePassManager.run(*llvmModule);
+#endif
 
 #if DEBUG_MACHINE && LLVMSQLITE_DEBUG
                 writeToFile("jit_llvm_optimised.ll", *llvmModule);
@@ -270,9 +392,11 @@ struct VdbeRunner {
                                 .setOptLevel(llvm::CodeGenOpt::Aggressive)
                                 .setVerifyModules(true)
                                 .create();
-                engine->addModule(std::move(loadedModule));
-
                 ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");
+
+                // Add the sqlite3.ll module to the ExecutionEngine
+                // engine->addModule(std::move(loadedModule));
+
                 jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(
                     engine->getFunctionAddress(JIT_MAIN_FN_NAME)
                 );

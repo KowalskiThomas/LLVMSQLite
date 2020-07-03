@@ -496,7 +496,7 @@ int sqlite2BtreeKeyCompare(BtCursor *, const void *, int, int, int *);
 int sqlite3VdbeIdxKeyCompare(sqlite3*,VdbeCursor*,UnpackedRecord*,int*);
 int sqlite3VdbeIdxRowid(sqlite3*, BtCursor*, i64*);
 int sqlite3VdbeExec(Vdbe*);
-int sqlite3VdbeExec2(Vdbe*);
+int VDBE_EXEC_NAME(Vdbe*);
 #ifndef SQLITE_OMIT_EXPLAIN
 int sqlite3VdbeList(Vdbe*);
 #endif

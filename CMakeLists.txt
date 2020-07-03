@@ -67,12 +67,15 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/src/mlir)
 # Custom file serving as a bridge between SQLite and the JIT
 add_library(vdbe_exec_llvm ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
 target_compile_definitions(vdbe_exec_llvm PUBLIC ENABLE_JIT=1 ENABLE_DEFAULT=0)
+target_compile_definitions(vdbe_exec_llvm PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
 add_library(vdbe_exec_default ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
 target_compile_definitions(vdbe_exec_default PUBLIC ENABLE_JIT=0 ENABLE_DEFAULT=1)
+target_compile_definitions(vdbe_exec_default PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
 add_library(vdbe_exec_universal ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
 target_compile_definitions(vdbe_exec_universal PUBLIC ENABLE_JIT=1 ENABLE_DEFAULT=1)
+target_compile_definitions(vdbe_exec_universal PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
 add_library(sqlite
     ${PROJECT_SOURCE_DIR}/src/alter.c
@@ -181,6 +184,7 @@ add_library(sqlite
     ${PROJECT_SOURCE_DIR}/opcodes.c
     ${PROJECT_SOURCE_DIR}/parse.c
 )
+target_compile_definitions(sqlite PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
 add_executable(shell_jit shell.c)
 target_link_libraries(shell_jit sqlite)

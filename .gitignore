@@ -3,11 +3,10 @@ writeFunction.cpp
 legacy_w_r_i_t_e_f_u_n_c_t_i_o_n.cpp
 temp_vdbe.c
 *.out
-debug
-release
+debug/
+release/
 # opcodes.h
 # opcodes.c
-release
 config.status
 config.h
 config.log
@@ -27,3 +26,4 @@ cmake-build*
 .target_source
 .idea
 *.o
+/profile/
