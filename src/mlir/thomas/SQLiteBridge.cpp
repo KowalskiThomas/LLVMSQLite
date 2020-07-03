@@ -69,19 +69,62 @@ namespace llvm {
                 if (sTy->isLiteral())
                     return ty;
 
-                if (ty->getStructName() == "sqlite3_value.0") {
-                    auto newTy = mod.getTypeByName("sqlite3_value");
-                    return cache[ty] = newTy;
-                } else if (ty->getStructName() == "struct.sqlite3") {
-                    return cache[ty] = mod.getTypeByName("sqlite3");
-                } else if (ty->getStructName() == "union.MemValue" || ty->getStructName() == "MemValue") {
-                    return cache[ty] = mod.getTypeByName("MemValue");
+                // Try to find an equivalent type in our module
+                auto nameFrom = ty->getStructName();
+                StringRef nameTo;
+                if (nameFrom.startswith("struct."))
+                    nameTo = nameFrom.slice(7, nameFrom.size());
+                else if (nameFrom.startswith("union."))
+                    nameTo = nameFrom.slice(6, nameFrom.size());
+                else {
+                    err("Can't convert type " << *ty);
+                    llvm_unreachable("Can't convert this type!");
+                }
+
+                auto toTy = mod.getTypeByName(nameTo);
+                if (toTy == nullptr) {
+                    out("Can't find " << ty->getStructName() << " as '" << nameTo << "'");
+
+                    toTy = StructType::create(mod.getContext(), nameTo);
+                    LLVMSQLITE_ASSERT(toTy->isOpaque());
+                    cache[ty] = toTy;
+
+                    if (!sTy->isOpaque()) {
+                        SmallVector<Type*, 16> types;
+                        for(int i = 0; i < sTy->getStructNumElements(); i++) {
+                            auto iTh = remapType(sTy->getStructElementType(i));
+                            types.push_back(iTh);
+                        }
+                        toTy->setBody(types, sTy->isPacked());
+                    }
+
+                    out("  -> Defined new type " << *toTy);
+                    return ty;
+                } else {
+                    if (toTy->isOpaque() && !sTy->isOpaque()) {
+                        cache[ty] = toTy;
+
+                        SmallVector<Type*, 16> types;
+                        for(int i = 0; i < sTy->getStructNumElements(); i++) {
+                            auto iTh = remapType(sTy->getStructElementType(i));
+                            types.push_back(iTh);
+                        }
+
+                        toTy->setBody(types, sTy->isPacked());
+
+                        out("De-opaqued " << *sTy << " to " << *toTy);
+                    } else {
+                        out("Remapped '" << ty->getStructName() << " to '" << toTy->getStructName() << "'");
+                        return toTy;
+                    }
                 }
             } else if (ty->isPointerTy()) {
                 return cache[ty] = remapType(ty->getPointerElementType())->getPointerTo();
             }
 
-            return ty;
+            err("Could not remap type '" << *ty << "'");
+            llvm_unreachable("Could not remap type!");
+            return nullptr;
         }
 
         std::unordered_map<FunctionType*, FunctionType*> funcCache;
@@ -96,7 +139,7 @@ namespace llvm {
             }
 
             auto result = FunctionType::get(resultTy, paramTy, false);
-            out("In type: " << *ty << " Out ty: " << *result);
+            // out("In type: " << *ty << " Out ty: " << *result);
             return funcCache[ty] = result;
         }
     };
@@ -351,8 +394,8 @@ struct VdbeRunner {
                                     continue;
 
                                 auto newCalled = llvmModule->getOrInsertFunction(calledFunction->getName(), typeMap.remapFunctionType(calledFunction->getFunctionType()));
-                                out("OldCalled: " << *(calledFunction->getFunctionType()));
-                                out("NewCalled: " << *(newCalled.getFunctionType()) << " / " << newCalled.getCallee()->getName());
+                                // out("OldCalled: " << *(calledFunction->getFunctionType()));
+                                // out("NewCalled: " << *(newCalled.getFunctionType()) << " / " << newCalled.getCallee()->getName());
                                 callInst->setCalledFunction(newCalled);
                             }
                         }
