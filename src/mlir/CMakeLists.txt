@@ -11,7 +11,7 @@ else()
 endif()
 
 set(MLIR_DIR "${PREFIX}/lib/cmake/mlir")
-set(LLVM_EXTERNAL_LIT "${LLVM_BUILD_DIR}/bin/llvm-lit")
+# set(LLVM_EXTERNAL_LIT "${LLVM_BUILD_DIR}/bin/llvm-lit")
 
 if(POLICY CMP0068)
   cmake_policy(SET CMP0068 NEW)

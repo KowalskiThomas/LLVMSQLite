@@ -3,13 +3,14 @@ cmake_minimum_required(VERSION 3.15)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 
 option(XRAY "Enable support for LLVM X-Ray")
 option(VTUNE "Enable support for profiling with VTune")
 option(SANITIZE "Enable support for a sanitizer (undefined address memory thread)")
 
 if (VTUNE)
-    if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
         message("Replacing build type 'Release' with 'RelWithDebInfo'")
         set(CMAKE_BUILD_TYPE "RelWithDebInfo")
     endif ()
@@ -25,13 +26,16 @@ if (XRAY)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${XRAY_OPTIONS}")
 endif ()
 
-if (${CMAKE_BUILD_TYPE} STREQUAL "Release" OR ${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
     message("Release build")
     add_compile_definitions(LLVMSQLITE_RELEASE)
 else ()
     message("Debug build")
     add_compile_definitions(LLVMSQLITE_DEBUG)
 endif ()
+
+add_compile_definitions(SQLITE_OMIT_VIRTUALTABLE)
+add_compile_definitions(SQLITE_OMIT_TRACE)
 
 if (APPLE)
     message("Debug machine")
@@ -178,7 +182,6 @@ add_library(sqlite
     ${PROJECT_SOURCE_DIR}/src/where.c
     ${PROJECT_SOURCE_DIR}/src/wherecode.c
     ${PROJECT_SOURCE_DIR}/src/whereexpr.c
-    ${PROJECT_SOURCE_DIR}/src/default_query.cpp
     ${PROJECT_SOURCE_DIR}/src/whereInt.h
     ${PROJECT_SOURCE_DIR}/src/window.c
     ${PROJECT_SOURCE_DIR}/opcodes.c
@@ -186,6 +189,7 @@ add_library(sqlite
 )
 target_compile_definitions(sqlite PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
+# shell_jit only executes statements using the JIT compiler.
 add_executable(shell_jit shell.c)
 target_link_libraries(shell_jit sqlite)
 target_link_libraries(shell_jit vdbe_exec_llvm)
@@ -193,15 +197,27 @@ target_link_libraries(shell_jit sqlite_llvm)
 target_link_libraries(shell_jit ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(shell_jit ${CMAKE_DL_LIBS})
 
+# shell_default is the same shell as one would get when compiling SQLite in the canonical way.
 add_executable(shell_default shell.c)
 target_link_libraries(shell_default sqlite)
 target_link_libraries(shell_default vdbe_exec_default)
 target_link_libraries(shell_default ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(shell_default ${CMAKE_DL_LIBS})
 
+# profilable_shell is an executable that can execute both JIT-compiled or interpreted statements.
 add_executable(profilable_shell shell.c)
 target_link_libraries(profilable_shell sqlite)
 target_link_libraries(profilable_shell vdbe_exec_universal)
 target_link_libraries(profilable_shell sqlite_llvm)
 target_link_libraries(profilable_shell ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(profilable_shell ${CMAKE_DL_LIBS})
+
+# Target to build sqlite3.ll, used by JIT inlining features
+# It's built as a library (and not a custom target) to allow easy use of compile definitions
+set(CLANG11 "/Users/kowalski/Downloads/llvm-project/clangbuild/bin/clang")
+add_custom_target(assembly
+   COMMAND ${CLANG11} ${CMAKE_C_FLAGS} -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
+   BYPRODUCTS sqlite3.ll
+)
+#add_dependencies(shell_jit assembly)
+#add_dependencies(profilable_shell assembly)

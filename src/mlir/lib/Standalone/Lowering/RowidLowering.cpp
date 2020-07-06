@@ -52,7 +52,7 @@ namespace mlir::standalone::passes {
         auto nullRow = load(LOC, nullRowAddr);
         auto nullRowNotNull = iCmp(LOC, Pred::ne, nullRow, 0);
 
-#ifdef SQLITE_OMIT_VIRTUALTABLE
+#ifndef SQLITE_OMIT_VIRTUALTABLE
       llvm_unreachable("RowidLowering.cpp:56 This has been written assuming SQLITE_OMIT_VIRTUALTABLE")
 #endif
 

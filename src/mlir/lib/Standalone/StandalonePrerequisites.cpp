@@ -46,7 +46,9 @@ LLVMFuncOp f_sqlite3VdbeMemNulTerminate;
 LLVMFuncOp f_sqlite3BtreeNext;
 LLVMFuncOp f_sqlite3VdbeHalt;
 LLVMFuncOp f_sqlite3BtreeBeginTrans;
+#ifndef SQLITE_OMIT_VIRTUALTABLE
 LLVMFuncOp f_sqlite3VtabSavepoint;
+#endif
 LLVMFuncOp f_sqlite3BtreeBeginStmt;
 // LLVMFuncOp f_out2Prerelease;
 LLVMFuncOp f_sqlite3VdbeMemInit;
@@ -160,7 +162,9 @@ public:
     DECLARE_FUNCTION(sqlite3BtreeNext);
     DECLARE_FUNCTION(sqlite3VdbeHalt);
     DECLARE_FUNCTION(sqlite3BtreeBeginTrans);
+#ifndef SQLITE_OMIT_VIRTUALTABLE
     DECLARE_FUNCTION(sqlite3VtabSavepoint);
+#endif
     DECLARE_FUNCTION(sqlite3BtreeBeginStmt);
     DECLARE_FUNCTION(out2Prerelease);
     DECLARE_FUNCTION(out2PrereleaseWithClear);
@@ -694,6 +698,7 @@ void Prerequisites::generateReferenceTosqlite3BtreeBeginTrans(ModuleOp m, LLVMDi
     GENERATE_SYMBOL(f_sqlite3BtreeBeginTrans, sqlite3BtreeBeginTrans, "sqlite3BtreeBeginTrans");
 }
 
+#ifndef SQLITE_OMIT_VIRTUALTABLE
 void Prerequisites::generateReferenceTosqlite3VtabSavepoint(ModuleOp m, LLVMDialect* d) {
     auto funcTy = LLVMType::getFunctionTy(
             T::i32Ty, {
@@ -704,6 +709,7 @@ void Prerequisites::generateReferenceTosqlite3VtabSavepoint(ModuleOp m, LLVMDial
 
     GENERATE_SYMBOL(f_sqlite3VtabSavepoint, sqlite3VtabSavepoint, "sqlite3VtabSavepoint");
 }
+#endif
 
 void Prerequisites::generateReferenceTosqlite3BtreeBeginStmt(ModuleOp m, LLVMDialect* d) {
     auto funcTy = LLVMType::getFunctionTy(
@@ -1100,9 +1106,8 @@ void Prerequisites::generateReferenceTosqlite3VdbeError(ModuleOp m, LLVMDialect 
     auto funcTy = LLVMType::getFunctionTy(
             T::voidTy, {
                 T::VdbePtrTy,
-                T::i8PtrTy,
                 T::i8PtrTy
-            }, false);
+            }, true);
 
     GENERATE_SYMBOL(f_sqlite3VdbeError, sqlite3VdbeError, "sqlite3VdbeError");
 }
@@ -1274,7 +1279,7 @@ void Prerequisites::generateReferenceTosqlite3VdbeRecordUnpack(ModuleOp m, LLVMD
     auto funcTy = LLVMType::getFunctionTy(
         T::voidTy, {
             T::KeyInfoPtrTy,
-            T::i32PtrTy,
+            T::i32Ty,
             T::i8PtrTy,
             T::UnpackedRecordPtrTy
         }, false);
@@ -1284,7 +1289,7 @@ void Prerequisites::generateReferenceTosqlite3VdbeRecordUnpack(ModuleOp m, LLVMD
 
 void Prerequisites::generateReferenceTosqlite3DbFreeNN(ModuleOp m, LLVMDialect* d) {
     auto funcTy = LLVMType::getFunctionTy(
-        T::i32Ty, {
+        T::voidTy, {
             T::sqlite3PtrTy,
             T::i8PtrTy
         }, false);
@@ -1398,7 +1403,10 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemSetStr(ModuleOp m, LLVMDial
                 T::i8PtrTy,
                 T::i32Ty,
                 T::i8Ty,
-                T::i8PtrTy
+                LLVMType::getFunctionTy(
+                        T::voidTy, {
+                            T::i8PtrTy
+                        }, false).getPointerTo()
             }, false);
 
     GENERATE_SYMBOL(f_sqlite3VdbeMemSetStr, sqlite3VdbeMemSetStr, "sqlite3VdbeMemSetStr");
@@ -1427,7 +1435,7 @@ void Prerequisites::generateReferenceTosqlite3BtreeUpdateMeta(ModuleOp m, LLVMDi
 
 void Prerequisites::generateReferenceTosqlite3ExpirePreparedStatements(ModuleOp m, LLVMDialect *d) {
     auto funcTy = LLVMType::getFunctionTy(
-            T::i32Ty, {
+            T::voidTy, {
                 T::sqlite3PtrTy,
                 T::i32Ty
             }, false);
@@ -1448,7 +1456,7 @@ void Prerequisites::generateReferenceTosqlite3UnlinkAndDeleteTable(ModuleOp m, L
 
 void Prerequisites::generateReferenceTosqlite3VdbeMemIntegerify(ModuleOp m, LLVMDialect* d) {
     auto funcTy = LLVMType::getFunctionTy(
-        T::voidTy, {
+        T::i32Ty, {
             T::sqlite3_valuePtrTy
         }, false);
 
@@ -1600,7 +1608,9 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3BtreeNext);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeHalt);
     CALL_SYMBOL_GENERATOR(sqlite3BtreeBeginTrans);
+#ifndef SQLITE_OMIT_VIRTUALTABLE
     CALL_SYMBOL_GENERATOR(sqlite3VtabSavepoint);
+#endif
     CALL_SYMBOL_GENERATOR(sqlite3BtreeBeginStmt);
     CALL_SYMBOL_GENERATOR(out2Prerelease);
     CALL_SYMBOL_GENERATOR(sqlite3VdbeMemInit);
