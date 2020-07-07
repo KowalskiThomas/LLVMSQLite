@@ -100,23 +100,24 @@ namespace llvm {
 
                 // Try to find an equivalent type in our module
                 auto nameFrom = ty->getStructName();
-                StringRef nameTo;
                 // If the aggregate name starts with struct., we might have an equivalent without "struct."
-                if (nameFrom.startswith("struct."))
-                    nameTo = nameFrom.slice(7, nameFrom.size());
-                // Same thing for unions
-                else if (nameFrom.startswith("union."))
-                    nameTo = nameFrom.slice(6, nameFrom.size());
-                else if (mod.getTypeByName(nameFrom) != nullptr) {
-                    nameTo = nameFrom;
-                } else {
-                    // Trap for unexpected cases
-                    err("Can't convert type " << *ty);
-                    llvm_unreachable("Can't convert this type!");
-                }
+//                if (nameFrom.startswith("struct."))
+//                    nameTo = nameFrom.slice(7, nameFrom.size());
+//                else if (nameFrom.startswith("union."))
+//                    // Same thing for unions
+//                    nameTo = nameFrom.slice(6, nameFrom.size());
+//                else if (mod.getTypeByName(nameFrom) != nullptr) {
+//                    nameTo = nameFrom;
+//                } else {
+//                    // Trap for unexpected cases
+//                    err("Can't convert type " << *ty);
+//                    llvm_unreachable("Can't convert this type!");
+//                }
+                std::string nameTo;
+                nameTo += nameFrom.str() + "ty";
+                auto toTy = mod.getTypeByName(nameTo);
 
                 // Now, we try and get that type instance we have in our module
-                auto toTy = mod.getTypeByName(nameTo);
                 if (toTy == nullptr) {
                     // The type has not been defined yet
                     out("Can't find " << ty->getStructName() << " as '" << nameTo << "', defined as " << *ty);
@@ -166,6 +167,7 @@ namespace llvm {
                     } else {
                         // So it's not currently opaque. In this case, the elements in it must correspond to the
                         // remapped element from the other struct. At least we hope so.
+                        out("Found type " << *ty << " (mapped to " << *toTy << ")");
                         return cache[ty] = toTy;
                     }
                 }
@@ -178,12 +180,12 @@ namespace llvm {
             } else if (ty->isArrayTy()) {
                 // Remapped(Array<T, X>) -> Array<Remapped(T), X>
                 auto aTy = cast<ArrayType>(ty);
-                auto numElts = aTy->getArrayNumElements();
-                return cache[ty] = ArrayType::get(remapType(aTy->getElementType()), numElts);
+                auto numElements = aTy->getArrayNumElements();
+                return cache[ty] = ArrayType::get(remapType(aTy->getElementType()), numElements);
             } else if (ty->isFunctionTy()) {
                 // We have a special function for handling functions (dawg)
                 auto fTy = cast<FunctionType>(ty);
-                out("Function type: " << *fTy);
+                // out("Function type: " << *fTy);
                 return cache[ty] = remapFunctionType(fTy);
             } else if (ty->isVectorTy()) {
                 auto vTy = cast<VectorType>(ty);
@@ -498,18 +500,16 @@ struct VdbeRunner {
                 passManagerBuilder.LibraryInfo = new llvm::TargetLibraryInfoImpl(targetTriple);
                 machine->adjustPassManager(passManagerBuilder);
 
-                llvm::SMDiagnostic diag;
-                out("Loading sqlite3.ll");
-                auto loadedModule = llvm::parseIRFile("sqlite3.ll", diag, llvmDialect->getLLVMContext());
-                if (!loadedModule) {
-                    err("Error while loading module: " << diag.getMessage());
-                    exit(SQLITE_BRIDGE_FAILURE);
-                }
-
+                extern std::unique_ptr<llvm::Module> loadedModule;
                 LLVMSQLITE_ASSERT(loadedModule != nullptr);
 
-#define LLVMSQLITE_DUPLICATE_FUNCTIONS true
+#define LLVMSQLITE_DUPLICATE_FUNCTIONS false
 #if LLVMSQLITE_DUPLICATE_FUNCTIONS
+                out("--------- MODULE TYPES LIST --------")
+                for(auto t : llvmModule->getIdentifiedStructTypes()) {
+                    out("In Module: " << *t);
+                }
+
                 auto typeMap = llvm::TypeRemapper{*llvmModule};
                 auto gvConverter = llvm::GlobalValueConverter(*llvmModule, typeMap);
                 for(auto& func : loadedModule->functions())
