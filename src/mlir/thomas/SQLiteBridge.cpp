@@ -220,24 +220,28 @@ namespace llvm {
 
 namespace llvm {
 struct GlobalValueConverter {
+    using ValueToValueMapTy = ValueMap<const Value *, WeakTrackingVH>;
+
     Module& mod;
     TypeRemapper& typeMap;
+    ValueToValueMapTy& valueMap;
 
-    GlobalValueConverter(Module& m, TypeRemapper& typeMap)
-        : mod(m), typeMap(typeMap)
+    GlobalValueConverter(Module& m, TypeRemapper& typeMap, ValueToValueMapTy& valueMap)
+        : mod(m), typeMap(typeMap), valueMap(valueMap)
     {
     }
 
-    GlobalVariable* convert(GlobalVariable gv) {
+    GlobalVariable* convert(GlobalVariable& gv) {
         out("Global " << gv);
         auto name = gv.getName() + "_conv";
         auto ty = typeMap.remapType(gv.getType())->getPointerElementType();
         auto dataTy = gv.getType()->getPointerElementType();
-        out("Original " << *gv.getType() << " ours: " << *ty);
-        auto init = gv.getInitializer();
+        out("Original " << *dataTy << " ours: " << *ty);
 
+        auto init = gv.getInitializer();
         auto newInit = convert(init);
 
+        out("New init: " << *newInit);
         auto outGlobal = new GlobalVariable(
                 mod,
                 ty,
@@ -253,36 +257,64 @@ struct GlobalValueConverter {
         return outGlobal;
     }
 
+private:
     Constant* convert(Constant* cst) {
         llvm::Constant* toInit;
+        // LLVMSQLITE_ASSERT(cst->getType()->isPointerTy());
         auto ty = cst->getType();
-        if (cst->isNullValue()) {
-            out("Using NULL for " << *ty);
-            toInit = llvm::Constant::getNullValue(ty);
-        } else if (ty->isIntegerTy() || ty->isFloatingPointTy()) {
+        out("Initializer type: " << *ty << " value: " << *cst);
+
+        if (ty->isIntegerTy() || ty->isFloatingPointTy()) {
             return cst;
         } else if (ty->isStructTy()) {
             auto initializers = llvm::SmallVector<Constant*, 256>();
+            if (cst->isZeroValue())
+                return Constant::getNullValue(typeMap.remapType(ty));
 
             auto sInit = cast<ConstantStruct>(cst);
+
+            out(*sInit);
+
             for(auto& x : sInit->operands()) {
                 initializers.push_back(convert(cast<Constant>(x)));
+                out("Added of type " << *initializers.back()->getType());
             }
 
             return ConstantStruct::get(cast<StructType>(typeMap.remapType(ty)), initializers);
         } else if (ty->isArrayTy()) {
             auto arrTy = llvm::cast<llvm::ArrayType>(ty);
+            auto newArrTy = cast<ArrayType>(typeMap.remapType(arrTy));
+            if (arrTy == newArrTy)
+                return cst;
 
             auto initArr = llvm::SmallVector<llvm::Constant*, 256>();
             for(auto& x : llvm::cast<llvm::ConstantArray>(cst)->operands()) {
                 initArr.push_back(convert(cast<Constant>(x)));
             }
-            auto newArrTy = cast<ArrayType>(typeMap.remapType(arrTy));
 
             return ConstantArray::get(newArrTy, initArr);
         } else if (ty->isPointerTy()) {
             auto newTy = cast<PointerType>(typeMap.remapType(ty));
-            return ConstantPointerNull::get(newTy);
+            if (cst->isNullValue())
+                return Constant::getNullValue(newTy);
+
+            if (ty->getPointerElementType()->isFunctionTy()) {
+                out("Is Function" << *ty->getPointerElementType());
+                auto f = cast<Function>(cst);
+
+                auto mappedF = valueMap[f];
+                out("F : " << f->getName() << " mapped to " << mappedF->getName());
+                auto cstMappedF = cast<Function>(mappedF);
+                return ConstantExpr::getBitCast(cstMappedF, cstMappedF->getType());
+            } else {
+                out("PointerType! New type: " << *newTy << " Old def: " << *cst);
+                out("ConstantExpression: " << cst->containsConstantExpression());
+                out(*cst);
+                out(cst->getAggregateElement((int)0));
+            }
+
+            return cst;
+            // return ConstantPointerNull::get(newTy);
         } else {
             out("Can't convert type " << *ty);
             llvm_unreachable("Couldn't convert that.");
@@ -503,7 +535,7 @@ struct VdbeRunner {
                 extern std::unique_ptr<llvm::Module> loadedModule;
                 LLVMSQLITE_ASSERT(loadedModule != nullptr);
 
-#define LLVMSQLITE_DUPLICATE_FUNCTIONS false
+#define LLVMSQLITE_DUPLICATE_FUNCTIONS true
 #if LLVMSQLITE_DUPLICATE_FUNCTIONS
                 out("--------- MODULE TYPES LIST --------")
                 for(auto t : llvmModule->getIdentifiedStructTypes()) {
@@ -511,7 +543,8 @@ struct VdbeRunner {
                 }
 
                 auto typeMap = llvm::TypeRemapper{*llvmModule};
-                auto gvConverter = llvm::GlobalValueConverter(*llvmModule, typeMap);
+                llvm::ValueToValueMapTy valueMap;
+                auto gvConverter = llvm::GlobalValueConverter(*llvmModule, typeMap, valueMap);
                 for(auto& func : loadedModule->functions())
                 {
                     auto cloneFrom = &func;
@@ -531,8 +564,6 @@ struct VdbeRunner {
                     LLVMSQLITE_ASSERT(cloneIn != nullptr);
 
                     llvm::SmallVector<llvm::ReturnInst*, 16> returns;
-                    llvm::ValueToValueMapTy valueMap;
-
                     auto itFrom = cloneFrom->arg_begin();
                     auto itTo = cloneIn->arg_begin();
 
@@ -542,16 +573,16 @@ struct VdbeRunner {
                         ++itFrom, ++itTo;
                     }
 
-                    for(auto& git : loadedModule->globals()) {
-                        valueMap[&git] = gvConverter.convert(&git);
-                    }
-
                     for(auto& f : loadedModule->functions()) {
                         auto newCalled = llvmModule->getOrInsertFunction(
                             f.getName(),
                             typeMap.remapFunctionType(f.getFunctionType())
                         );
                         valueMap[&f] = llvmModule->getFunction(f.getName());
+                    }
+
+                    for(auto& git : loadedModule->globals()) {
+                        valueMap[&git] = gvConverter.convert(git);
                     }
 
                     // <3 beaucoup
@@ -606,34 +637,30 @@ struct VdbeRunner {
 #endif
 #endif
 
-                // Create the FunctionPassManager
-                llvm::legacy::FunctionPassManager functionPassManager(&*llvmModule);
-                passManagerBuilder.populateFunctionPassManager(functionPassManager);
-                functionPassManager.add(llvm::createTargetTransformInfoWrapperPass(machine->getTargetIRAnalysis()));
+                if (optimise) {
+                    // Create the FunctionPassManager
+                    llvm::legacy::FunctionPassManager functionPassManager(&*llvmModule);
+                    passManagerBuilder.populateFunctionPassManager(functionPassManager);
+                    functionPassManager.add(llvm::createTargetTransformInfoWrapperPass(machine->getTargetIRAnalysis()));
 
-                // Optimise functions
-                /* TODO: Put back
-                functionPassManager.doInitialization();
-                for (llvm::Function &f : *llvmModule)
-                    functionPassManager.run(f);
-                functionPassManager.doFinalization();
-                */
+                    // Optimise functions
+                    functionPassManager.doInitialization();
+                    for (llvm::Function &f : *llvmModule)
+                        functionPassManager.run(f);
+                    functionPassManager.doFinalization();
 
-#if !LLVMSQLITE_DUPLICATE_FUNCTIONS
-                // Create the ModulePassManager
-                llvm::legacy::PassManager modulePassManager;
-                passManagerBuilder.populateModulePassManager(modulePassManager);
-                modulePassManager.add(llvm::createTargetTransformInfoWrapperPass(machine->getTargetIRAnalysis()));
+                    // Create the ModulePassManager
+                    llvm::legacy::PassManager modulePassManager;
+                    passManagerBuilder.populateModulePassManager(modulePassManager);
+                    modulePassManager.add(llvm::createTargetTransformInfoWrapperPass(machine->getTargetIRAnalysis()));
 
-                // Optimise the module
-                modulePassManager.run(*llvmModule);
-#endif
+                    // Optimise the module
+                    modulePassManager.run(*llvmModule);
+                }
 
 #if DEBUG_MACHINE && LLVMSQLITE_DEBUG
                 writeToFile("jit_llvm_optimised.ll", *llvmModule);
 #endif
-
-                auto ty = llvmModule->getTypeByName("sqlite3_io_methods");
 
                 // Create an ExecutionEngine
                 auto builder = llvm::EngineBuilder(std::move(llvmModule));

@@ -46,8 +46,10 @@ struct TypeConverter {
             return cache[ty] = LLVMType::getFloatTy(d);
         else if (ty->isDoubleTy())
             return cache[ty] = LLVMType::getDoubleTy(d);
-        else if (ty->isArrayTy())
+        else if (ty->isArrayTy()) {
+            out(*ty);
             return cache[ty] = LLVMType::getArrayTy(get(ty->getArrayElementType()), ty->getArrayNumElements());
+        }
         else if (ty->isFunctionTy()) {
             auto fTy = cast<llvm::FunctionType>(ty);
             llvm::SmallVector<LLVMType, 16> inTypes;
