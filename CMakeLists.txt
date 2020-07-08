@@ -189,6 +189,8 @@ add_library(sqlite
 )
 target_compile_definitions(sqlite PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
+add_library(sqlite3_aggregate sqlite3.c)
+
 # shell_jit only executes statements using the JIT compiler.
 add_executable(shell_jit shell.c)
 target_link_libraries(shell_jit sqlite)
@@ -215,9 +217,13 @@ target_link_libraries(profilable_shell ${CMAKE_DL_LIBS})
 # Target to build sqlite3.ll, used by JIT inlining features
 # It's built as a library (and not a custom target) to allow easy use of compile definitions
 set(CLANG11 "/Users/kowalski/Downloads/llvm-project/clangbuild/bin/clang")
-add_custom_target(assembly
-   COMMAND ${CLANG11} ${CMAKE_C_FLAGS} -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
-   BYPRODUCTS sqlite3.ll
+add_custom_command(
+    OUTPUT sqlite3.ll
+    VERBATIM COMMAND ${CLANG11} ${CMAKE_C_FLAGS} -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
+    DEPENDS sqlite3.c
 )
-#add_dependencies(shell_jit assembly)
-#add_dependencies(profilable_shell assembly)
+add_custom_target(assembly
+    DEPENDS sqlite3.ll
+)
+add_dependencies(shell_jit assembly)
+add_dependencies(profilable_shell assembly)
