@@ -1,92 +1,18 @@
 #include <unordered_map>
+
 #include <llvm/IRReader/IRReader.h>
-#include <src/mlir/include/Standalone/ErrorCodes.h>
-#include <src/mlir/include/Standalone/DebugUtils.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/Support/raw_ostream.h>
+
+#include "Standalone/ErrorCodes.h"
+#include "Standalone/DebugUtils.h"
 #include "Standalone/TypeDefinitions.h"
 #include "Standalone/Utils.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/Support/raw_ostream.h"
 
 std::unique_ptr<llvm::Module> loadedModule;
 
-
 using mlir::LLVM::LLVMDialect;
 using mlir::LLVM::LLVMType;
-
-struct TypeConverter {
-    LLVMDialect* d;
-    llvm::Module& mod;
-    std::unordered_map<llvm::Type*, LLVMType> cache;
-
-    TypeConverter(LLVMDialect* d, llvm::Module& m)
-        : d(d), mod(m)
-    {
-    }
-
-    mlir::LLVM::LLVMType get(llvm::Type* ty) {
-        LLVMSQLITE_ASSERT(ty && "Can't convert a NULL type reference!");
-
-        if (cache.find(ty) != cache.cend()) {
-            out("Cache hit " << *ty << " " << ty);
-            return cache[ty];
-        }
-
-        out("Converting " << *ty << " " << ty);
-        auto result = getImpl(ty);
-        out("Converted " << *ty << " to " << result);
-        return result;
-    }
-
-    mlir::LLVM::LLVMType getImpl(llvm::Type* ty) {
-        if (ty->isVoidTy())
-            return cache[ty] = LLVMType::getVoidTy(d);
-        if (ty->isIntegerTy())
-            return cache[ty] = LLVMType::getIntNTy(d, ty->getIntegerBitWidth());
-        else if (ty->isFloatTy())
-            return cache[ty] = LLVMType::getFloatTy(d);
-        else if (ty->isDoubleTy())
-            return cache[ty] = LLVMType::getDoubleTy(d);
-        else if (ty->isArrayTy()) {
-            out(*ty);
-            return cache[ty] = LLVMType::getArrayTy(get(ty->getArrayElementType()), ty->getArrayNumElements());
-        }
-        else if (ty->isFunctionTy()) {
-            auto fTy = cast<llvm::FunctionType>(ty);
-            llvm::SmallVector<LLVMType, 16> inTypes;
-            for(auto i = 0; i < fTy->getNumParams(); i++)
-                inTypes.push_back(get(fTy->getParamType(i)));
-
-            return cache[ty] = LLVMType::getFunctionTy(get(fTy->getReturnType()), inTypes, fTy->isVarArg());
-        } else if (ty->isPointerTy()) {
-            return cache[ty] = get(ty->getPointerElementType()).getPointerTo();
-        } else if (ty->isStructTy()) {
-            auto llvmSTy = cast<llvm::StructType>(ty);
-
-            LLVMType sTy;
-            if (llvmSTy->isLiteral())
-                sTy = (cache[ty] = LLVMType::createStructTy(d, mlir::Optional<llvm::StringRef>()));
-            else {
-                std::string name;
-                name += ty->getStructName().str() + "ty";
-                sTy = (cache[ty] = LLVMType::createStructTy(d, mlir::Optional<llvm::StringRef>(name.c_str())));
-            }
-
-            llvm::SmallVector<LLVMType, 64> aggTypes;
-            for (int i = 0; i < ty->getStructNumElements(); i++) {
-                aggTypes.push_back(get(ty->getStructElementType(i)));
-            }
-
-            sTy.setStructTyBody(sTy, aggTypes, llvmSTy->isPacked());
-            return cache[ty] = sTy;
-        } else if (ty->isVectorTy()) {
-            auto vTy = cast<llvm::VectorType>(ty);
-            return LLVMType::getVectorTy(get(vTy->getElementType()), vTy->getNumElements());
-        } else {
-            err("Incompatible type '" << *ty << "'");
-            llvm_unreachable("Can't convert this type.");
-        }
-    }
-};
 
 void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     using t = T::t;
@@ -101,93 +27,91 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
         err("Error while loading module: " << diag.getMessage());
         exit(SQLITE_BRIDGE_FAILURE);
     }
+    
+    T::Sqlite3ConfigTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.Sqlite3Config"));
+    T::DbTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.Db"));
+    T::sqlite3_valueTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.sqlite3_value"));
+    T::MemValueTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("union.MemValue"));
+    T::sqlite3Ty = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.sqlite3"));
+    T::BtreeTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.Btree"));
 
-    TypeConverter converter(d, *loadedModule);
-
-    T::Sqlite3ConfigTy = converter.get(loadedModule->getTypeByName("struct.Sqlite3Config"));
-    T::DbTy = converter.get(loadedModule->getTypeByName("struct.Db"));
-    T::sqlite3_valueTy = converter.get(loadedModule->getTypeByName("struct.sqlite3_value"));
-    T::MemValueTy = converter.get(loadedModule->getTypeByName("union.MemValue"));
-    T::sqlite3Ty = converter.get(loadedModule->getTypeByName("struct.sqlite3"));
-    T::BtreeTy = converter.get(loadedModule->getTypeByName("struct.Btree"));
-
-    // T::sqlite3_mem_methodsTy = converter.get(loadedModule->getTypeByName("struct.sqlite3_mem_methods"));
-    // T::sqlite3_mutex_methodsTy = converter.get(loadedModule->getTypeByName("struct.sqlite3_mutex_methods"));
-    // T::sqlite3_pcache_methods2Ty = converter.get(loadedModule->getTypeByName("struct.sqlite3_pcache_methods2"));
-    // T::sqlite3_pcache_pageTy = converter.get(loadedModule->getTypeByName("sqlite3_pcache_page"));
-    T::sqlite3_vfsTy = converter.get(loadedModule->getTypeByName("struct.sqlite3_vfs"));
-    T::sqlite3_fileTy = converter.get(loadedModule->getTypeByName("struct.sqlite3_file"));
-    T::sqlite3_io_methodsTy = converter.get(loadedModule->getTypeByName("struct.sqlite3_io_methods"));
-    T::VdbeTy = converter.get(loadedModule->getTypeByName("struct.Vdbe"));
-    T::VdbeCursorTy = converter.get(loadedModule->getTypeByName("struct.VdbeCursor"));
-    // T::anon7Ty = converter.get(loadedModule->getTypeByName("anon.7"));
-    T::KeyInfoTy = converter.get(loadedModule->getTypeByName("struct.KeyInfo"));
-    T::VdbeOpTy = converter.get(loadedModule->getTypeByName("struct.VdbeOp"));
-    T::p4unionTy = converter.get(loadedModule->getTypeByName("union.p4union"));
-    T::VdbeFrameTy = converter.get(loadedModule->getTypeByName("struct.VdbeFrame"));
-    T::SubProgramTy = converter.get(loadedModule->getTypeByName("struct.SubProgram"));
-    T::AuxDataTy = converter.get(loadedModule->getTypeByName("struct.AuxData"));
-    T::CollSeqTy = converter.get(loadedModule->getTypeByName("struct.CollSeq"));
-    T::SchemaTy = converter.get(loadedModule->getTypeByName("struct.Schema"));
-    T::TableTy = converter.get(loadedModule->getTypeByName("struct.Table"));
-    T::ColumnTy = converter.get(loadedModule->getTypeByName("struct.Column"));
-    T::ExprTy = converter.get(loadedModule->getTypeByName("struct.Expr"));
-    // T::anonTy = converter.get(loadedModule->getTypeByName("anon."));
-    // T::anon0Ty = converter.get(loadedModule->getTypeByName("anon.0"));
-    T::AggInfoTy = converter.get(loadedModule->getTypeByName("struct.AggInfo"));
-    T::AggInfo_colTy = converter.get(loadedModule->getTypeByName("struct.AggInfo_col"));
-    T::AggInfo_funcTy = converter.get(loadedModule->getTypeByName("struct.AggInfo_func"));
-    T::FuncDefTy = converter.get(loadedModule->getTypeByName("struct.FuncDef"));
-    T::sqlite3_contextTy = converter.get(loadedModule->getTypeByName("struct.sqlite3_context"));
-    // T::anon8Ty = converter.get(loadedModule->getTypeByName("anon.8"));
-    // T::anon4Ty = converter.get(loadedModule->getTypeByName("anon.4"));
-    T::IndexTy = converter.get(loadedModule->getTypeByName("struct.Index"));
-    T::SelectTy = converter.get(loadedModule->getTypeByName("struct.Select"));
-    T::SrcList_itemTy = converter.get(loadedModule->getTypeByName("struct.SrcList_item"));
-    T::SrcListTy = converter.get(loadedModule->getTypeByName("struct.SrcList"));
-    // T::anon2Ty = converter.get(loadedModule->getTypeByName("anon.2"));
-    // T::IdListTy = converter.get(loadedModule->getTypeByName("IdList"));
-    // T::IdList_itemTy = converter.get(loadedModule->getTypeByName("IdList_item"));
-    // T::anon3Ty = converter.get(loadedModule->getTypeByName("anon.3"));
-    // T::CteTy = converter.get(loadedModule->getTypeByName("Cte"));
-    // T::WithTy = converter.get(loadedModule->getTypeByName("With"));
-    // T::WindowTy = converter.get(loadedModule->getTypeByName("Window"));
-    // T::sColMapTy = converter.get(loadedModule->getTypeByName("sColMap"));
-    // T::FKeyTy = converter.get(loadedModule->getTypeByName("FKey"));
-    // T::ExprList_itemTy = converter.get(loadedModule->getTypeByName("ExprList_item"));
-    // T::ExprListTy = converter.get(loadedModule->getTypeByName("ExprList"));
-    // T::anon1Ty = converter.get(loadedModule->getTypeByName("anon.1"));
-    // T::TriggerTy = converter.get(loadedModule->getTypeByName("Trigger"));
-    // T::TriggerStepTy = converter.get(loadedModule->getTypeByName("TriggerStep"));
-    // T::UpsertTy = converter.get(loadedModule->getTypeByName("Upsert"));
-    // T::sqlite3InitInfoTy = converter.get(loadedModule->getTypeByName("sqlite3InitInfo"));
-    // T::ParseTy = converter.get(loadedModule->getTypeByName("Parse"));
-    // T::AutoincInfoTy = converter.get(loadedModule->getTypeByName("AutoincInfo"));
-    // T::TokenTy = converter.get(loadedModule->getTypeByName("Token"));
-    // T::TriggerPrgTy = converter.get(loadedModule->getTypeByName("TriggerPrg"));
-    // T::anon6Ty = converter.get(loadedModule->getTypeByName("anon.6"));
-    // T::LookasideTy = converter.get(loadedModule->getTypeByName("Lookaside"));
-    // T::LookasideSlotTy = converter.get(loadedModule->getTypeByName("LookasideSlot"));
-    T::VTableTy = converter.get(loadedModule->getTypeByName("struct.VTable"));
-    // T::ModuleTy = converter.get(loadedModule->getTypeByName("Module"));
-    // T::sqlite3_moduleTy = converter.get(loadedModule->getTypeByName("sqlite3_module"));
-    // T::sqlite3_index_infoTy = converter.get(loadedModule->getTypeByName("sqlite3_index_info"));
-    // T::sqlite3_index_constraintTy = converter.get(loadedModule->getTypeByName("sqlite3_index_constraint"));
-    // T::sqlite3_index_orderbyTy = converter.get(loadedModule->getTypeByName("sqlite3_index_orderby"));
-    // T::sqlite3_index_constraint_usageTy = converter.get(loadedModule->getTypeByName("sqlite3_index_constraint_usage"));
-    T::sqlite3_vtab_cursorTy = converter.get(loadedModule->getTypeByName("struct.sqlite3_vtab_cursor"));
-    // T::sqlite3_vtabTy = converter.get(loadedModule->getTypeByName("sqlite3_vtab"));
-    // T::HashTy = converter.get(loadedModule->getTypeByName("Hash"));
-    // T::HashElemTy = converter.get(loadedModule->getTypeByName("HashElem"));
-    // T::_htTy = converter.get(loadedModule->getTypeByName("_ht"));
-    // T::BusyHandlerTy = converter.get(loadedModule->getTypeByName("BusyHandler"));
-    // T::SavepointTy = converter.get(loadedModule->getTypeByName("Savepoint"));
-    T::UnpackedRecordTy = converter.get(loadedModule->getTypeByName("struct.UnpackedRecord"));
+    // T::sqlite3_mem_methodsTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.sqlite3_mem_methods"));
+    // T::sqlite3_mutex_methodsTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.sqlite3_mutex_methods"));
+    // T::sqlite3_pcache_methods2Ty = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.sqlite3_pcache_methods2"));
+    // T::sqlite3_pcache_pageTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("sqlite3_pcache_page"));
+    T::sqlite3_vfsTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.sqlite3_vfs"));
+    T::sqlite3_fileTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.sqlite3_file"));
+    T::sqlite3_io_methodsTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.sqlite3_io_methods"));
+    T::VdbeTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.Vdbe"));
+    T::VdbeCursorTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.VdbeCursor"));
+    // T::anon7Ty = LLVMType::get(d->getContext(), loadedModule->getTypeByName("anon.7"));
+    T::KeyInfoTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.KeyInfo"));
+    T::VdbeOpTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.VdbeOp"));
+    T::p4unionTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("union.p4union"));
+    T::VdbeFrameTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.VdbeFrame"));
+    T::SubProgramTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.SubProgram"));
+    T::AuxDataTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.AuxData"));
+    T::CollSeqTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.CollSeq"));
+    T::SchemaTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.Schema"));
+    T::TableTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.Table"));
+    T::ColumnTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.Column"));
+    T::ExprTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.Expr"));
+    // T::anonTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("anon."));
+    // T::anon0Ty = LLVMType::get(d->getContext(), loadedModule->getTypeByName("anon.0"));
+    T::AggInfoTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.AggInfo"));
+    T::AggInfo_colTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.AggInfo_col"));
+    T::AggInfo_funcTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.AggInfo_func"));
+    T::FuncDefTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.FuncDef"));
+    T::sqlite3_contextTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.sqlite3_context"));
+    // T::anon8Ty = LLVMType::get(d->getContext(), loadedModule->getTypeByName("anon.8"));
+    // T::anon4Ty = LLVMType::get(d->getContext(), loadedModule->getTypeByName("anon.4"));
+    T::IndexTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.Index"));
+    T::SelectTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.Select"));
+    T::SrcList_itemTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.SrcList_item"));
+    T::SrcListTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.SrcList"));
+    // T::anon2Ty = LLVMType::get(d->getContext(), loadedModule->getTypeByName("anon.2"));
+    // T::IdListTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("IdList"));
+    // T::IdList_itemTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("IdList_item"));
+    // T::anon3Ty = LLVMType::get(d->getContext(), loadedModule->getTypeByName("anon.3"));
+    // T::CteTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("Cte"));
+    // T::WithTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("With"));
+    // T::WindowTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("Window"));
+    // T::sColMapTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("sColMap"));
+    // T::FKeyTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("FKey"));
+    // T::ExprList_itemTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("ExprList_item"));
+    // T::ExprListTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("ExprList"));
+    // T::anon1Ty = LLVMType::get(d->getContext(), loadedModule->getTypeByName("anon.1"));
+    // T::TriggerTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("Trigger"));
+    // T::TriggerStepTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("TriggerStep"));
+    // T::UpsertTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("Upsert"));
+    // T::sqlite3InitInfoTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("sqlite3InitInfo"));
+    // T::ParseTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("Parse"));
+    // T::AutoincInfoTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("AutoincInfo"));
+    // T::TokenTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("Token"));
+    // T::TriggerPrgTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("TriggerPrg"));
+    // T::anon6Ty = LLVMType::get(d->getContext(), loadedModule->getTypeByName("anon.6"));
+    // T::LookasideTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("Lookaside"));
+    // T::LookasideSlotTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("LookasideSlot"));
+    T::VTableTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.VTable"));
+    // T::ModuleTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("Module"));
+    // T::sqlite3_moduleTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("sqlite3_module"));
+    // T::sqlite3_index_infoTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("sqlite3_index_info"));
+    // T::sqlite3_index_constraintTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("sqlite3_index_constraint"));
+    // T::sqlite3_index_orderbyTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("sqlite3_index_orderby"));
+    // T::sqlite3_index_constraint_usageTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("sqlite3_index_constraint_usage"));
+    T::sqlite3_vtab_cursorTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.sqlite3_vtab_cursor"));
+    // T::sqlite3_vtabTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("sqlite3_vtab"));
+    // T::HashTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("Hash"));
+    // T::HashElemTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("HashElem"));
+    // T::_htTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("_ht"));
+    // T::BusyHandlerTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("BusyHandler"));
+    // T::SavepointTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("Savepoint"));
+    T::UnpackedRecordTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.UnpackedRecord"));
     T::UnpackedRecordPtrTy = T::UnpackedRecordTy.getPointerTo();
 
-    T::BtreePayloadTy = converter.get(loadedModule->getTypeByName("struct.BtreePayload"));
+    T::BtreePayloadTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.BtreePayload"));
     T::BtreePayloadPtrTy = T::BtreePayloadTy.getPointerTo();
-    // T::InitDataTy = converter.get(loadedModule->getTypeByName("InitData"));
+    // T::InitDataTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("InitData"));
 
     T::i1Ty = t::getIntNTy(d, 1);
 
@@ -202,7 +126,7 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::CollSeqPtrTy = T::CollSeqTy.getPointerTo();
     // T::sqlite3_pcache_pagePtrTy = T::sqlite3_pcache_pageTy.getPointerTo();
     // T::LookasideSlotPtrTy = T::LookasideSlotTy.getPointerTo();
-    T::BtCursorTy = converter.get(loadedModule->getTypeByName("struct.BtCursor"));
+    T::BtCursorTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.BtCursor"));
     T::sqlite3_valuePtrTy = T::sqlite3_valueTy.getPointerTo();
     T::sqlite3_vtab_cursorPtrTy = T::sqlite3_vtab_cursorTy.getPointerTo();
     // T::IndexPtrTy = T::IndexTy.getPointerTo();
@@ -217,16 +141,16 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     // T::SelectPtrTy = T::SelectTy.getPointerTo();
     // T::SubProgramPtrTy = T::SubProgramTy.getPointerTo();
     // T::sqlite3_index_infoPtrTy = T::sqlite3_index_infoTy.getPointerTo();
-    // T::sqlite3_pcacheTy = converter.get(loadedModule->getTypeByName("sqlite3_pcache"));
-    // T::PagerTy = converter.get(loadedModule->getTypeByName("Pager"));
+    // T::sqlite3_pcacheTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("sqlite3_pcache"));
+    // T::PagerTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("Pager"));
     // T::SrcListPtrTy = T::SrcListTy.getPointerTo();
     // T::Arr_1_sColMapTy = t::getArrayTy(T::sColMapTy, 1);
     // T::Arr_1_CteTy = t::getArrayTy(T::CteTy, 1);
     T::VdbePtrTy = T::VdbeTy.getPointerTo();
-    T::sqlite3_mutexTy = converter.get(loadedModule->getTypeByName("struct.sqlite3_mutex"));
+    T::sqlite3_mutexTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.sqlite3_mutex"));
     T::i64Ty = t::getIntNTy(d, 64);
     // T::sqlite3_io_methodsPtrTy = T::sqlite3_io_methodsTy.getPointerTo();
-    T::RowSetTy = converter.get(loadedModule->getTypeByName("struct.RowSet"));
+    T::RowSetTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.RowSet"));
     T::RowSetPtrTy = T::RowSetTy.getPointerTo();
     // T::TriggerPtrTy = T::TriggerTy.getPointerTo();
     // T::SavepointPtrTy = T::SavepointTy.getPointerTo();
@@ -243,13 +167,13 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::VdbeOpPtrTy = T::VdbeOpTy.getPointerTo();
     T::p4unionPtrTy = T::p4unionTy.getPointerTo();
     // T::AutoincInfoPtrTy = T::AutoincInfoTy.getPointerTo();
-    T::TableLockTy = converter.get(loadedModule->getTypeByName("struct.TableLock"));
+    T::TableLockTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.TableLock"));
     T::FuncDefPtrTy = T::FuncDefTy.getPointerTo();
-    // T::RenameTokenTy = converter.get(loadedModule->getTypeByName("RenameToken"));
+    // T::RenameTokenTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("RenameToken"));
     T::i32Ty = t::getIntNTy(d, 32);
     T::sqlite3PtrTy = T::sqlite3Ty.getPointerTo();
     T::i8Ty = t::getIntNTy(d, 8);
-    T::VtabCtxTy = converter.get(loadedModule->getTypeByName("struct.VtabCtx"));
+    T::VtabCtxTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.VtabCtx"));
     // T::ParsePtrTy = T::ParseTy.getPointerTo();
     T::sqlite3_contextPtrTy = T::sqlite3_contextTy.getPointerTo();
     T::ColumnPtrTy = T::ColumnTy.getPointerTo();
@@ -261,7 +185,7 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     // T::HashElemPtrTy = T::HashElemTy.getPointerTo();
     // T::WithPtrTy = T::WithTy.getPointerTo();
     // T::AggInfo_colPtrTy = T::AggInfo_colTy.getPointerTo();
-    T::VdbeSorterTy = converter.get(loadedModule->getTypeByName("struct.VdbeSorter"));
+    T::VdbeSorterTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.VdbeSorter"));
     // T::AggInfo_funcPtrTy = T::AggInfo_funcTy.getPointerTo();
     T::doubleTy = t::getDoubleTy(d);
     // T::ExprListPtrTy = T::ExprListTy.getPointerTo();
