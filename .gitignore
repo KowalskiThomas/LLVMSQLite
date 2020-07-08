@@ -27,3 +27,5 @@ cmake-build*
 .idea
 *.o
 /profile/
+/kowalski_util/map.txt
+/kowalski_util/stack.txt
