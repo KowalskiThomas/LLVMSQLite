@@ -169,7 +169,6 @@ namespace mlir::standalone::passes {
                 auto blockZero = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                 auto recIsZero = iCmp(LOC, Pred::ne, bitAnd(LOC, recFlagsValue, MEM_Zero), 0);
-                print(LOCL, recIsZero, "RecIsZero");
                 condBranch(LOC, recIsZero, blockZero, blockNotZero);
                 { // if (pRec->flags & MEM_Zero)
                     ip_start(blockZero);
@@ -191,9 +190,7 @@ namespace mlir::standalone::passes {
                 ip_start(blockAfterZero);
 
                 /// nHdr++
-                print(LOCL, load(LOC, nHdrAddr), "nHdr");
                 PlusPlus(LOC, nHdrAddr);
-                print(LOCL, load(LOC, nHdrAddr), "nHdr++");
 
                 branch(LOC, blockAfter);
             } // end if rec is NULL
@@ -221,7 +218,6 @@ namespace mlir::standalone::passes {
                 condBranch(LOC, iNegative, blockINegative, blockNotINegative);
                 { // if (i < 0)
                     ip_start(blockINegative);
-print(LOCL, "is negative");
                     /// uu = ~i;
                     // We have ~X = X ^ 11..1
                     static_assert(~(uint64_t)(0) + 1 < ~(uint64_t)(0), "I was wrong");
@@ -312,7 +308,6 @@ print(LOCL, "is negative");
                 { // if (uu <= 32767)
                     ip_start(blockSize2);
 
-// print(LOCL, "Size 2");
                     addInPlace(LOC, nDataAddr, 2);
                     store(LOC, 2, uTempAddress);
 
@@ -325,7 +320,6 @@ print(LOCL, "is negative");
                 { // if (uu <= 8388607)
                     ip_start(blockSize3);
 
-// print(LOCL, "Size 3");
                     addInPlace(LOC, nDataAddr, 3);
                     store(LOC, 3, uTempAddress);
 
@@ -338,7 +332,6 @@ print(LOCL, "is negative");
                 { // if (uu <= 2147483647)
                     ip_start(blockSize4);
 
-// print(LOCL, "Size 4");
                     addInPlace(LOC, nDataAddr, 4);
                     store(LOC, 4, uTempAddress);
 
@@ -351,7 +344,6 @@ print(LOCL, "is negative");
                 { // if (uu <= 140737488355327LL)
                     ip_start(blockSize5);
 
-// print(LOCL, "Size 5");
                     addInPlace(LOC, nDataAddr, 6);
                     store(LOC, 5, uTempAddress);
 
@@ -360,7 +352,6 @@ print(LOCL, "is negative");
                 { // else of if (uu <= 140737488355327LL)
                     ip_start(blockNotSize5);
 
-// print(LOCL, "Size BIG");
                     addInPlace(LOC, nDataAddr, 8);
 
                     auto curBlock = rewriter.getBlock();
