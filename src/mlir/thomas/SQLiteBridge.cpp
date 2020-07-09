@@ -217,10 +217,11 @@ struct VdbeRunner {
                     err("Broken module found, exiting.");
                     exit(SQLITE_BRIDGE_FAILURE);
                 }
-#endif
+#else
                 if (broken) {
                     llvm_unreachable("Generated IR Module is invalid");
                 }
+#endif
 
                 auto maybeHost = llvm::orc::JITTargetMachineBuilder::detectHost();
                 if (!maybeHost) {
@@ -241,7 +242,7 @@ struct VdbeRunner {
                 auto passManagerBuilder = llvm::PassManagerBuilder();
                 passManagerBuilder.OptLevel = optimise ? 3 : 0;
                 passManagerBuilder.SizeLevel = 0;
-                passManagerBuilder.Inliner = optimise ? llvm::createFunctionInliningPass(5000000000) : nullptr;
+                passManagerBuilder.Inliner = optimise ? llvm::createFunctionInliningPass(0) : nullptr;
                 passManagerBuilder.MergeFunctions = optimise;
                 passManagerBuilder.LoopVectorize = optimise;
                 passManagerBuilder.SLPVectorize = optimise;
@@ -254,14 +255,13 @@ struct VdbeRunner {
                 extern std::unique_ptr<llvm::Module> loadedModule;
                 LLVMSQLITE_ASSERT(loadedModule != nullptr);
 
-#define LLVMSQLITE_DUPLICATE_FUNCTIONS true
+#define LLVMSQLITE_DUPLICATE_FUNCTIONS false
 #if LLVMSQLITE_DUPLICATE_FUNCTIONS
 
                 llvm::ValueToValueMapTy VMap;
 
                 static std::unordered_set<std::string> inlined = {
-                    "sqlite3AtoF",
-                    "sqlite3VdbeMemIntegerify"
+                    "sqlite3AtoF", "sqlite3VdbeMemIntegerify"
                 };
 
                 std::unordered_map<std::string, llvm::GlobalVariable*> gv;
@@ -479,11 +479,9 @@ struct VdbeRunner {
                 /// Add the sqlite3.ll module to the ExecutionEngine
                 /// engine->addModule(std::move(loadedModule));
 
+#if LLVMSQLITE_DUPLICATE_FUNCTIONS
                 engine->addGlobalMapping(gv["sqlite3Config"], (void*)&sqlite3Config);
-
-                // auto addr = (struct Sqlite3Config*)(engine->getPointerToGlobal(gv["sqlite3Config"]));
-                // LLVMSQLITE_ASSERT(addr);
-                // *addr = sqlite3Config;
+#endif
 
                 jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(
                         engine->getFunctionAddress(JIT_MAIN_FN_NAME)

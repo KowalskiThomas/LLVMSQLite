@@ -19091,6 +19091,7 @@ int SQLITE_CDECL wmain(int argc, wchar_t **wargv){
       if( n<0 ) n = 0;
       sqlite3_config(SQLITE_CONFIG_LOOKASIDE, sz, n);
       if( sz*n==0 ) data.shellFlgs &= ~SHFLG_Lookaside;
+    } /* Added by Thomas Kowalski */ else if (strcmp(z, "-jit") == 0 || strcmp(z, "-nojit")) {
     } /* Added by Thomas Kowalski */ else if (strcmp(z, "-jit-query") == 0) {
       ++i;
     } /* Added by Thomas Kowalski */ else if (strcmp(z, "-jit-query-count") == 0) {
@@ -19201,6 +19202,10 @@ int SQLITE_CDECL wmain(int argc, wchar_t **wargv){
   ** try to process it.
   */
   process_sqliterc(&data,zInitFile);
+  if (zInitFile) {
+    printf("Exiting after doing -init\n");
+    exit(0);
+  }
 
   /* Make a second pass through the command-line argument and set
   ** options.  This second pass is delayed until after the initialization
