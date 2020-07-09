@@ -2552,8 +2552,8 @@ static void closeAllCursors(Vdbe *p){
   }
 
   /* Delete any auxdata allocations made by the VM */
-  if( p->pAuxData ) sqlite3VdbeDeleteAuxData(p->db, &p->pAuxData, -1, 0);
-  assert( p->pAuxData==0 );
+  // TODO: Put that back if( p->pAuxData ) sqlite3VdbeDeleteAuxData(p->db, &p->pAuxData, -1, 0);
+  // assert( p->pAuxData==0 );
 }
 
 /*
