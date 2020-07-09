@@ -323,7 +323,7 @@ struct VdbeRunner {
                         // other.
                         llvm::GlobalValue *GV;
                         if (I->getValueType()->isFunctionTy())
-                            GV = llvm::Function::Create(cast<llvm::FunctionType>(I->getValueType()),
+                            GV = llvm::Function::Create(llvm::cast<llvm::FunctionType>(I->getValueType()),
                                                         llvm::GlobalValue::ExternalLinkage,
                                                         I->getAddressSpace(), I->getName(), llvmModule.get());
                         else
