@@ -255,8 +255,9 @@ struct VdbeRunner {
                 extern std::unique_ptr<llvm::Module> loadedModule;
                 LLVMSQLITE_ASSERT(loadedModule != nullptr);
 
-#define LLVMSQLITE_DUPLICATE_FUNCTIONS false
+#define LLVMSQLITE_DUPLICATE_FUNCTIONS true
 #if LLVMSQLITE_DUPLICATE_FUNCTIONS
+                out("Copying functions");
 
                 llvm::ValueToValueMapTy VMap;
 
@@ -301,7 +302,7 @@ struct VdbeRunner {
                     if (!NF) {
                         // If we don't already have that function declared, add it
                         NF = llvm::Function::Create(
-                                cast<llvm::FunctionType>(I.getValueType()),
+                                llvm::cast<llvm::FunctionType>(I.getValueType()),
                                 I.getLinkage(),
                                 I.getAddressSpace(), I.getName(), llvmModule.get());
                     }
@@ -347,7 +348,7 @@ struct VdbeRunner {
                     if (I->isDeclaration())
                         continue;
 
-                    llvm::GlobalVariable *GV = cast<llvm::GlobalVariable>(VMap[&*I]);
+                    llvm::GlobalVariable *GV = llvm::cast<llvm::GlobalVariable>(VMap[&*I]);
                     if (GV->getName() == "sqlite3Config") { // (!ShouldCloneDefinition(&*I)) {
                         // Skip after setting the correct linkage for an external reference.
                         GV->setLinkage(llvm::GlobalValue::ExternalLinkage);
@@ -373,7 +374,7 @@ struct VdbeRunner {
                     if (I.isDeclaration())
                         continue;
 
-                    llvm::Function *F = cast<llvm::Function>(VMap[&I]);
+                    llvm::Function *F = llvm::cast<llvm::Function>(VMap[&I]);
                     if (false) { //(!ShouldCloneDefinition(&I)) {
                         // Skip after setting the correct linkage for an external reference.
                         F->setLinkage(llvm::GlobalValue::ExternalLinkage);
@@ -408,7 +409,7 @@ struct VdbeRunner {
                 for (auto I = loadedModule->alias_begin(), E = loadedModule->alias_end();
                      I != E; ++I) {
                     // We already dealt with undefined aliases above.
-                    llvm::GlobalAlias *GA = cast<llvm::GlobalAlias>(VMap[&*I]);
+                    llvm::GlobalAlias *GA = llvm::cast<llvm::GlobalAlias>(VMap[&*I]);
                     if (const llvm::Constant *C = I->getAliasee())
                         GA->setAliasee(MapValue(C, VMap));
                 }

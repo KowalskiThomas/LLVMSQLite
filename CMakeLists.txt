@@ -3,12 +3,13 @@ cmake_minimum_required(VERSION 3.15)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 
 option(XRAY "Enable support for LLVM X-Ray")
 option(VTUNE "Enable support for profiling with VTune")
 option(SANITIZE "Enable support for a sanitizer (undefined address memory thread)")
 option(CLANG11 "Path to the version of Clang that corresponds to the MLIR framework")
+
+set(LLVM_ENABLE_LIBCXX ON)
 
 if ("{CLANG11}" STREQUAL "OFF")
     message(FATAL_ERROR "Please define the path to Clang 11 with -DCLANG11=...")
@@ -193,6 +194,7 @@ add_library(sqlite
     ${PROJECT_SOURCE_DIR}/parse.c
 )
 target_compile_definitions(sqlite PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
+target_compile_definitions(sqlite PRIVATE SQLITE_OMIT_VIRTUALTABLE=1 SQLITE_OMIT_TRACE=1)
 
 # Dummy library to use the sqlite3.c auto-generated file
 add_library(sqlite3_aggregate sqlite3.c)
@@ -224,7 +226,7 @@ target_link_libraries(profilable_shell ${CMAKE_DL_LIBS})
 # It's built as a library (and not a custom target) to allow easy use of compile definitions
 add_custom_command(
     OUTPUT sqlite3.ll
-    VERBATIM COMMAND ${CLANG11} ${CMAKE_C_FLAGS} -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
+    VERBATIM COMMAND ${CLANG11} -O3 -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
     DEPENDS sqlite3.c
 )
 add_custom_target(assembly
