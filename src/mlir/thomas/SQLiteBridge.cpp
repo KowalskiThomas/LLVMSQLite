@@ -255,7 +255,7 @@ struct VdbeRunner {
                 extern std::unique_ptr<llvm::Module> loadedModule;
                 LLVMSQLITE_ASSERT(loadedModule != nullptr);
 
-#define LLVMSQLITE_DUPLICATE_FUNCTIONS true
+#define LLVMSQLITE_DUPLICATE_FUNCTIONS false
 #if LLVMSQLITE_DUPLICATE_FUNCTIONS
                 out("Copying functions");
 
