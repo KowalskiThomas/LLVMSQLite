@@ -82,13 +82,14 @@ TEMP_STORE = -DSQLITE_TEMP_STORE=@TEMP_STORE@
 # based on configuration. (-DSQLITE_OMIT*, -DSQLITE_ENABLE*).
 # The same set of OMIT and ENABLE flags should be passed to the
 # LEMON parser generator and the mkkeywordhash tool as well.
-OPT_FEATURE_FLAGS = @OPT_FEATURE_FLAGS@
+OPT_FEATURE_FLAGS = @OPT_FEATURE_FLAGS@  -DSQLITE_OMIT_VIRTUALTABLE=1
 
 TCC += $(OPT_FEATURE_FLAGS)
 
 # Add in any optional parameters specified on the make commane line
 # ie.  make "OPTS=-DSQLITE_ENABLE_FOO=1 -DSQLITE_OMIT_FOO=1".
-TCC += $(OPTS) -DSQLITE_OMIT_VIRTUALTABLE
+OPTS = -DSQLITE_OMIT_VIRTUALTABLE=1
+TCC += $(OPTS)
 
 # Add in compile-time options for some libraries used by extensions
 TCC += @HAVE_ZLIB@
@@ -1441,7 +1442,7 @@ clean:
 	rm -f sqlite3.dll sqlite3.lib sqlite3.exp sqlite3.def
 	rm -f sqlite3.c
 	rm -f sqlite3rc.h
-	rm -f shell.c sqlite3ext.h
+	rm -f sqlite3ext.h
 	rm -f sqlite3_analyzer$(TEXE) sqlite3_analyzer.c
 	rm -f sqlite-*-output.vsix
 	rm -f mptester mptester.exe

@@ -46,8 +46,8 @@ else ()
     add_compile_definitions(LLVMSQLITE_DEBUG)
 endif ()
 
-add_compile_definitions(SQLITE_OMIT_VIRTUALTABLE)
-add_compile_definitions(SQLITE_OMIT_TRACE)
+add_compile_definitions(SQLITE_OMIT_VIRTUALTABLE=1)
+add_compile_definitions(SQLITE_OMIT_TRACE=1)
 
 if (EXT_DEBUG)
     message("Debug machine")
@@ -83,17 +83,17 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/src/mlir)
 
 
 add_custom_command(
-    OUTPUT Makefile-NoAlgam
+    OUTPUT ${PROJECT_SOURCE_DIR}/Makefile-NoAlgam
     COMMAND ./configure  --disable-tcl --disable-load-extension --disable-amalgamation && mv Makefile Makefile-NoAlgam
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    DEPENDS Makefile.in
+    DEPENDS ${PROJECT_SOURCE_DIR}/Makefile.in
 )
 
-add_custom_target(
-    OUTPUT Makefile-Algam
+add_custom_command(
+    OUTPUT ${PROJECT_SOURCE_DIR}/Makefile-Algam
     COMMAND ./configure  --disable-tcl --disable-load-extension && mv Makefile Makefile-Algam
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    DEPENDS Makefile.in
+    DEPENDS ${PROJECT_SOURCE_DIR}/Makefile.in
 )
 
 add_custom_command(
@@ -105,13 +105,13 @@ add_custom_command(
         ${PROJECT_SOURCE_DIR}/sqlite3.h
         ${PROJECT_SOURCE_DIR}/keywordhash.h
     VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && make -f Makefile-NoAlgam opcodes.c opcodes.h parse.c parse.h keywordhash.h sqlite3.h -j4
-    DEPENDS Makefile-NoAlgam
+    DEPENDS ${PROJECT_SOURCE_DIR}/Makefile-NoAlgam
 )
 
 add_custom_command(
     OUTPUT ${PROJECT_SOURCE_DIR}/sqlite3.c
     VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure --disable-tcl --disable-load-extension  && make -f Makefile-Algam sqlite3.c -j4
-    DEPENDS Makefile-Algam
+    DEPENDS ${PROJECT_SOURCE_DIR}/Makefile-Algam
 )
 
 
@@ -267,7 +267,7 @@ target_link_libraries(profilable_shell ${CMAKE_DL_LIBS})
 add_custom_command(
     OUTPUT sqlite3.ll
     VERBATIM COMMAND ${CLANG11} -O2 -fno-slp-vectorize -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
-    DEPENDS sqlite3.c
+    DEPENDS ${PROJECT_SOURCE_DIR}/sqlite3.c
 )
 add_custom_target(assembly
     DEPENDS sqlite3.ll
