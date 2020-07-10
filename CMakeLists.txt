@@ -4,6 +4,9 @@ cmake_minimum_required(VERSION 3.15)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# I don't know what to do with that:
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -stdlib=libc++")
+
 option(XRAY "Enable support for LLVM X-Ray")
 option(VTUNE "Enable support for profiling with VTune")
 option(SANITIZE "Enable support for a sanitizer (undefined address memory thread)")
@@ -223,10 +226,9 @@ target_link_libraries(profilable_shell ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(profilable_shell ${CMAKE_DL_LIBS})
 
 # Target to build sqlite3.ll, used by JIT inlining features
-# It's built as a library (and not a custom target) to allow easy use of compile definitions
 add_custom_command(
     OUTPUT sqlite3.ll
-    VERBATIM COMMAND ${CLANG11} -O2 -fno-slp-vectorize -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
+    VERBATIM COMMAND ${CLANG11} -O0 -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
     DEPENDS sqlite3.c
 )
 add_custom_target(assembly

@@ -151,7 +151,7 @@ struct VdbeRunner {
         ::prepareFunction(context, llvmDialect, mlirModule);
 
 #if DEBUG_MACHINE && LLVMSQLITE_DEBUG
-        writeToFile("jit_mlir_vdbe_module.ll", mlirModule);
+        writeToFile("jit_mlir_vdbe_module.mlir", mlirModule);
 #endif
 
         mlir::PassManager pm(ctx);
@@ -159,7 +159,7 @@ struct VdbeRunner {
         pm.run(mlirModule);
 
 #if DEBUG_MACHINE && LLVMSQLITE_DEBUG
-        writeToFile("jit_mlir_llvm_module.ll", mlirModule);
+        writeToFile("jit_mlir_llvm_module.mlir", mlirModule);
 #endif
 
         llvmModule = mlir::translateModuleToLLVMIR(mlirModule);
@@ -262,7 +262,16 @@ struct VdbeRunner {
                 llvm::ValueToValueMapTy VMap;
 
                 static std::unordered_set<std::string> inlined = {
-                    "sqlite3AtoF", "sqlite3VdbeMemIntegerify"
+                    "sqlite3VdbeMemIntegerify",
+                     "getPageNormal",
+                     "applyNumericAffinity", "sqlite3AtoF", "alsoAnInt", "sqlite3VdbeIntegerAffinity",
+                     "sqlite3BtreeNext",
+                         "btreeNext",
+                            "moveToChild",
+                                "getAndInitPage",
+                            "moveToParent",
+                                "releasePageNotNull"
+                        "moveToLeftmost",
                 };
 
                 std::unordered_map<std::string, llvm::GlobalVariable*> gv;
@@ -307,7 +316,7 @@ struct VdbeRunner {
                                 I.getAddressSpace(), I.getName(), llvmModule.get());
                     }
                     if (inlined.find(NF->getName().str()) != inlined.cend()) {
-                        NF->setLinkage(llvm::GlobalValue::AvailableExternallyLinkage);
+                        NF->setLinkage(llvm::GlobalValue::ExternalLinkage);
                     }
 
                     NF->copyAttributesFrom(&I);
@@ -369,7 +378,6 @@ struct VdbeRunner {
 
 
                 // Similarly, copy over function bodies now...
-                //
                 for (const llvm::Function &I : *loadedModule) {
                     if (I.isDeclaration())
                         continue;
@@ -453,6 +461,10 @@ struct VdbeRunner {
                     passManagerBuilder.populateModulePassManager(modulePassManager);
                     modulePassManager.add(llvm::createTargetTransformInfoWrapperPass(machine->getTargetIRAnalysis()));
 
+#if DEBUG_MACHINE && LLVMSQLITE_DEBUG
+                    writeToFile("jit_llvm_before_module_opt.ll", *llvmModule);
+#endif
+
                     // Optimise the module
                     modulePassManager.run(*llvmModule);
 
@@ -473,12 +485,9 @@ struct VdbeRunner {
                         .setEngineKind(llvm::EngineKind::JIT)
                         .setOptLevel(optimise ? llvm::CodeGenOpt::Aggressive : llvm::CodeGenOpt::None)
                         .setVerifyModules(true)
+                        // .setMCPU("i386")
                         .create();
                 ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");
-
-                // TODO: Remove
-                /// Add the sqlite3.ll module to the ExecutionEngine
-                /// engine->addModule(std::move(loadedModule));
 
 #if LLVMSQLITE_DUPLICATE_FUNCTIONS
                 engine->addGlobalMapping(gv["sqlite3Config"], (void*)&sqlite3Config);

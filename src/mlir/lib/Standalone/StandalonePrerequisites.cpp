@@ -1548,9 +1548,6 @@ void printTypeOf(const char* fileName, const uint32_t line, Vdbe* p, sqlite3_val
 
     auto memIndex = pMem - p->aMem;
 
-    // if (printed.find(memIndex) == printed.cend())
-    //     out("Register " << memIndex << " type: " << memType);
-
     if (types.find(memIndex) != types.cend()) {
         auto lastType = types[memIndex];
         LLVMSQLITE_ASSERT(
