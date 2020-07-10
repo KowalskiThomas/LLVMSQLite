@@ -8,6 +8,7 @@ option(XRAY "Enable support for LLVM X-Ray")
 option(VTUNE "Enable support for profiling with VTune")
 option(SANITIZE "Enable support for a sanitizer (undefined address memory thread)")
 option(CLANG11 "Path to the version of Clang that corresponds to the MLIR framework")
+option(EXT_DEBUG "Show more debugging information")
 
 set(LLVM_ENABLE_LIBCXX ON)
 
@@ -43,7 +44,7 @@ endif ()
 add_compile_definitions(SQLITE_OMIT_VIRTUALTABLE)
 add_compile_definitions(SQLITE_OMIT_TRACE)
 
-if (APPLE)
+if (EXT_DEBUG)
     message("Debug machine")
     add_compile_definitions(DEBUG_MACHINE)
 endif ()
@@ -233,3 +234,35 @@ add_custom_target(assembly
 )
 add_dependencies(shell_jit assembly)
 add_dependencies(profilable_shell assembly)
+
+add_custom_target(RUN_CONFIGURE
+    COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure  --disable-tcl --disable-load-extension --disable-amalgamation
+    DEPENDS Makefile.in
+)
+
+add_custom_command(
+    OUTPUT 
+        ${PROJECT_SOURCE_DIR}/opcodes.c 
+        ${PROJECT_SOURCE_DIR}/opcodes.h 
+        ${PROJECT_SOURCE_DIR}/parse.c
+    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && make opcodes.c opcodes.h parse.c -j4
+    DEPENDS RUN_CONFIGURE
+)
+add_custom_target(opcodes.c opcodes.c)
+add_custom_target(opcodes.h opcodes.h)
+add_custom_target(parse.c parse.c)
+add_dependencies(shell_jit opcodes.h)
+
+add_custom_command(
+    OUTPUT sqlite3.c
+    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure --disable-tcl --disable-load-extension  && make sqlite3.c -j4
+)
+
+
+
+
+
+
+
+
+
