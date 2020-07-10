@@ -1,12 +1,8 @@
 .vscode
 writeFunction.cpp
-legacy_w_r_i_t_e_f_u_n_c_t_i_o_n.cpp
-temp_vdbe.c
 *.out
 debug/
 release/
-# opcodes.h
-# opcodes.c
 config.status
 config.h
 config.log
@@ -35,3 +31,22 @@ sqlite3.pc
 sqlite3session.h
 Makefile-Algam
 Makefile-NoAlgam
+fts5.c
+fts5.h
+fts5parse.c
+fts5parse.h
+fts5parse.sql
+fts5parse.y
+keywordhash.h
+lemon
+lempar.c
+mkkeywordhash
+opcodes.c
+opcodes.h
+parse.c
+parse.h
+parse.sql
+parse.y
+sqlite3.c
+sqlite3.h
+sqlite3ext.h
