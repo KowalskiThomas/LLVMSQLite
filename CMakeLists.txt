@@ -80,16 +80,50 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/mlir)
 
+
+
+add_custom_command(
+    OUTPUT Makefile-NoAlgam
+    COMMAND ./configure  --disable-tcl --disable-load-extension --disable-amalgamation && mv Makefile Makefile-NoAlgam
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    DEPENDS Makefile.in
+)
+
+add_custom_target(
+    OUTPUT Makefile-Algam
+    COMMAND ./configure  --disable-tcl --disable-load-extension && mv Makefile Makefile-Algam
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    DEPENDS Makefile.in
+)
+
+add_custom_command(
+    OUTPUT 
+        ${PROJECT_SOURCE_DIR}/opcodes.c
+        ${PROJECT_SOURCE_DIR}/opcodes.h
+        ${PROJECT_SOURCE_DIR}/parse.h
+        ${PROJECT_SOURCE_DIR}/parse.c
+        ${PROJECT_SOURCE_DIR}/sqlite3.h
+    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && make -f Makefile-NoAlgam opcodes.c opcodes.h parse.c parse.h sqlite3.h -j4
+    DEPENDS Makefile-NoAlgam
+)
+
+add_custom_command(
+    OUTPUT sqlite3.c
+    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure --disable-tcl --disable-load-extension  && make -f Makefile-Algam sqlite3.c -j4
+    DEPENDS Makefile-Algam
+)
+
+
 # Custom file serving as a bridge between SQLite and the JIT
-add_library(vdbe_exec_llvm ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
+add_library(vdbe_exec_llvm ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp sqlite3.h)
 target_compile_definitions(vdbe_exec_llvm PUBLIC ENABLE_JIT=1 ENABLE_DEFAULT=0)
 target_compile_definitions(vdbe_exec_llvm PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
-add_library(vdbe_exec_default ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
+add_library(vdbe_exec_default ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp sqlite3.h)
 target_compile_definitions(vdbe_exec_default PUBLIC ENABLE_JIT=0 ENABLE_DEFAULT=1)
 target_compile_definitions(vdbe_exec_default PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
-add_library(vdbe_exec_universal ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
+add_library(vdbe_exec_universal ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp sqlite3.h)
 target_compile_definitions(vdbe_exec_universal PUBLIC ENABLE_JIT=1 ENABLE_DEFAULT=1)
 target_compile_definitions(vdbe_exec_universal PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
@@ -239,35 +273,6 @@ add_custom_target(assembly
 )
 add_dependencies(shell_jit assembly)
 add_dependencies(profilable_shell assembly)
-
-add_custom_command(
-    OUTPUT Makefile-NoAlgam
-    COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure  --disable-tcl --disable-load-extension --disable-amalgamation && mv Makefile Makefile-NoAlgam
-    DEPENDS Makefile.in
-)
-
-add_custom_target(
-    OUTPUT Makefile-Algam
-    COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure  --disable-tcl --disable-load-extension && mv Makefile Makefile-Algam
-    DEPENDS Makefile.in
-)
-
-add_custom_command(
-    OUTPUT 
-        ${PROJECT_SOURCE_DIR}/opcodes.c
-        ${PROJECT_SOURCE_DIR}/opcodes.h
-        ${PROJECT_SOURCE_DIR}/parse.h
-        ${PROJECT_SOURCE_DIR}/parse.c
-        ${PROJECT_SOURCE_DIR}/sqlite3.h
-    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && make -f Makefile-NoAlgam opcodes.c opcodes.h parse.c sqlite3.h parse.h -j4
-    DEPENDS Makefile-NoAlgam
-)
-
-add_custom_command(
-    OUTPUT sqlite3.c
-    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure --disable-tcl --disable-load-extension  && make -f Makefile-Algam sqlite3.c -j4
-    DEPENDS Makefile-Algam
-)
 
 
 
