@@ -11,12 +11,18 @@ option(XRAY "Enable support for LLVM X-Ray")
 option(VTUNE "Enable support for profiling with VTune")
 option(SANITIZE "Enable support for a sanitizer (undefined address memory thread)")
 option(CLANG11 "Path to the version of Clang that corresponds to the MLIR framework")
+option(EXT_DEBUG "Show more debugging information")
 
-set(LLVM_ENABLE_LIBCXX ON)
-
-if ("{CLANG11}" STREQUAL "OFF")
+if (NOT CLANG11) 
     message(FATAL_ERROR "Please define the path to Clang 11 with -DCLANG11=...")
 endif()
+
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+    message("CMAKE_BUILD_TYPE defaulted to Debug")
+endif()
+
+set(LLVM_ENABLE_LIBCXX ON)
 
 if (VTUNE)
     if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
@@ -43,10 +49,10 @@ else ()
     add_compile_definitions(LLVMSQLITE_DEBUG)
 endif ()
 
-add_compile_definitions(SQLITE_OMIT_VIRTUALTABLE)
-add_compile_definitions(SQLITE_OMIT_TRACE)
+add_compile_definitions(SQLITE_OMIT_VIRTUALTABLE=1)
+add_compile_definitions(SQLITE_OMIT_TRACE=1)
 
-if (APPLE)
+if (EXT_DEBUG)
     message("Debug machine")
     add_compile_definitions(DEBUG_MACHINE)
 endif ()
@@ -77,16 +83,49 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/mlir)
 
+add_custom_command(
+    OUTPUT ${PROJECT_SOURCE_DIR}/Makefile-NoAlgam
+    COMMAND ./configure  --disable-tcl --disable-load-extension --disable-amalgamation && mv Makefile Makefile-NoAlgam
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    DEPENDS ${PROJECT_SOURCE_DIR}/Makefile.in
+)
+
+add_custom_command(
+    OUTPUT ${PROJECT_SOURCE_DIR}/Makefile-Algam
+    COMMAND ./configure  --disable-tcl --disable-load-extension && mv Makefile Makefile-Algam
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    DEPENDS ${PROJECT_SOURCE_DIR}/Makefile.in
+)
+
+add_custom_command(
+    OUTPUT 
+        ${PROJECT_SOURCE_DIR}/opcodes.c
+        ${PROJECT_SOURCE_DIR}/opcodes.h
+        ${PROJECT_SOURCE_DIR}/parse.h
+        ${PROJECT_SOURCE_DIR}/parse.c
+        ${PROJECT_SOURCE_DIR}/sqlite3.h
+        ${PROJECT_SOURCE_DIR}/keywordhash.h
+    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && make -f Makefile-NoAlgam opcodes.c opcodes.h parse.c parse.h keywordhash.h sqlite3.h -j4
+    DEPENDS ${PROJECT_SOURCE_DIR}/Makefile-NoAlgam
+)
+
+add_custom_command(
+    OUTPUT ${PROJECT_SOURCE_DIR}/sqlite3.c
+    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure --disable-tcl --disable-load-extension  && make -f Makefile-Algam sqlite3.c -j4
+    DEPENDS ${PROJECT_SOURCE_DIR}/Makefile-Algam
+)
+
+
 # Custom file serving as a bridge between SQLite and the JIT
-add_library(vdbe_exec_llvm ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
+add_library(vdbe_exec_llvm ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp ${PROJECT_SOURCE_DIR}/sqlite3.h)
 target_compile_definitions(vdbe_exec_llvm PUBLIC ENABLE_JIT=1 ENABLE_DEFAULT=0)
 target_compile_definitions(vdbe_exec_llvm PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
-add_library(vdbe_exec_default ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
+add_library(vdbe_exec_default ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp ${PROJECT_SOURCE_DIR}/sqlite3.h)
 target_compile_definitions(vdbe_exec_default PUBLIC ENABLE_JIT=0 ENABLE_DEFAULT=1)
 target_compile_definitions(vdbe_exec_default PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
-add_library(vdbe_exec_universal ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp)
+add_library(vdbe_exec_universal ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp ${PROJECT_SOURCE_DIR}/sqlite3.h)
 target_compile_definitions(vdbe_exec_universal PUBLIC ENABLE_JIT=1 ENABLE_DEFAULT=1)
 target_compile_definitions(vdbe_exec_universal PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
@@ -164,7 +203,6 @@ add_library(sqlite
     ${PROJECT_SOURCE_DIR}/src/sqliteInt.h
     ${PROJECT_SOURCE_DIR}/src/sqliteLimit.h
     ${PROJECT_SOURCE_DIR}/src/table.c
-    ${PROJECT_SOURCE_DIR}/src/tclsqlite.c
     ${PROJECT_SOURCE_DIR}/src/threads.c
     ${PROJECT_SOURCE_DIR}/src/tokenize.c
     ${PROJECT_SOURCE_DIR}/src/treeview.c
@@ -195,6 +233,7 @@ add_library(sqlite
     ${PROJECT_SOURCE_DIR}/src/window.c
     ${PROJECT_SOURCE_DIR}/opcodes.c
     ${PROJECT_SOURCE_DIR}/parse.c
+    ${PROJECT_SOURCE_DIR}/sqlite3.h
 )
 target_compile_definitions(sqlite PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 target_compile_definitions(sqlite PRIVATE SQLITE_OMIT_VIRTUALTABLE=1 SQLITE_OMIT_TRACE=1)
@@ -203,7 +242,7 @@ target_compile_definitions(sqlite PRIVATE SQLITE_OMIT_VIRTUALTABLE=1 SQLITE_OMIT
 add_library(sqlite3_aggregate sqlite3.c)
 
 # shell_jit only executes statements using the JIT compiler.
-add_executable(shell_jit shell.c)
+add_executable(shell_jit shell.c ${PROJECT_SOURCE_DIR}/sqlite3.h)
 target_link_libraries(shell_jit sqlite)
 target_link_libraries(shell_jit vdbe_exec_llvm)
 target_link_libraries(shell_jit sqlite_llvm)
@@ -211,14 +250,14 @@ target_link_libraries(shell_jit ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(shell_jit ${CMAKE_DL_LIBS})
 
 # shell_default is the same shell as one would get when compiling SQLite in the canonical way.
-add_executable(shell_default shell.c)
+add_executable(shell_default shell.c ${PROJECT_SOURCE_DIR}/)
 target_link_libraries(shell_default sqlite)
 target_link_libraries(shell_default vdbe_exec_default)
 target_link_libraries(shell_default ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(shell_default ${CMAKE_DL_LIBS})
 
 # profilable_shell is an executable that can execute both JIT-compiled or interpreted statements.
-add_executable(profilable_shell shell.c)
+add_executable(profilable_shell shell.c ${PROJECT_SOURCE_DIR}/)
 target_link_libraries(profilable_shell sqlite)
 target_link_libraries(profilable_shell vdbe_exec_universal)
 target_link_libraries(profilable_shell sqlite_llvm)
@@ -228,11 +267,20 @@ target_link_libraries(profilable_shell ${CMAKE_DL_LIBS})
 # Target to build sqlite3.ll, used by JIT inlining features
 add_custom_command(
     OUTPUT sqlite3.ll
-    VERBATIM COMMAND ${CLANG11} -O0 -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
-    DEPENDS sqlite3.c
+    VERBATIM COMMAND ${CLANG11} -fno-slp-vectorize -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
+    DEPENDS ${PROJECT_SOURCE_DIR}/sqlite3.c
 )
 add_custom_target(assembly
     DEPENDS sqlite3.ll
 )
 add_dependencies(shell_jit assembly)
 add_dependencies(profilable_shell assembly)
+
+
+
+
+
+
+
+
+
