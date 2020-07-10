@@ -108,7 +108,7 @@ add_custom_command(
 )
 
 add_custom_command(
-    OUTPUT sqlite3.c
+    OUTPUT ${PROJECT_SOURCE_DIR}/sqlite3.c
     VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure --disable-tcl --disable-load-extension  && make -f Makefile-Algam sqlite3.c -j4
     DEPENDS Makefile-Algam
 )
