@@ -1,3 +1,4 @@
+asan/
 .vscode
 writeFunction.cpp
 *.out
