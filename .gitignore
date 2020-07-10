@@ -33,3 +33,5 @@ libtool
 mksourceid
 sqlite3.pc
 sqlite3session.h
+Makefile-Algam
+Makefile-NoAlgam

@@ -10,11 +10,16 @@ option(SANITIZE "Enable support for a sanitizer (undefined address memory thread
 option(CLANG11 "Path to the version of Clang that corresponds to the MLIR framework")
 option(EXT_DEBUG "Show more debugging information")
 
-set(LLVM_ENABLE_LIBCXX ON)
-
-if ("{CLANG11}" STREQUAL "OFF")
+if (NOT CLANG11) 
     message(FATAL_ERROR "Please define the path to Clang 11 with -DCLANG11=...")
 endif()
+
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+    message("CMAKE_BUILD_TYPE defaulted to Debug")
+endif()
+
+set(LLVM_ENABLE_LIBCXX ON)
 
 if (VTUNE)
     if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
@@ -235,27 +240,33 @@ add_custom_target(assembly
 add_dependencies(shell_jit assembly)
 add_dependencies(profilable_shell assembly)
 
-add_custom_target(RUN_CONFIGURE
-    COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure  --disable-tcl --disable-load-extension --disable-amalgamation
+add_custom_command(
+    OUTPUT Makefile-NoAlgam
+    COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure  --disable-tcl --disable-load-extension --disable-amalgamation && mv Makefile Makefile-NoAlgam
+    DEPENDS Makefile.in
+)
+
+add_custom_target(
+    OUTPUT Makefile-Algam
+    COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure  --disable-tcl --disable-load-extension && mv Makefile Makefile-Algam
     DEPENDS Makefile.in
 )
 
 add_custom_command(
     OUTPUT 
-        ${PROJECT_SOURCE_DIR}/opcodes.c 
-        ${PROJECT_SOURCE_DIR}/opcodes.h 
+        ${PROJECT_SOURCE_DIR}/opcodes.c
+        ${PROJECT_SOURCE_DIR}/opcodes.h
+        ${PROJECT_SOURCE_DIR}/parse.h
         ${PROJECT_SOURCE_DIR}/parse.c
-    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && make opcodes.c opcodes.h parse.c -j4
-    DEPENDS RUN_CONFIGURE
+        ${PROJECT_SOURCE_DIR}/sqlite3.h
+    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && make -f Makefile-NoAlgam opcodes.c opcodes.h parse.c sqlite3.h parse.h -j4
+    DEPENDS Makefile-NoAlgam
 )
-add_custom_target(opcodes.c opcodes.c)
-add_custom_target(opcodes.h opcodes.h)
-add_custom_target(parse.c parse.c)
-add_dependencies(shell_jit opcodes.h)
 
 add_custom_command(
     OUTPUT sqlite3.c
-    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure --disable-tcl --disable-load-extension  && make sqlite3.c -j4
+    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && ./configure --disable-tcl --disable-load-extension  && make -f Makefile-Algam sqlite3.c -j4
+    DEPENDS Makefile-Algam
 )
 
 
