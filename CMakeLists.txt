@@ -266,7 +266,7 @@ target_link_libraries(profilable_shell ${CMAKE_DL_LIBS})
 # It's built as a library (and not a custom target) to allow easy use of compile definitions
 add_custom_command(
     OUTPUT sqlite3.ll
-    VERBATIM COMMAND ${CLANG11} -O2 -fno-slp-vectorize -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
+    VERBATIM COMMAND ${CLANG11} -fno-slp-vectorize -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
     DEPENDS ${PROJECT_SOURCE_DIR}/sqlite3.c
 )
 add_custom_target(assembly
