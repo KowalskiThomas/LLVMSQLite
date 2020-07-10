@@ -80,8 +80,6 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/mlir)
 
-
-
 add_custom_command(
     OUTPUT ${PROJECT_SOURCE_DIR}/Makefile-NoAlgam
     COMMAND ./configure  --disable-tcl --disable-load-extension --disable-amalgamation && mv Makefile Makefile-NoAlgam
@@ -116,15 +114,15 @@ add_custom_command(
 
 
 # Custom file serving as a bridge between SQLite and the JIT
-add_library(vdbe_exec_llvm ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp sqlite3.h)
+add_library(vdbe_exec_llvm ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp ${PROJECT_SOURCE_DIR}/sqlite3.h)
 target_compile_definitions(vdbe_exec_llvm PUBLIC ENABLE_JIT=1 ENABLE_DEFAULT=0)
 target_compile_definitions(vdbe_exec_llvm PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
-add_library(vdbe_exec_default ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp sqlite3.h)
+add_library(vdbe_exec_default ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp ${PROJECT_SOURCE_DIR}/sqlite3.h)
 target_compile_definitions(vdbe_exec_default PUBLIC ENABLE_JIT=0 ENABLE_DEFAULT=1)
 target_compile_definitions(vdbe_exec_default PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
-add_library(vdbe_exec_universal ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp sqlite3.h)
+add_library(vdbe_exec_universal ${PROJECT_SOURCE_DIR}/src/vdbe_exec.cpp ${PROJECT_SOURCE_DIR}/sqlite3.h)
 target_compile_definitions(vdbe_exec_universal PUBLIC ENABLE_JIT=1 ENABLE_DEFAULT=1)
 target_compile_definitions(vdbe_exec_universal PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 
@@ -232,6 +230,7 @@ add_library(sqlite
     ${PROJECT_SOURCE_DIR}/src/window.c
     ${PROJECT_SOURCE_DIR}/opcodes.c
     ${PROJECT_SOURCE_DIR}/parse.c
+    ${PROJECT_SOURCE_DIR}/sqlite3.h
 )
 target_compile_definitions(sqlite PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 target_compile_definitions(sqlite PRIVATE SQLITE_OMIT_VIRTUALTABLE=1 SQLITE_OMIT_TRACE=1)
@@ -240,7 +239,7 @@ target_compile_definitions(sqlite PRIVATE SQLITE_OMIT_VIRTUALTABLE=1 SQLITE_OMIT
 add_library(sqlite3_aggregate sqlite3.c)
 
 # shell_jit only executes statements using the JIT compiler.
-add_executable(shell_jit shell.c)
+add_executable(shell_jit shell.c ${PROJECT_SOURCE_DIR}/sqlite3.h)
 target_link_libraries(shell_jit sqlite)
 target_link_libraries(shell_jit vdbe_exec_llvm)
 target_link_libraries(shell_jit sqlite_llvm)
@@ -248,14 +247,14 @@ target_link_libraries(shell_jit ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(shell_jit ${CMAKE_DL_LIBS})
 
 # shell_default is the same shell as one would get when compiling SQLite in the canonical way.
-add_executable(shell_default shell.c)
+add_executable(shell_default shell.c ${PROJECT_SOURCE_DIR}/)
 target_link_libraries(shell_default sqlite)
 target_link_libraries(shell_default vdbe_exec_default)
 target_link_libraries(shell_default ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(shell_default ${CMAKE_DL_LIBS})
 
 # profilable_shell is an executable that can execute both JIT-compiled or interpreted statements.
-add_executable(profilable_shell shell.c)
+add_executable(profilable_shell shell.c ${PROJECT_SOURCE_DIR}/)
 target_link_libraries(profilable_shell sqlite)
 target_link_libraries(profilable_shell vdbe_exec_universal)
 target_link_libraries(profilable_shell sqlite_llvm)
