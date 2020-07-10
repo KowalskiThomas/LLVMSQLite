@@ -248,6 +248,8 @@ target_link_libraries(shell_jit vdbe_exec_llvm)
 target_link_libraries(shell_jit sqlite_llvm)
 target_link_libraries(shell_jit ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(shell_jit ${CMAKE_DL_LIBS})
+# Force shell_jit to be compiled after shell_default and thus sqlite3.h to exist
+add_dependencies(shell_jit shell_default)
 
 # shell_default is the same shell as one would get when compiling SQLite in the canonical way.
 add_executable(shell_default shell.c ${PROJECT_SOURCE_DIR}/)
