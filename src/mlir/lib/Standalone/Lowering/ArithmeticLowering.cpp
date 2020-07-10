@@ -7,6 +7,7 @@
 
 #include "Standalone/StandalonePasses.h"
 
+extern GlobalOp aMem;
 
 ExternFuncOp f_numericType;
 ExternFuncOp f_sqlite3VdbeRealValue;
@@ -15,6 +16,7 @@ ExternFuncOp f_sqlite3SubInt64;
 ExternFuncOp f_sqlite3MulInt64;
 ExternFuncOp f_sqlite3IsNaN;
 ExternFuncOp f_sqlite3VdbeIntValue;
+ExternFuncOp f_printTypeOf;
 
 namespace mlir::standalone::passes {
     LogicalResult ArithmeticLowering::matchAndRewrite(Arithmetic mathOp, PatternRewriter &rewriter) const {
@@ -357,6 +359,7 @@ namespace mlir::standalone::passes {
         branch(LOC, endBlock);
 
         ip_start(endBlock);
+
         restoreStack(LOC, stackState);
         rewriter.eraseOp(mathOp);
 

@@ -63,12 +63,12 @@ ExternFuncOp f_sqlite3VdbeSorterNext;
  * For example, run up to two instructions using the default implementation:
  *      store(pc, &vdbe->pc);
  *      store(2, &maxVdbeSteps);
- *      call(f_sqlite3VdbeExec2, vdbe);
+ *      call(f_sqlite3VdbeExecDefault, vdbe);
  * The original sqlite3VdbeExec has been modified to support that.
  */
 // The maximum number of operations to execute in the default implementation
 extern int64_t maxVdbeSteps;
-ExternFuncOp f_sqlite3VdbeExec2;
+ExternFuncOp f_sqlite3VdbeExecDefault;
 
 ExternFuncOp f_debug;
 ExternFuncOp f_assert;

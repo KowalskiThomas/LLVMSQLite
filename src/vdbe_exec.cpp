@@ -2,6 +2,8 @@
 
 #include "mlir/include/Standalone/DebugUtils.h"
 
+extern char enableJit;
+
 #ifdef VTUNE
 #include "ittnotify.h"
 #endif
@@ -26,9 +28,6 @@ extern "C" {
     unsigned long long functionOptimisationTime = 0;
 #endif
 
-// Whether to use JIT for queries. Should be -1 if ENABLE_JIT && !ENABLE_DEFAULT or !ENABLE_JIT && ENABLE_DEFAULT
-char enableJit = -1;
-
 int jitVdbeStep(Vdbe *);
 
 int sqlite3VdbeExec(Vdbe *p) {
@@ -46,7 +45,7 @@ int sqlite3VdbeExec(Vdbe *p) {
         lastVdbe = p;
     }
 
-#ifdef DEBUG_MACHINE
+#ifdef LLVMSQLITE_DEBUG
     auto tick = std::chrono::system_clock::now();
 #endif
 
@@ -56,14 +55,14 @@ int sqlite3VdbeExec(Vdbe *p) {
 #else
 #if ENABLE_DEFAULT && !ENABLE_JIT
     LLVMSQLITE_ASSERT(enableJit == -1);
-    auto step_return = sqlite3VdbeExec2(p);
+    auto step_return = VDBE_EXEC_NAME(p);
 #else
 #if ENABLE_DEFAULT && ENABLE_JIT
     int step_return;
     if (enableJit == 1)
         step_return = jitVdbeStep(p);
     else if (enableJit == 0)
-        step_return = sqlite3VdbeExec2(p);
+        step_return = VDBE_EXEC_NAME(p);
     else if (enableJit == -1) {
         fprintf(stderr, "Please select a mode with -jit or -nojit\n");
         exit(INCONSISTENT_STATE);

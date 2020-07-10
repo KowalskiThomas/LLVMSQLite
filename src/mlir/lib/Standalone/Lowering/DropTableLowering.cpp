@@ -32,10 +32,16 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(txnOp); GO_BACK_TO(curBlock);
 
+        // Get (char*) p4
+        auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+        auto p4i8PtrAddr = bitCast(LOC, p4UAddr, T::i8PtrTy.getPointerTo());
+        auto p4i8Ptr = load(LOC, p4i8PtrAddr);
+
         call(LOC, f_sqlite3UnlinkAndDeleteTable,
                 vdbeCtx->db,
                 constants(p1, 32),
-                constants(T::i8PtrTy, (char*)p4)
+                p4i8Ptr
             );
 
         branch(LOC, endBlock);

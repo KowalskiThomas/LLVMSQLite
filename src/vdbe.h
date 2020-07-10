@@ -19,7 +19,9 @@
 #define SQLITE_VDBE_H
 #include <stdio.h>
 
-// #define SQLITE_ENABLE_EXPLAIN_COMMENTS /* TODO Comments */
+#ifndef VDBE_EXEC_NAME
+#define VDBE_EXEC_NAME sqlite3VdbeExec
+#endif
 
 /*
 ** A single VDBE is an opaque structure named "Vdbe".  Only routines
@@ -292,17 +294,6 @@ void sqlite3VdbeLinkSubProgram(Vdbe *, SubProgram *);
 int sqlite3VdbeHasSubProgram(Vdbe*);
 
 int sqlite3NotPureFunc(sqlite3_context*);
-
-/** ADDED BY THOMAS FOR EXTERNAL ACCESS */
-struct VdbeCursor;
-typedef struct VdbeCursor VdbeCursor;
-VdbeCursor *allocateCursor(
-        Vdbe *p,              /* The virtual machine */
-        int iCur,             /* Index of the new VdbeCursor */
-        int nField,           /* Number of fields in the table or index */
-        int iDb,              /* Database the cursor belongs to, or -1 */
-        u8 eCurType           /* Type of the new cursor */
-);
 
 
 /* Use SQLITE_ENABLE_COMMENTS to enable generation of extra comments on

@@ -98,7 +98,7 @@ namespace mlir::standalone::passes {
                 auto rc = call(LOC, f_sqlite3BtreeClearTable,
                     pBtx,
                     pgnoRoot,
-                    constants(T::i32PtrTy, (int *)nullptr)
+                    constants(T::i32PtrTy, (int*)nullptr)
                 ).getValue();
                 store(LOC, rc, rcAddr);
 
@@ -181,8 +181,11 @@ namespace mlir::standalone::passes {
             { // if (rc == SQLITE_OK)
                 ip_start(blockRcIsOk2);
 
-                auto pKeyInfo = constants(T::KeyInfoPtrTy, p4);
-                /*
+                auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+                auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+                auto p4KeyInfoPtrAddr = bitCast(LOC, p4UAddr, T::KeyInfoPtrTy.getPointerTo());
+                auto pKeyInfo = load(LOC, p4KeyInfoPtrAddr);
+                /* TODO?
                 {
                     auto keyInfoRefCount = getElementPtrImm(LOC, T::i32PtrTy, pKeyInfo, 0, 0);
                     auto refCountVal = load(LOC, keyInfoRefCount);

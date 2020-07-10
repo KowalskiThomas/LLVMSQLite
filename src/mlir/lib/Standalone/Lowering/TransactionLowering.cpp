@@ -95,6 +95,7 @@ namespace mlir::standalone::passes {
                     store(LOC, sum, iStatementAddr);
                 } // end if (vdbe->iStatement == 0) {
 
+#ifndef SQLITE_OMIT_VIRTUALTABLE
                 /// rc = sqlite3VtabSavepoint(db, SAVEPOINT_BEGIN, p->iStatement - 1);
                 auto iStatementValue = load(LOC, iStatementAddr);
                 auto iStatementValueMinus1 = add(LOC, iStatementValue, -1);
@@ -118,6 +119,7 @@ namespace mlir::standalone::passes {
                 } // end if (rc == SQLITE_OK)
 
                 ip_start(blockAfterRcIsOk);
+#endif
 
                 /// Reload rc (phi-like)
                 rcTemp = load(LOC, rcAddr);

@@ -28,7 +28,10 @@ namespace mlir::standalone::passes {
         auto pc = afOp.pcAttr().getUInt();
 
         auto accumReg = toRegAttr;
-        auto pFunc = constants(T::FuncDefPtrTy, (void*)functionAttr);
+        auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+        auto p4FuncDefPtrAddr = bitCast(LOC, p4UAddr, T::FuncDefPtrTy.getPointerTo());
+        auto pFunc = load(LOC, p4FuncDefPtrAddr);
 
         print(LOCL, "-- AggFinal");
         USE_DEFAULT_BOILERPLATE

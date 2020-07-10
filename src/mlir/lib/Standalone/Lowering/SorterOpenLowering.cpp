@@ -48,7 +48,13 @@ namespace mlir::standalone::passes {
         } // end if (pCx == 0) goto no_mem
 
         auto keyInfoAddr = getElementPtrImm(LOC, T::KeyInfoPtrTy.getPointerTo(), pCx, 0, 13);
-        store(LOC, constants(T::KeyInfoPtrTy, (KeyInfo*)p4), keyInfoAddr);
+
+        auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+        auto p4KeyInfoPtrAddr = bitCast(LOC, p4UAddr, T::KeyInfoPtrTy.getPointerTo());
+        auto p4KeyInfoPtr = load(LOC, p4KeyInfoPtrAddr);
+
+        store(LOC, p4KeyInfoPtr, keyInfoAddr);
 
         auto rc = call(LOC, f_sqlite3VdbeSorterInit,
                 vdbeCtx->db,

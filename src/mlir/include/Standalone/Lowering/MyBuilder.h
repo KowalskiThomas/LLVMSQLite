@@ -21,7 +21,8 @@ struct MyBuilder {
 
     AllocaOp insertAllocaOp(mlir::Location loc, mlir::Type ty);
 
-    llvm::Optional<Value> insertCallOp(mlir::Location loc, LLVMFuncOp func, mlir::ValueRange range);
+    llvm::Optional<Value> insertCallOp(Location loc, Value func, ValueRange range);
+    llvm::Optional<Value> insertCallOp(Location loc, LLVMFuncOp func, ValueRange range);
 
     Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, mlir::Value rhs);
     Value insertICmpOp(mlir::Location loc, ICmpPredicate pred, mlir::Value lhs, int rhs);
@@ -114,7 +115,7 @@ auto alloca = [&builder](mlir::Location loc, mlir::Type ty) { \
     return builder.insertAllocaOp(loc, ty); \
 }; \
  \
-auto call = [&builder](mlir::Location loc, LLVM::LLVMFuncOp f, auto... args) { \
+auto call = [&builder](mlir::Location loc, auto f, auto... args) { \
     return builder.insertCallOp(loc, f, mlir::ValueRange{args...}); \
 }; \
  \

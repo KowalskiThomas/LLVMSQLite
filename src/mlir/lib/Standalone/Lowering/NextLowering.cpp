@@ -3,6 +3,7 @@
 #include "Standalone/Lowering/AssertOperator.h"
 #include "Standalone/Lowering/Printer.h"
 #include "Standalone/ErrorCodes.h"
+#include "Standalone/DebugUtils.h"
 
 #include "Standalone/StandalonePasses.h"
 
@@ -50,12 +51,13 @@ namespace mlir::standalone::passes {
         /// rc = pOp->p4.xAdvance(pC->uc.pCursor, pOp->p3);
 
         LLVMFuncOp toCall;
-        if (advancerValue == (uint64_t)sqlite3BtreeNext) {
-            toCall = f_sqlite3BtreeNext;
-        } else {
-            err("Unsupported advancer " << advancerValue);
-            exit(UNSUPPORTED_ADVANCER);
-        }
+        LLVMSQLITE_ASSERT(advancerValue == (uint64_t)sqlite3BtreeNext);
+        // if (advancerValue == (uint64_t)sqlite3BtreeNext) {
+        toCall = f_sqlite3BtreeNext;
+        // } else {
+        //     err("Unsupported advancer " << advancerValue);
+        //     exit(UNSUPPORTED_ADVANCER);
+        // }
 
         /// rc = pOp->p4.xAdvance(pC->uc.pCursor, pOp->p3);
         // Get &pC->uc.pCursor

@@ -15,8 +15,6 @@
 #include "sqliteInt.h"
 #include "vdbeInt.h"
 
-// #define SQLITE_ENABLE_EXPLAIN_COMMENTS /* TODO Comments */
-
 /* Forward references */
 static void freeEphemeralFunction(sqlite3 *db, FuncDef *pDef);
 static void vdbeFreeOpArray(sqlite3 *, Op *, int);
@@ -2554,8 +2552,8 @@ static void closeAllCursors(Vdbe *p){
   }
 
   /* Delete any auxdata allocations made by the VM */
-  if( p->pAuxData ) sqlite3VdbeDeleteAuxData(p->db, &p->pAuxData, -1, 0);
-  assert( p->pAuxData==0 );
+  // TODO: Put that back if( p->pAuxData ) sqlite3VdbeDeleteAuxData(p->db, &p->pAuxData, -1, 0);
+  // assert( p->pAuxData==0 );
 }
 
 /*
@@ -4200,13 +4198,14 @@ static int vdbeCompareMemString(
   if( pMem1->enc==pColl->enc ){
     /* The strings are already in the correct encoding.  Call the
      ** comparison function directly */
-    if (pColl->xCmp != &binCollFunc) {
+    // TODO: Why did I have this requirement?
+    /*if (pColl->xCmp != &binCollFunc) {
         printf("Not binCollFunc!\n");
         exit(129);
     }
     else {
         return binCollFunc(pColl->pUser,pMem1->n,pMem1->z,pMem2->n,pMem2->z);
-    }
+    }*/
     return pColl->xCmp(pColl->pUser,pMem1->n,pMem1->z,pMem2->n,pMem2->z);
   }else{
     int rc;

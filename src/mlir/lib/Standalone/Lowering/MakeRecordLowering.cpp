@@ -69,7 +69,11 @@ namespace mlir::standalone::passes {
         auto nField = firstFromReg;
 
         /// zAffinity = pOp->p4.z;
-        auto zAffinity = constants(T::i8PtrTy, affinities);
+        auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+        auto p4i8PtrAddr = bitCast(LOC, p4UAddr, T::i8PtrTy.getPointerTo());
+        auto p4i8Ptr = load(LOC, p4i8PtrAddr);
+        auto zAffinity = p4i8Ptr;
 
         /// pData0 = &aMem[nField];
         auto pData0Value = &vdbe->aMem[nField];

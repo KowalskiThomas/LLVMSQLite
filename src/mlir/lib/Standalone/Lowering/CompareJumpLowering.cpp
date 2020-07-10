@@ -12,6 +12,20 @@
 // ExternFuncOp f_applyNumericAffinity;
 ExternFuncOp f_sqlite3VdbeMemStringify;
 ExternFuncOp f_sqlite3MemCompare;
+ExternFuncOp f_printTypeOf;
+
+static std::unordered_map<int, int> types {
+        { 14, MEM_Str },
+        { 13, MEM_Int },
+        { 20, MEM_Int },
+        { 21, MEM_Int },
+        { 24, MEM_Int },
+        { 25, MEM_Int },
+        { 26, MEM_Int },
+        { 27, MEM_Str },
+        { 35, -1},
+        {36, -1}
+};
 
 namespace mlir::standalone::passes {
     LogicalResult CompareJumpLowering::matchAndRewrite(CompareJump cjOp, PatternRewriter &rewriter) const {
@@ -36,6 +50,14 @@ namespace mlir::standalone::passes {
         auto rhs = cjOp.rhsAttr().getSInt();
         auto collSeq = (CollSeq *) cjOp.comparatorAttr().getUInt();
         auto flags = cjOp.flagsAttr().getUInt();
+
+        auto tyLeft = types[lhs];
+        auto tyRight = types[rhs];
+        // print(LOCL, constants(lhs, 32), "LHS");
+        // print(LOCL, constants(rhs, 32), "RHS");
+        // LLVMSQLITE_ASSERT(tyLeft != 0 && "Type for LHS is not defined");
+        // LLVMSQLITE_ASSERT(tyRight != 0 && "Type for RHS is not defined");
+        // LLVMSQLITE_ASSERT(tyLeft == tyRight && "Types should be the same");
 
         USE_DEFAULT_BOILERPLATE
 
@@ -64,7 +86,6 @@ namespace mlir::standalone::passes {
         /// u16 flags1 = pIn1->flags
         auto in1FlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn1, 0, 1);
         auto initialFlags1 = load(LOC, in1FlagsAddr);
-        // print(LOCL, initialFlags1, "Init flags1");
         auto flags1Addr = alloca(LOC, T::i16PtrTy);
         store(LOC, initialFlags1, flags1Addr);
 
@@ -190,7 +211,10 @@ namespace mlir::standalone::passes {
         { // else of if ((flags1 | flags3) & MEM_Null)
             ip_start(blockNotAnyNull);
 
+            // LLVMSQLITE_ASSERT(tyLeft == 0 || tyLeft == -1 || tyRight == 0 || tyRight == -1 || tyLeft == tyRight);
+
             auto affinity = flags & SQLITE_AFF_MASK;
+#if true
             if (affinity >= SQLITE_AFF_NUMERIC) {
                 auto curBlock = rewriter.getBlock();
                 auto blockAfterAnyIsString = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -217,6 +241,7 @@ namespace mlir::standalone::passes {
                     { // if ((flags1 & (MEM_Int | MEM_IntReal | MEM_Real | MEM_Str)) == MEM_Str)
                         ip_start(blockIn1IsString);
 
+                        // print(LOCL, constants(lhs, 32), "Applying numeric affinity to");
                         /// applyNumericAffinity(pIn1, 0);
                         applyNumericAffinity(LOC, pIn1, constants(0, 32));
                         /*call(LOC, f_applyNumericAffinity,
@@ -343,7 +368,9 @@ namespace mlir::standalone::passes {
 
                 ip_start(blockAfterBothAreInt);
 
-            } else if (affinity >= SQLITE_AFF_TEXT) {
+            }
+            else if (affinity >= SQLITE_AFF_TEXT)
+            {
                 // flags1 & MEM_Str
                 auto flags1AndStr = bitAnd(LOC, initialFlags1, MEM_Str);
                 // flags1 & (MEM_Int | MEM_Real | MEM_IntReal)
@@ -419,12 +446,17 @@ namespace mlir::standalone::passes {
                 ip_start(blockAfterIn3IsNumeric);
 
             }
+#endif
 
             /// res = sqlite3MemCompare(pIn3, pIn1, pOp->p4.pColl);
+            auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+            auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+            auto p4CollSeqPtrAddr = bitCast(LOC, p4UAddr, T::CollSeqPtrTy.getPointerTo());
+            auto p4CollSeqPtr = load(LOC, p4CollSeqPtrAddr);
             auto result = call(LOC, f_sqlite3MemCompare,
                 pIn3,
                 pIn1,
-                constants(T::CollSeqPtrTy, collSeq)
+                p4CollSeqPtr
             ).getValue();
             store(LOC, result, resAddr);
 
