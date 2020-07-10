@@ -29,3 +29,7 @@ cmake-build*
 /profile/
 /kowalski_util/map.txt
 /kowalski_util/stack.txt
+libtool
+mksourceid
+sqlite3.pc
+sqlite3session.h
