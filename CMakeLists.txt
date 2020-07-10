@@ -161,7 +161,6 @@ add_library(sqlite
     ${PROJECT_SOURCE_DIR}/src/sqliteInt.h
     ${PROJECT_SOURCE_DIR}/src/sqliteLimit.h
     ${PROJECT_SOURCE_DIR}/src/table.c
-    #    ${PROJECT_SOURCE_DIR}/src/tclsqlite.c
     ${PROJECT_SOURCE_DIR}/src/threads.c
     ${PROJECT_SOURCE_DIR}/src/tokenize.c
     ${PROJECT_SOURCE_DIR}/src/treeview.c
