@@ -37,7 +37,7 @@ TCC += -I${TOP}/ext/userauth
 # Define this for the autoconf-based build, so that the code knows it can
 # include the generated config.h
 #
-TCC += -D_HAVE_SQLITE_CONFIG_H -DBUILD_sqlite -DSQLITE_OMIT_VIRTUALTABLE
+TCC += -D_HAVE_SQLITE_CONFIG_H -DBUILD_sqlite
 
 # Define -DNDEBUG to compile without debugging (i.e., for production usage)
 # Omitting the define will cause extra debugging code to be inserted and
@@ -88,7 +88,7 @@ TCC += $(OPT_FEATURE_FLAGS)
 
 # Add in any optional parameters specified on the make commane line
 # ie.  make "OPTS=-DSQLITE_ENABLE_FOO=1 -DSQLITE_OMIT_FOO=1".
-TCC += $(OPTS)
+TCC += $(OPTS) -DSQLITE_OMIT_VIRTUALTABLE
 
 # Add in compile-time options for some libraries used by extensions
 TCC += @HAVE_ZLIB@

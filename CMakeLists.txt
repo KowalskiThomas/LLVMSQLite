@@ -103,7 +103,8 @@ add_custom_command(
         ${PROJECT_SOURCE_DIR}/parse.h
         ${PROJECT_SOURCE_DIR}/parse.c
         ${PROJECT_SOURCE_DIR}/sqlite3.h
-    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && make -f Makefile-NoAlgam opcodes.c opcodes.h parse.c parse.h sqlite3.h -j4
+        ${PROJECT_SOURCE_DIR}/keywordhash.h
+    VERBATIM COMMAND cd ${PROJECT_SOURCE_DIR} && make -f Makefile-NoAlgam opcodes.c opcodes.h parse.c parse.h keywordhash.h sqlite3.h -j4
     DEPENDS Makefile-NoAlgam
 )
 
