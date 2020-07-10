@@ -18,8 +18,10 @@ That allows me to get the best of both worlds.
 Now let's get to the serious stuff, how to build LLVMSQLite. 
 
 ```
-mkdir build -DCLANG11=path/to/clang11
-cd build 
+mkdir build
+cd build
+cmake .. -G Ninja -DCLANG11=path/to/clang11
+ninja
 ```
 
 The `CLANG11` option allows you to give the path to `clang`, which is not necessarily the `clang` used to compile the project. **The LLVM version of the clang at `CLANG11` should be the same as the version you're linking against in the project.** Otherwise, loading the IR module (`sqlite3.ll`)
@@ -64,3 +66,13 @@ export CXX=clang++
 cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS=clang
 ninja
 ```
+
+# Usage 
+
+LLVMSQLite works in the exact same way as the SQLite shell. The build process produces three binaries:
+
+* `shell_default` is the exact same thing as the classical SQLite shell; 
+* `shell_jit` works the same way as `shell_default` but uses the JIT compiler instead of the embedded interpreter;
+* `profilable_shell` works the same way as the others but allows you to switch JIT compilation on or off using `-jit` or `-nojit`.
+
+*I have modified the shell so that if you pass an initialisation SQL file with `-init`, SQLite will exit after executing it.*
