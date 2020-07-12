@@ -108,19 +108,7 @@ namespace mlir::standalone::passes {
         { // if (pC->eCurType == CURTYPE_VTAB)
             ip_start(blockCurTypeVtab);
 
-            /// pVtab = pC->uc.pVCur->pVtab;
-            auto pCursorAddr = getElementPtrImm(LOC, T::BtCursorPtrTy.getPointerTo(), pC, 0, 12, 0);
-            pCursorAddr = bitCast(LOC, pCursorAddr, T::sqlite3_vtab_cursorPtrPtrTy);
-            auto pVCur = load(LOC, pCursorAddr);
-            auto pVtabAddr = getElementPtrImm(LOC, T::sqlite3_vtabPtrPtrTy, pVCur, 0, 0);
-            auto pVtab = load(LOC, pVtabAddr);
-
-            /// pModule = pVtab->pModule;
-            auto pModuleAddr = getElementPtrImm(LOC, T::sqlite3_modulePtrTy.getPointerTo(), pVtab, 0, 0);
-            auto pModule = load(LOC, pModuleAddr);
-
-            /// rc = pModule->xRowid(pC->uc.pVCur, &v);
-            print(LOCL, "TODO: Call pModule->xRowId");
+            // We should never be here as we assume we have compiled with -DOMIT_VIRTUALTABLE=1
             myAssert(LOCL, constants(0, 1));
 
             branch(LOC, blockAfter);

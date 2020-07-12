@@ -269,7 +269,7 @@ target_link_libraries(profilable_shell ${CMAKE_DL_LIBS})
 # Target to build sqlite3.ll, used by JIT inlining features
 add_custom_command(
     OUTPUT sqlite3.ll
-    VERBATIM COMMAND ${CLANG11} -fno-slp-vectorize -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll
+    VERBATIM COMMAND ${CLANG11} -O3 -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll -DSQLITE_OMIT_VIRTUALTABLE=1 -DSQLITE_OMIT_TRACE=1
     DEPENDS ${PROJECT_SOURCE_DIR}/sqlite3.c
 )
 add_custom_target(assembly

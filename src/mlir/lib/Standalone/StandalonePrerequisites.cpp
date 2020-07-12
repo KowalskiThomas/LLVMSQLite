@@ -632,7 +632,7 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemMakeWriteable(ModuleOp m, L
 
 void Prerequisites::generateReferenceTosqlite3VdbeMemNulTerminate(ModuleOp m, LLVMDialect* d) {
     auto funcTy = LLVMType::getFunctionTy(
-            T::i32Ty, {
+            T::voidTy /* Opted T::i32Ty */, {
                 T::sqlite3_valuePtrTy
             }, false);
 
@@ -1339,8 +1339,8 @@ void Prerequisites::generateReferenceTosqlite3VdbeIntValue(ModuleOp m, LLVMDiale
 void Prerequisites::generateReferenceTosqlite3BtreeCursorHasHint(ModuleOp m, LLVMDialect *d) {
     auto funcTy = LLVMType::getFunctionTy(
             T::i32Ty, {
-                T::BtCursorPtrTy,
-                T::i32Ty
+                T::BtCursorPtrTy
+                /* Opted T::i32Ty */
             }, false);
 
     GENERATE_SYMBOL(f_sqlite3BtreeCursorHasHint, sqlite3BtreeCursorHasHint, "sqlite3BtreeCursorHasHint");
@@ -1456,7 +1456,7 @@ void Prerequisites::generateReferenceTosqlite3UnlinkAndDeleteTable(ModuleOp m, L
 
 void Prerequisites::generateReferenceTosqlite3VdbeMemIntegerify(ModuleOp m, LLVMDialect* d) {
     auto funcTy = LLVMType::getFunctionTy(
-        T::i32Ty, {
+        T::voidTy /* Opted T::i32Ty */, {
             T::sqlite3_valuePtrTy
         }, false);
 

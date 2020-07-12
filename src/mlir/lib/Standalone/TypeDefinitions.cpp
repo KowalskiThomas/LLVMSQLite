@@ -60,8 +60,6 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::SelectTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.Select"));
     T::SrcList_itemTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.SrcList_item"));
     T::SrcListTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.SrcList"));
-    T::VTableTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.VTable"));
-    T::sqlite3_vtab_cursorTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.sqlite3_vtab_cursor"));
     T::UnpackedRecordTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.UnpackedRecord"));
     T::UnpackedRecordPtrTy = T::UnpackedRecordTy.getPointerTo();
 
@@ -75,7 +73,6 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::CollSeqPtrTy = T::CollSeqTy.getPointerTo();
     T::BtCursorTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.BtCursor"));
     T::sqlite3_valuePtrTy = T::sqlite3_valueTy.getPointerTo();
-    T::sqlite3_vtab_cursorPtrTy = T::sqlite3_vtab_cursorTy.getPointerTo();
     T::TablePtrTy = T::TableTy.getPointerTo();
     T::VdbeCursorPtrTy = T::VdbeCursorTy.getPointerTo();
     T::VdbePtrTy = T::VdbeTy.getPointerTo();
@@ -83,7 +80,6 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::i64Ty = t::getIntNTy(d, 64);
     T::RowSetTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.RowSet"));
     T::RowSetPtrTy = T::RowSetTy.getPointerTo();
-    T::VTablePtrTy = T::VTableTy.getPointerTo();
     T::KeyInfoPtrTy = T::KeyInfoTy.getPointerTo();
     T::VoidTy = T::voidTy;
     T::VdbeFramePtrTy = T::VdbeFrameTy.getPointerTo();
@@ -94,7 +90,6 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::i32Ty = t::getIntNTy(d, 32);
     T::sqlite3PtrTy = T::sqlite3Ty.getPointerTo();
     T::i8Ty = t::getIntNTy(d, 8);
-    T::VtabCtxTy = LLVMType::get(d->getContext(), loadedModule->getTypeByName("struct.VtabCtx"));
     T::sqlite3_contextPtrTy = T::sqlite3_contextTy.getPointerTo();
     T::ColumnPtrTy = T::ColumnTy.getPointerTo();
     T::DbPtrTy = T::DbTy.getPointerTo();
@@ -106,20 +101,16 @@ void load_type_definitions(mlir::LLVM::LLVMDialect* d) {
     T::BtreePtrTy = T::BtreeTy.getPointerTo();
     T::i32PtrTy = T::i32Ty.getPointerTo();
     T::TablePtrPtrTy = T::TablePtrTy.getPointerTo();
-    T::sqlite3_vtab_cursorPtrPtrTy = T::sqlite3_vtab_cursorPtrTy.getPointerTo();
     T::i8PtrTy = T::i8Ty.getPointerTo();
-    T::VtabCtxPtrTy = T::VtabCtxTy.getPointerTo();
     T::TableLockPtrTy = T::TableLockTy.getPointerTo();
     T::i16PtrTy = T::i16Ty.getPointerTo();
     T::VdbeCursorPtrPtrTy = T::VdbeCursorPtrTy.getPointerTo();
     T::Arr_1_CollSeqPtrTy = t::getArrayTy(T::CollSeqTy.getPointerTo(), 1);
     T::Arr_12_i32Ty = t::getArrayTy(t::getIntNTy(d, 32), 12);
     T::Arr_2_i8Ty = t::getArrayTy(t::getIntNTy(d, 8), 2);
-    T::i32_Of_sqlite3_vtab_cursorPtr_sqlite3_contextPtr_i32Ty = t::getFunctionTy(t::getIntNTy(d, 32), {T::sqlite3_vtab_cursorPtrTy, T::sqlite3_contextPtrTy, T::i32Ty}, false);
     T::sqlite3_mutexPtrTy = T::sqlite3_mutexTy.getPointerTo();
     T::BtCursorPtrTy = T::BtCursorTy.getPointerTo();
     T::doublePtrTy = T::doubleTy.getPointerTo();
     T::sqlite3_valuePtrPtrTy = T::sqlite3_valuePtrTy.getPointerTo();
-    T::VTablePtrPtrTy = T::VTablePtrTy.getPointerTo();
     T::i8PtrPtrTy = T::i8PtrTy.getPointerTo();
 }

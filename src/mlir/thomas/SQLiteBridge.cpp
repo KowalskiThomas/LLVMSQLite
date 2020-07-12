@@ -43,7 +43,13 @@
 #include "llvm/Transforms/IPO/FunctionImport.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
-#include "Standalone/TypeDefinitions.h"
+// This takes too much time:
+static const constexpr bool optimiseModule = false;
+static const constexpr bool optimiseFunctions = true;
+static const constexpr bool optimiseCodegen = true;
+static const constexpr bool optimiseOthers = true;
+static const constexpr bool duplicateFunctions = true;
+static const constexpr int optLevel = 3;
 
 extern "C" {
 void printTypeOf(const char *, const uint32_t, Vdbe *p, Mem *);
@@ -238,213 +244,220 @@ struct VdbeRunner {
                 auto &machine = *maybeMachine;
                 auto targetTriple = machine->getTargetTriple();
 
-                constexpr const bool optimise = true;
                 auto passManagerBuilder = llvm::PassManagerBuilder();
-                passManagerBuilder.OptLevel = optimise ? 3 : 0;
+                passManagerBuilder.OptLevel = optLevel;
                 passManagerBuilder.SizeLevel = 0;
-                passManagerBuilder.Inliner = optimise ? llvm::createFunctionInliningPass(0) : nullptr;
-                passManagerBuilder.MergeFunctions = optimise;
-                passManagerBuilder.LoopVectorize = optimise;
-                passManagerBuilder.SLPVectorize = optimise;
-                passManagerBuilder.DisableUnrollLoops = !optimise;
-                passManagerBuilder.RerollLoops = optimise;
-                passManagerBuilder.PerformThinLTO = optimise;
+                passManagerBuilder.Inliner = llvm::createFunctionInliningPass(500000);
+                passManagerBuilder.MergeFunctions = optimiseOthers;
+                passManagerBuilder.LoopVectorize = optimiseOthers;
+                passManagerBuilder.SLPVectorize = optimiseOthers;
+                passManagerBuilder.DisableUnrollLoops = !optimiseOthers;
+                passManagerBuilder.RerollLoops = optimiseOthers;
+                passManagerBuilder.PerformThinLTO = optimiseOthers;
                 passManagerBuilder.LibraryInfo = new llvm::TargetLibraryInfoImpl(targetTriple);
                 machine->adjustPassManager(passManagerBuilder);
 
                 extern std::unique_ptr<llvm::Module> loadedModule;
                 LLVMSQLITE_ASSERT(loadedModule != nullptr);
 
-#define LLVMSQLITE_DUPLICATE_FUNCTIONS false
-#if LLVMSQLITE_DUPLICATE_FUNCTIONS
-                out("Copying functions");
+                std::unordered_map<std::string, llvm::GlobalVariable *> gv;
+                if (duplicateFunctions) {
+                    out("Copying function declarations");
 
-                llvm::ValueToValueMapTy VMap;
+                    llvm::ValueToValueMapTy VMap;
 
-                static std::unordered_set<std::string> inlined = {
-                    "sqlite3VdbeMemIntegerify",
-                     "getPageNormal",
-                     "applyNumericAffinity", "sqlite3AtoF", "alsoAnInt", "sqlite3VdbeIntegerAffinity",
-                     "sqlite3BtreeNext",
-                         "btreeNext",
+                    static std::unordered_set<std::string> inlined = {
+// /*
+                            "sqlite3VdbeMemIntegerify",
+                            "getPageNormal",
+                            "applyNumericAffinity", "sqlite3AtoF", "alsoAnInt", "sqlite3VdbeIntegerAffinity",
+                            "sqlite3BtreeNext",
+                            "btreeNext",
                             "moveToChild",
-                                "getAndInitPage",
+                            "getAndInitPage",
                             "moveToParent",
-                                "releasePageNotNull"
-                        "moveToLeftmost",
-                };
+                            "releasePageNotNull"
+                            "moveToLeftmost",
+// */
+                    };
 
-                std::unordered_map<std::string, llvm::GlobalVariable*> gv;
-                for (auto I = loadedModule->global_begin(), E = loadedModule->global_end(); I != E; ++I) {
-                    llvm::GlobalVariable *GV;
-                    if (I->getName() == "sqlite3Config") {
-                        GV = new llvm::GlobalVariable(*llvmModule,
-                                                      I->getValueType(),
-                                                      I->isConstant(),
-                                                      I->getLinkage(),
-                                                       (llvm::Constant *) nullptr,
-                                                      I->getName(),
-                                                      (llvm::GlobalVariable *) nullptr,
-                                                      I->getThreadLocalMode(),
-                                                      I->getType()->getAddressSpace());
-                        GV->setExternallyInitialized(true);
-                    } else {
-                        GV = new llvm::GlobalVariable(*llvmModule,
-                                                      I->getValueType(),
-                                                      I->isConstant(),
-                                                      I->getLinkage(),
-                                                      (llvm::Constant *) nullptr, I->getName(),
-                                                      (llvm::GlobalVariable *) nullptr,
-                                                      I->getThreadLocalMode(),
-                                                      I->getType()->getAddressSpace());
-                    }
-                    GV->copyAttributesFrom(&*I);
-                    VMap[&*I] = GV;
-                    gv[GV->getName().str()] = GV;
-                }
-
-                for (const llvm::Function &I : *loadedModule) {
-                    llvm::Function *NF;
-
-                    NF = llvmModule->getFunction(I.getName());
-
-                    if (!NF) {
-                        // If we don't already have that function declared, add it
-                        NF = llvm::Function::Create(
-                                llvm::cast<llvm::FunctionType>(I.getValueType()),
-                                I.getLinkage(),
-                                I.getAddressSpace(), I.getName(), llvmModule.get());
-                    }
-                    if (inlined.find(NF->getName().str()) != inlined.cend()) {
-                        NF->setLinkage(llvm::GlobalValue::ExternalLinkage);
-                    }
-
-                    NF->copyAttributesFrom(&I);
-                    VMap[&I] = NF;
-                }
-
-                // Loop over the aliases in the module
-                for (auto I = loadedModule->alias_begin(), E = loadedModule->alias_end(); I != E; ++I) {
-                    if (false) { // (!ShouldCloneDefinition(&*I)) {
-                        // An alias cannot act as an external reference, so we need to create
-                        // either a function or a global variable depending on the value type.
-                        // FIXME: Once pointee types are gone we can probably pick one or the
-                        // other.
-                        llvm::GlobalValue *GV;
-                        if (I->getValueType()->isFunctionTy())
-                            GV = llvm::Function::Create(llvm::cast<llvm::FunctionType>(I->getValueType()),
-                                                        llvm::GlobalValue::ExternalLinkage,
-                                                        I->getAddressSpace(), I->getName(), llvmModule.get());
-                        else
-                            GV = new llvm::GlobalVariable(
-                                    *llvmModule, I->getValueType(), false, llvm::GlobalValue::ExternalLinkage,
-                                    nullptr, I->getName(), nullptr,
-                                    I->getThreadLocalMode(), I->getType()->getAddressSpace());
-                        VMap[&*I] = GV;
-                        // We do not copy attributes (mainly because copying between different
-                        // kinds of globals is forbidden), but this is generally not required for
-                        // correctness.
-                        continue;
-                    }
-                    auto *GA = llvm::GlobalAlias::create(I->getValueType(),
-                                                         I->getType()->getPointerAddressSpace(),
-                                                         I->getLinkage(), I->getName(), llvmModule.get());
-                    GA->copyAttributesFrom(&*I);
-                    VMap[&*I] = GA;
-                }
-
-                for (auto I = loadedModule->global_begin(), E = loadedModule->global_end(); I != E; ++I) {
-                    if (I->isDeclaration())
-                        continue;
-
-                    llvm::GlobalVariable *GV = llvm::cast<llvm::GlobalVariable>(VMap[&*I]);
-                    if (GV->getName() == "sqlite3Config") { // (!ShouldCloneDefinition(&*I)) {
-                        // Skip after setting the correct linkage for an external reference.
-                        GV->setLinkage(llvm::GlobalValue::ExternalLinkage);
-                        continue;
-                    }
-
-                    if (I->hasInitializer())
-                        GV->setInitializer(MapValue(I->getInitializer(), VMap));
-
-                    llvm::SmallVector<std::pair<unsigned, llvm::MDNode *>, 1> MDs;
-                    I->getAllMetadata(MDs);
-                    for (auto MD : MDs)
-                        GV->addMetadata(MD.first,
-                                        *MapMetadata(MD.second, VMap, llvm::RF_MoveDistinctMDs));
-
-                    llvm::copyComdat(GV, &*I);
-                }
-
-
-                // Similarly, copy over function bodies now...
-                for (const llvm::Function &I : *loadedModule) {
-                    if (I.isDeclaration())
-                        continue;
-
-                    llvm::Function *F = llvm::cast<llvm::Function>(VMap[&I]);
-                    if (false) { //(!ShouldCloneDefinition(&I)) {
-                        // Skip after setting the correct linkage for an external reference.
-                        F->setLinkage(llvm::GlobalValue::ExternalLinkage);
-                        // Personality function is not valid on a declaration.
-                        F->setPersonalityFn(nullptr);
-                        continue;
-                    }
-
-                    llvm::Function::arg_iterator DestI = F->arg_begin();
-                    for (llvm::Function::const_arg_iterator J = I.arg_begin(); J != I.arg_end();
-                         ++J) {
-                        DestI->setName(J->getName());
-                        VMap[&*J] = &*DestI++;
-                    }
-
-                    llvm::SmallVector<llvm::ReturnInst *, 8> Returns; // Ignore returns cloned.
-                    CloneFunctionInto(F, &I, VMap, /*ModuleLevelChanges=*/true, Returns);
-
-                    if (I.hasPersonalityFn())
-                        F->setPersonalityFn(MapValue(I.getPersonalityFn(), VMap));
-
-                    copyComdat(F, &I);
-
-                    if (inlined.find(F->getName().str()) != inlined.cend()) {
-                        F->addFnAttr(llvm::Attribute::AlwaysInline);
-                        F->removeFnAttr(llvm::Attribute::NoInline);
-                        F->removeFnAttr(llvm::Attribute::OptimizeNone);
-                    }
-                }
-
-                // And aliases
-                for (auto I = loadedModule->alias_begin(), E = loadedModule->alias_end();
-                     I != E; ++I) {
-                    // We already dealt with undefined aliases above.
-                    llvm::GlobalAlias *GA = llvm::cast<llvm::GlobalAlias>(VMap[&*I]);
-                    if (const llvm::Constant *C = I->getAliasee())
-                        GA->setAliasee(MapValue(C, VMap));
-                }
-
-                const auto *LLVM_DBG_CU = loadedModule->getNamedMetadata("llvm.dbg.cu");
-                for (auto I = loadedModule->named_metadata_begin(), E = loadedModule->named_metadata_end(); I != E; ++I) {
-                    const llvm::NamedMDNode &NMD = *I;
-                    llvm::NamedMDNode *NewNMD = llvmModule->getOrInsertNamedMetadata(NMD.getName());
-                    if (&NMD == LLVM_DBG_CU) {
-                        // Do not insert duplicate operands.
-                        llvm::SmallPtrSet<const void *, 8> Visited;
-                        for (const auto *Operand : NewNMD->operands())
-                            Visited.insert(Operand);
-                        for (const auto *Operand : NMD.operands()) {
-                            auto *MappedOperand = MapMetadata(Operand, VMap);
-                            if (Visited.insert(MappedOperand).second)
-                                NewNMD->addOperand(MappedOperand);
+                    for (auto I = loadedModule->global_begin(), E = loadedModule->global_end(); I != E; ++I) {
+                        llvm::GlobalVariable *GV;
+                        if (I->getName() == "sqlite3Config") {
+                            GV = new llvm::GlobalVariable(*llvmModule,
+                                                          I->getValueType(),
+                                                          I->isConstant(),
+                                                          I->getLinkage(),
+                                                          (llvm::Constant *) nullptr,
+                                                          I->getName(),
+                                                          (llvm::GlobalVariable *) nullptr,
+                                                          I->getThreadLocalMode(),
+                                                          I->getType()->getAddressSpace());
+                            GV->setExternallyInitialized(true);
+                        } else {
+                            GV = new llvm::GlobalVariable(*llvmModule,
+                                                          I->getValueType(),
+                                                          I->isConstant(),
+                                                          I->getLinkage(),
+                                                          (llvm::Constant *) nullptr, I->getName(),
+                                                          (llvm::GlobalVariable *) nullptr,
+                                                          I->getThreadLocalMode(),
+                                                          I->getType()->getAddressSpace());
                         }
-                    } else
-                        for (unsigned i = 0, e = NMD.getNumOperands(); i != e; ++i)
-                            NewNMD->addOperand(MapMetadata(NMD.getOperand(i), VMap));
+                        GV->copyAttributesFrom(&*I);
+                        VMap[&*I] = GV;
+                        gv[GV->getName().str()] = GV;
+                    }
+
+                    for (const llvm::Function &I : *loadedModule) {
+                        llvm::Function *NF;
+
+                        NF = llvmModule->getFunction(I.getName());
+
+                        if (!NF) {
+                            // If we don't already have that function declared, add it
+                            NF = llvm::Function::Create(
+                                    llvm::cast<llvm::FunctionType>(I.getValueType()),
+                                    I.getLinkage(),
+                                    I.getAddressSpace(), I.getName(), llvmModule.get());
+                        }
+                        if (inlined.find(NF->getName().str()) != inlined.cend()) {
+                            NF->setLinkage(llvm::GlobalValue::ExternalLinkage);
+                        }
+
+                        NF->copyAttributesFrom(&I);
+                        VMap[&I] = NF;
+                    }
+
+                    out("Copying alias declarations");
+                    // Loop over the aliases in the module
+                    for (auto I = loadedModule->alias_begin(), E = loadedModule->alias_end(); I != E; ++I) {
+                        if (false) { // (!ShouldCloneDefinition(&*I)) {
+                            // An alias cannot act as an external reference, so we need to create
+                            // either a function or a global variable depending on the value type.
+                            // FIXME: Once pointee types are gone we can probably pick one or the
+                            // other.
+                            llvm::GlobalValue *GV;
+                            if (I->getValueType()->isFunctionTy())
+                                GV = llvm::Function::Create(llvm::cast<llvm::FunctionType>(I->getValueType()),
+                                                            llvm::GlobalValue::ExternalLinkage,
+                                                            I->getAddressSpace(), I->getName(), llvmModule.get());
+                            else
+                                GV = new llvm::GlobalVariable(
+                                        *llvmModule, I->getValueType(), false, llvm::GlobalValue::ExternalLinkage,
+                                        nullptr, I->getName(), nullptr,
+                                        I->getThreadLocalMode(), I->getType()->getAddressSpace());
+                            VMap[&*I] = GV;
+                            // We do not copy attributes (mainly because copying between different
+                            // kinds of globals is forbidden), but this is generally not required for
+                            // correctness.
+                            continue;
+                        }
+                        auto *GA = llvm::GlobalAlias::create(I->getValueType(),
+                                                             I->getType()->getPointerAddressSpace(),
+                                                             I->getLinkage(), I->getName(), llvmModule.get());
+                        GA->copyAttributesFrom(&*I);
+                        VMap[&*I] = GA;
+                    }
+
+                    out("Copying globals");
+                    for (auto I = loadedModule->global_begin(), E = loadedModule->global_end(); I != E; ++I) {
+                        if (I->isDeclaration())
+                            continue;
+
+                        llvm::GlobalVariable *GV = llvm::cast<llvm::GlobalVariable>(VMap[&*I]);
+                        if (GV->getName() == "sqlite3Config") { // (!ShouldCloneDefinition(&*I)) {
+                            // Skip after setting the correct linkage for an external reference.
+                            GV->setLinkage(llvm::GlobalValue::ExternalLinkage);
+                            continue;
+                        }
+
+                        if (I->hasInitializer())
+                            GV->setInitializer(MapValue(I->getInitializer(), VMap));
+
+                        llvm::SmallVector<std::pair<unsigned, llvm::MDNode *>, 1> MDs;
+                        I->getAllMetadata(MDs);
+                        for (auto MD : MDs)
+                            GV->addMetadata(MD.first,
+                                            *MapMetadata(MD.second, VMap, llvm::RF_MoveDistinctMDs));
+
+                        llvm::copyComdat(GV, &*I);
+                    }
+
+                    out("Copying function bodies")
+                    for (const llvm::Function &I : *loadedModule) {
+                        if (I.isDeclaration())
+                            continue;
+
+                        static std::set<std::string> nocopy = {
+                                "sqlite3VdbeExec",
+                                "sqlite3VdbeExecDefault"
+                        };
+                        llvm::Function *F = llvm::cast<llvm::Function>(VMap[&I]);
+                        if (nocopy.find(F->getName().str()) != nocopy.cend()) { //(!ShouldCloneDefinition(&I)) {
+                            // Skip after setting the correct linkage for an external reference.
+                            F->setLinkage(llvm::GlobalValue::ExternalLinkage);
+                            // Personality function is not valid on a declaration.
+                            F->setPersonalityFn(nullptr);
+                            continue;
+                        }
+
+                        llvm::Function::arg_iterator DestI = F->arg_begin();
+                        for (llvm::Function::const_arg_iterator J = I.arg_begin(); J != I.arg_end();
+                             ++J) {
+                            DestI->setName(J->getName());
+                            VMap[&*J] = &*DestI++;
+                        }
+
+                        llvm::SmallVector<llvm::ReturnInst *, 8> Returns; // Ignore returns cloned.
+                        CloneFunctionInto(F, &I, VMap, /*ModuleLevelChanges=*/true, Returns);
+
+                        if (I.hasPersonalityFn())
+                            F->setPersonalityFn(MapValue(I.getPersonalityFn(), VMap));
+
+                        copyComdat(F, &I);
+
+                        if (inlined.find(F->getName().str()) != inlined.cend()) {
+                            F->addFnAttr(llvm::Attribute::AlwaysInline);
+                            F->removeFnAttr(llvm::Attribute::NoInline);
+                            F->removeFnAttr(llvm::Attribute::OptimizeNone);
+                        }
+                    }
+
+                    out("Copying alias bodies")
+                    for (auto I = loadedModule->alias_begin(), E = loadedModule->alias_end();
+                         I != E; ++I) {
+                        // We already dealt with undefined aliases above.
+                        llvm::GlobalAlias *GA = llvm::cast<llvm::GlobalAlias>(VMap[&*I]);
+                        if (const llvm::Constant *C = I->getAliasee())
+                            GA->setAliasee(MapValue(C, VMap));
+                    }
+
+                    const auto *LLVM_DBG_CU = loadedModule->getNamedMetadata("llvm.dbg.cu");
+                    for (auto I = loadedModule->named_metadata_begin(), E = loadedModule->named_metadata_end();
+                         I != E; ++I) {
+                        const llvm::NamedMDNode &NMD = *I;
+                        llvm::NamedMDNode *NewNMD = llvmModule->getOrInsertNamedMetadata(NMD.getName());
+                        if (&NMD == LLVM_DBG_CU) {
+                            // Do not insert duplicate operands.
+                            llvm::SmallPtrSet<const void *, 8> Visited;
+                            for (const auto *Operand : NewNMD->operands())
+                                Visited.insert(Operand);
+                            for (const auto *Operand : NMD.operands()) {
+                                auto *MappedOperand = MapMetadata(Operand, VMap);
+                                if (Visited.insert(MappedOperand).second)
+                                    NewNMD->addOperand(MappedOperand);
+                            }
+                        } else
+                            for (unsigned i = 0, e = NMD.getNumOperands(); i != e; ++i)
+                                NewNMD->addOperand(MapMetadata(NMD.getOperand(i), VMap));
+                    }
+
+                    writeToFile("jit_llvm_with_functions.ll", *llvmModule);
                 }
 
-                writeToFile("jit_llvm_with_functions.ll", *llvmModule);
-#endif
-
-                if (optimise) {
+                if (optimiseFunctions) {
+                    out("Optimising functions")
                     // Create the FunctionPassManager
                     llvm::legacy::FunctionPassManager functionPassManager(&*llvmModule);
                     passManagerBuilder.populateFunctionPassManager(functionPassManager);
@@ -456,43 +469,48 @@ struct VdbeRunner {
                         functionPassManager.run(f);
                     functionPassManager.doFinalization();
 
+#if DEBUG_MACHINE && LLVMSQLITE_DEBUG
+                    writeToFile("jit_llvm_after_functions_opt.ll", *llvmModule);
+#endif
+                }
+
+                if (optimiseModule) {
+                    out("Optimising the module")
                     // Create the ModulePassManager
                     llvm::legacy::PassManager modulePassManager;
                     passManagerBuilder.populateModulePassManager(modulePassManager);
                     modulePassManager.add(llvm::createTargetTransformInfoWrapperPass(machine->getTargetIRAnalysis()));
 
-#if DEBUG_MACHINE && LLVMSQLITE_DEBUG
-                    writeToFile("jit_llvm_before_module_opt.ll", *llvmModule);
-#endif
-
                     // Optimise the module
                     modulePassManager.run(*llvmModule);
 
 #if DEBUG_MACHINE && LLVMSQLITE_DEBUG
-                    writeToFile("jit_llvm_optimised.ll", *llvmModule);
+                    writeToFile("jit_llvm_after_module_opt.ll", *llvmModule);
 #endif
                 }
-                out("Optimisation done");
+
+                out("Module preparation done");
 
                 auto functions = std::set<llvm::StringRef>{};
                 for(auto& f : llvmModule->functions()) {
                     functions.insert(f.getName());
                 }
 
+                out("Creating an execution engine")
                 // Create an ExecutionEngine
                 auto builder = llvm::EngineBuilder(std::move(llvmModule));
                 auto engine = builder
                         .setEngineKind(llvm::EngineKind::JIT)
-                        .setOptLevel(optimise ? llvm::CodeGenOpt::Aggressive : llvm::CodeGenOpt::None)
+                        .setOptLevel(optimiseCodegen ? llvm::CodeGenOpt::Aggressive : llvm::CodeGenOpt::None)
                         .setVerifyModules(true)
-                        // .setMCPU("i386")
                         .create();
                 ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");
 
-#if LLVMSQLITE_DUPLICATE_FUNCTIONS
-                engine->addGlobalMapping(gv["sqlite3Config"], (void*)&sqlite3Config);
-#endif
+                if (duplicateFunctions) {
+                    engine->addGlobalMapping(gv["sqlite3Config"], (void*)&sqlite3Config);
+                }
 
+                out("Compiling!")
                 jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(
                         engine->getFunctionAddress(JIT_MAIN_FN_NAME)
                 );
@@ -512,6 +530,7 @@ struct VdbeRunner {
             functionOptimisationTime = duration_cast<milliseconds>(tock - tick).count();
         } // if (!executionEngineCreated)
 
+        out("Entering VDBE")
         sqlite3VdbeEnter(vdbe);
 
         if (vdbe->rc == SQLITE_NOMEM) {
