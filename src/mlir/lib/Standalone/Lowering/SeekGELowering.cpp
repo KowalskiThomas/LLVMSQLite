@@ -286,7 +286,11 @@ namespace mlir::standalone::passes {
             /// sqlite3BtreeCursorHasHint(pC->uc.pCursor, BTREE_SEEK_EQ)
             auto pCursorAddr = getElementPtrImm(LOC, T::BtCursorPtrTy, pC, 0, 12, 0);
             auto pCursor = load(LOC, pCursorAddr);
-            auto hasHint = call(LOC, f_sqlite3BtreeCursorHasHint, pCursor, constants(BTREE_SEEK_EQ, 32)).getValue();
+            auto hasHint = call(LOC,
+                f_sqlite3BtreeCursorHasHint,
+                pCursor
+                // Opted constants(BTREE_SEEK_EQ, 32)
+            ).getValue();
 
             auto curBlock = rewriter.getBlock();
             auto blockAfterHasHint = SPLIT_GO_BACK_TO(curBlock);
