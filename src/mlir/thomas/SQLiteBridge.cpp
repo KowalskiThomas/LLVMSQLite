@@ -312,14 +312,17 @@ struct VdbeRunner {
                     };
 
                     auto shouldCopy = [&](const llvm::Function& f) {
-                        if (f.getName().startswith("llvm."))
-                            return true;
-
-                        if (inlined.find(f.getName().str()) != inlined.cend()) {
-                            out("Should not copy " << f.getName());
+                        if (f.getName().startswith("llvm.")) {
+                            out("Overriding config for LLVM intrinsic " << f.getName());
                             return true;
                         }
 
+                        if (inlined.find(f.getName().str()) != inlined.cend()) {
+                            out("Copying " << f.getName());
+                            return true;
+                        }
+
+                        out("Should not copy " << f.getName());
                         return false;
                     };
 
