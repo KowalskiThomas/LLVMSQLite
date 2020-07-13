@@ -315,8 +315,10 @@ struct VdbeRunner {
                         if (f.getName().startswith("llvm."))
                             return true;
 
-                        if (inlined.find(f.getName().str()) != inlined.cend())
+                        if (inlined.find(f.getName().str()) != inlined.cend()) {
+                            out("Should not copy " << f.getName());
                             return true;
+                        }
 
                         return false;
                     };
@@ -471,7 +473,7 @@ struct VdbeRunner {
                         if (I.isDeclaration())
                             continue;
 
-                        if (inlined.find(I.getName().str()) == inlined.cend()) {
+                        if (!shouldCopy(I)) {
                             // Skip after setting the correct linkage for an external reference.
                             // F->setLinkage(llvm::GlobalValue::ExternalLinkage);
                             // Personality function is not valid on a declaration.
