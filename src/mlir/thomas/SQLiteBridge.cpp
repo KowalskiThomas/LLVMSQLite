@@ -69,7 +69,7 @@ void printTimeDifference(time_point<T> tick, std::string msg) {
 }
 
 void writeToFile(const char *const fileName, std::string s) {
-    // out("Writing to file " << fileName);
+    debug("Writing to file " << fileName);
     auto fd = fopen(fileName, "w");
     fwrite(s.c_str(), sizeof(char), s.size(), fd);
     fclose(fd);
@@ -284,7 +284,7 @@ struct VdbeRunner {
 
                 std::unordered_map<std::string, llvm::GlobalVariable *> gv;
                 if (duplicateFunctions) {
-                    out("Copying function declarations");
+                    debug("Copying function declarations");
 
                     llvm::ValueToValueMapTy VMap;
 
@@ -313,16 +313,13 @@ struct VdbeRunner {
 
                     auto shouldCopy = [&](const llvm::Function& f) {
                         if (f.getName().startswith("llvm.")) {
-                            out("Overriding config for LLVM intrinsic " << f.getName());
                             return true;
                         }
 
                         if (inlined.find(f.getName().str()) != inlined.cend()) {
-                            out("Copying " << f.getName());
                             return true;
                         }
 
-                        out("Should not copy " << f.getName());
                         return false;
                     };
 
@@ -383,7 +380,6 @@ struct VdbeRunner {
                                                       (llvm::GlobalVariable *) nullptr,
                                                       I->getThreadLocalMode(),
                                                       I->getType()->getAddressSpace());
-                        out("Copying " << GV->getName());
 
                         if (globalsToExternalise.find(I->getName().str()) != globalsToExternalise.cend())
                             GV->setExternallyInitialized(true);
@@ -399,8 +395,6 @@ struct VdbeRunner {
                     for (const llvm::Function &I : *loadedModule) {
                         if (!shouldCopy(I)) {
                             continue;
-                        } else {
-                            out("Inlining " << I.getName());
                         }
 
                         auto* NF = llvmModule->getFunction(I.getName());
@@ -416,7 +410,7 @@ struct VdbeRunner {
                         VMap[&I] = NF;
                     }
 
-                    out("Copying alias declarations");
+                    debug("Copying alias declarations");
                     // Loop over the aliases in the module
                     for (auto I = loadedModule->alias_begin(), E = loadedModule->alias_end(); I != E; ++I) {
                         if (false) {
@@ -447,7 +441,7 @@ struct VdbeRunner {
                         VMap[&*I] = GA;
                     }
 
-                    out("Copying globals");
+                    debug("Copying globals");
                     for (auto I = loadedModule->global_begin(), E = loadedModule->global_end(); I != E; ++I) {
                         if (I->isDeclaration())
                             continue;
@@ -471,17 +465,12 @@ struct VdbeRunner {
                         llvm::copyComdat(GV, &*I);
                     }
 
-                    out("Copying function bodies")
+                    debug("Copying function bodies")
                     for (const llvm::Function &I : *loadedModule) {
                         if (I.isDeclaration())
                             continue;
 
                         if (!shouldCopy(I)) {
-                            // Skip after setting the correct linkage for an external reference.
-                            // F->setLinkage(llvm::GlobalValue::ExternalLinkage);
-                            // Personality function is not valid on a declaration.
-                            out("Not copying body of " << I.getName());
-                            // F->setPersonalityFn(nullptr);
                             continue;
                         }
 
@@ -508,7 +497,7 @@ struct VdbeRunner {
                         }
                     }
 
-                    out("Copying alias bodies")
+                    debug("Copying alias bodies")
                     for (auto I = loadedModule->alias_begin(), E = loadedModule->alias_end();
                          I != E; ++I) {
                         // We already dealt with undefined aliases above.
@@ -541,7 +530,7 @@ struct VdbeRunner {
                 }
 
                 if (optimiseFunctions) {
-                    out("Optimising functions")
+                    debug("Optimising functions")
                     // Create the FunctionPassManager
                     llvm::legacy::FunctionPassManager functionPassManager(&*llvmModule);
                     passManagerBuilder.populateFunctionPassManager(functionPassManager);
@@ -559,7 +548,7 @@ struct VdbeRunner {
                 }
 
                 if (optimiseModule) {
-                    out("Optimising the module")
+                    debug("Optimising the module")
                     // Create the ModulePassManager
                     llvm::legacy::PassManager modulePassManager;
                     passManagerBuilder.populateModulePassManager(modulePassManager);
@@ -573,7 +562,7 @@ struct VdbeRunner {
 #endif
                 }
 
-                out("Module preparation done");
+                debug("Module preparation done");
                 writeToFile("jit_llvm_final.ll", *llvmModule);
 
                 auto functions = std::set<llvm::StringRef>{};
@@ -581,7 +570,7 @@ struct VdbeRunner {
                     functions.insert(f.getName());
                 }
 
-                out("Creating an execution engine")
+                debug("Creating an execution engine")
                 // Create an ExecutionEngine
                 auto builder = llvm::EngineBuilder(std::move(llvmModule));
                 auto engine = builder
@@ -607,7 +596,7 @@ struct VdbeRunner {
                     engine->addGlobalMapping(gv["posixIoMethods"], (void*)&posixIoMethods);
                 }
 
-                out("Compiling!")
+                debug("Compiling!")
                 jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(
                         engine->getFunctionAddress(JIT_MAIN_FN_NAME)
                 );
@@ -627,7 +616,7 @@ struct VdbeRunner {
             functionOptimisationTime = duration_cast<milliseconds>(tock - tick).count();
         } // if (!executionEngineCreated)
 
-        out("Entering VDBE")
+        debug("Entering VDBE")
         sqlite3VdbeEnter(vdbe);
 
         if (vdbe->rc == SQLITE_NOMEM) {
