@@ -389,8 +389,6 @@ struct VdbeRunner {
                         gv[GV->getName().str()] = GV;
                     }
 
-                    findUsages(*loadedModule);
-
                     // Copy function declarations
                     for (const llvm::Function &I : *loadedModule) {
                         if (!shouldCopy(I)) {
