@@ -17,8 +17,6 @@
 
 #include "vdbe.h"
 
-#define EXIT_ON_UNSUPPORTED_OPCODE true
-
 #define INTEGER_ATTR(width, signed, value) opBuilder.getIntegerAttr(opBuilder.getIntegerType(width, signed), value)
 
 using mlir::MLIRContext;
@@ -1593,7 +1591,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     LLVMSQLITE_ASSERT(operations_to_update.empty() && "All blocks have not been updated.");
 }
 
-void prepareFunction(MLIRContext& context, LLVMDialect* llvmDialect, ModuleOp& theModule) {
+void writeFunction(MLIRContext& context, LLVMDialect* llvmDialect, ModuleOp& theModule) {
     static_assert(sizeof(int*) == 8, "sizeof(int*) is assumed to be 8!");
     auto ctx = &context;
     auto vdbeDialect = context.getRegisteredDialect<StandaloneDialect>();

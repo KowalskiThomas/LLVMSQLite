@@ -1,7 +1,7 @@
 sqlite3.ll
 asan/
 .vscode
-writeFunction.cpp
+writeModule.cpp
 *.out
 debug/
 release/

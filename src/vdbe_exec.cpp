@@ -84,10 +84,10 @@ int sqlite3VdbeExec(Vdbe *p) {
 #endif
 
     if (step_return == SQLITE_DONE) {
-        extern unsigned long long functionPreparationTime;
-        extern unsigned long long functionOptimisationTime;
         auto initialDiff = (unsigned long long)(duration_cast<milliseconds>(tock - initialTick).count());
 #if ENABLE_JIT
+        extern unsigned long long functionPreparationTime;
+        extern unsigned long long functionOptimisationTime;
         printf("Preparation time: %llu ms\n", functionPreparationTime);
         printf("Optimisation time: %llu ms\n", functionOptimisationTime);
 #endif

@@ -28,12 +28,13 @@
 
 class Vdbe;
 
-extern bool enableOpt;
 extern const char* const JIT_MAIN_FN_NAME;
+extern unsigned long long functionPreparationTime;
+extern unsigned long long functionOptimisationTime;
 
 extern "C" {
     int jitVdbeStep(Vdbe*);
 }
 
-void prepareFunction(mlir::MLIRContext &context, mlir::LLVM::LLVMDialect *llvmDialect, mlir::ModuleOp &theModule);
+void writeFunction(mlir::MLIRContext &context, mlir::LLVM::LLVMDialect *llvmDialect, mlir::ModuleOp &theModule);
 int runJit(mlir::ModuleOp module, Vdbe*);

@@ -28,6 +28,9 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl -z origin")
 
 add_library(sqlite_llvm
     SQLiteBridge.cpp
+    VdbeHash.cpp
+    ModuleOptimisation.cpp
+    BridgeUtils.cpp
     ModuleWriter.cpp
 )
 llvm_update_compile_flags(sqlite_llvm)
