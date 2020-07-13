@@ -128,8 +128,6 @@ LLVMFuncOp f_printTypeOf;
 
 // Step 1
 
-LLVMFuncOp f_memCpy;
-
 LLVMFuncOp f_debug;
 LLVMFuncOp f_assert;
 
@@ -243,8 +241,6 @@ public:
     DECLARE_FUNCTION(printTypeOf);
 
     // Step 2
-
-    DECLARE_FUNCTION(memCpy);
 
     DECLARE_FUNCTION(Debug);
     DECLARE_FUNCTION(Assert);
@@ -557,36 +553,6 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemGrow(ModuleOp m, LLVMDialec
             }, false);
 
     GENERATE_SYMBOL(f_sqlite3VdbeMemGrow, sqlite3VdbeMemGrow, "sqlite3VdbeMemGrow");
-}
-
-extern "C" {
-    void * my_memcpy(void* dst, const void* src, unsigned int cnt)
-    {
-        char *pszDest = (char *)dst;
-        const char *pszSource =( const char*)src;
-        if((pszDest!= NULL) && (pszSource!= NULL))
-        {
-            while(cnt) //till cnt
-            {
-                //Copy byte by byte
-                auto test = *pszSource;
-                *(pszDest++)= *(pszSource++);
-                --cnt;
-            }
-        }
-        return dst;
-    }
-}
-
-void Prerequisites::generateReferenceTomemCpy(ModuleOp m, LLVMDialect *d) {
-    auto funcTy = LLVMType::getFunctionTy(
-            T::i8PtrTy, {
-                T::i8PtrTy, // dest
-                T::i8PtrTy, // source
-                T::i64Ty    // n
-            }, false);
-
-    GENERATE_SYMBOL(f_memCpy, my_memcpy, "my_memcpy");
 }
 
 void Prerequisites::generateReferenceTosqlite3VdbeMemFromBtree(ModuleOp m, LLVMDialect *d) {
@@ -1685,8 +1651,6 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(printTypeOf);
 
     // Step 3
-
-    CALL_SYMBOL_GENERATOR(memCpy);
 
     CALL_SYMBOL_GENERATOR(Debug);
     CALL_SYMBOL_GENERATOR(Assert);

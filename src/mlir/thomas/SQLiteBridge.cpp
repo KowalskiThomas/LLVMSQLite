@@ -230,8 +230,6 @@ struct VdbeRunner {
 
                 error = llvm::InitializeNativeTargetAsmPrinter();
                 ALWAYS_ASSERT(!error && "InitializeNativeTargetAsmPrinter returned an error!");
-
-                // TODO: Get that to work: llvm::InitializeNativeTargetDisassembler();
             } // End Initialize LLVM targets.
 
             // llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
@@ -304,6 +302,7 @@ struct VdbeRunner {
                             return true;
                         }
 
+                        debug("Skipping inlining of " << f.getName());
                         return false;
                     };
 
