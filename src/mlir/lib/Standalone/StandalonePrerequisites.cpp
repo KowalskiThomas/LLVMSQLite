@@ -1691,40 +1691,6 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(Debug);
     CALL_SYMBOL_GENERATOR(Assert);
 
-    {
-        auto builder = mlir::OpBuilder(m);
-        auto& rewriter = builder;
-        auto* ctx = rewriter.getContext();
-        builder.setInsertionPointToStart(m.getBody());
-
-//        using Type = mlir::LLVM::LLVMType;
-//        auto createGlobal = [&](Type ty, const char* name, auto initialValue = 0llu) {
-//            auto global = builder.create<mlir::LLVM::GlobalOp>
-//                (LOC,
-//                    ty,
-//                    true,
-//                    Linkage::External,
-//                    name,
-//                    mlir::Attribute()
-//                    // 0
-//                    // rewriter.getI64IntegerAttr(initialValue)
-//                );
-//
-//            return global;
-//        };
-//
-//        {
-//            auto arrayTy = T::sqlite3_valuePtrTy;
-//            auto aMem = createGlobal(arrayTy, "vdbeMem", 0);
-//        }
-
-//        {
-//            auto arrayTy = T::VdbeOpPtrTy;
-//            auto aOp = createGlobal(arrayTy, "vdbeOps", 0);
-//        }
-
-
-    }
 }
 
 void runPrerequisites(ModuleOp m, LLVMDialect* d) {

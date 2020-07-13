@@ -301,7 +301,7 @@ int sqlite3VdbeMemClearAndResize(Mem *pMem, int szNew){
 ** terminate a UTF16 string, even if the initial size of the buffer
 ** is an odd number of bytes.
 */
-static SQLITE_NOINLINE int vdbeMemAddTerminator(Mem *pMem){
+SQLITE_NOINLINE int vdbeMemAddTerminator(Mem *pMem){
   if( sqlite3VdbeMemGrow(pMem, pMem->n+3, 1) ){
     return SQLITE_NOMEM_BKPT;
   }

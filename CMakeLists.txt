@@ -237,6 +237,7 @@ add_library(sqlite
 )
 target_compile_definitions(sqlite PRIVATE VDBE_EXEC_NAME=sqlite3VdbeExecDefault)
 target_compile_definitions(sqlite PRIVATE SQLITE_OMIT_VIRTUALTABLE=1 SQLITE_OMIT_TRACE=1)
+target_compile_definitions(sqlite PRIVATE SQLITE_PRIVATE)
 
 # Dummy library to use the sqlite3.c auto-generated file
 add_library(sqlite3_aggregate sqlite3.c)

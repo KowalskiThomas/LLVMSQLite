@@ -234,7 +234,7 @@ struct VdbeRunner {
                 // TODO: Get that to work: llvm::InitializeNativeTargetDisassembler();
             } // End Initialize LLVM targets.
 
-            llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
+            // llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
 
             executionEngineCreated = true;
             {
@@ -296,31 +296,38 @@ struct VdbeRunner {
                         "sqlite3VdbeIntegerAffinity",
                         "doubleToInt64",
                         "sqlite3Atoi64",
-
-                        "llvm.lifetime.end.p0i8",
-                        "llvm.lifetime.start.p0i8",
-
-//                        "getPageNormal",
-//                        "sqlite3BtreeNext",
-//                        "btreeNext",
-//                        "moveToChild",
-//                        "getAndInitPage",
-//                        "moveToParent",
-//                        "releasePageNotNull"
-//                        "moveToLeftmost",
-
                     };
 
-                    auto shouldCopy = [&](const llvm::Function& f) {
-                        if (f.getName().startswith("llvm.")) {
-                            return true;
-                        }
-
+                    auto shouldInline = [&](const llvm::Function& f) {
                         if (inlined.find(f.getName().str()) != inlined.cend()) {
+                            debug("Should inline " << f.getName());
                             return true;
                         }
 
                         return false;
+                    };
+
+                    auto shouldCopyNoInline = [&](const llvm::Function& f) {
+                        if (f.getName().startswith("llvm.")) {
+                            return true;
+                        }
+
+                        static auto toCopyNoInline = std::set<std::string> {
+                            "sqlite3_log",
+                            "getAndInitPage",
+                            "sqlite3PcacheRelease",
+                            "btreeMoveto",
+                            "sqlite3VdbeMemGrow",
+                            "sqlite3VdbeMemTranslate",
+                            "vdbeMemAddTerminator",
+                            "sqlite3_str_appendf",
+                            "strlen"
+                        };
+
+                        auto shouldCopy = toCopyNoInline.find(f.getName().str()) != toCopyNoInline.cend();
+                        if (shouldCopy)
+                            debug("Should copy " << f.getName());
+                        return shouldCopy;
                     };
 
                     std::set<std::string> globalsToExternalise {
@@ -331,11 +338,12 @@ struct VdbeRunner {
                         "sqlite3AlterFunctions.aAlterTableFuncs",
                         "sqlite3Apis",
                         "sqlite3Attach.attach_func",
-                        "sqlite3Detach.detach_func",
-                        "sqlite3MemSetDefault.defaultMethods",
-                        "sqlite3PCacheSetDefault.defaultMethods",
                         "sqlite3RegisterBuiltinFunctions.aBuiltinFunc",
-                        "sqlite3RegisterDateTimeFunctions.aDateTimeFuncs",
+                        "sqlite3Detach.detach_func",
+                        "sqlite3MemSetDefault_defaultMethods",
+                        "sqlite3PCacheSetDefault_defaultMethods",
+                        "sqlite3RegisterBuiltinFunctions_aBuiltinFunc",
+                        "sqlite3RegisterDateTimeFunctions_aDateTimeFuncs",
                         "sqlite3WindowFunctions.aWindowFuncs",
                         "sqlite3_os_init.aVfs",
                         "statGetFuncdef",
@@ -391,7 +399,7 @@ struct VdbeRunner {
 
                     // Copy function declarations
                     for (const llvm::Function &I : *loadedModule) {
-                        if (!shouldCopy(I)) {
+                        if (!shouldInline(I) && !shouldCopyNoInline(I)) {
                             continue;
                         }
 
@@ -399,9 +407,12 @@ struct VdbeRunner {
                         if (!NF) {
                             // If we don't already have that function declared, add it
                             NF = llvm::Function::Create(
-                                    llvm::cast<llvm::FunctionType>(I.getValueType()),
-                                    I.getLinkage(),
-                                    I.getAddressSpace(), I.getName(), llvmModule.get());
+                                llvm::cast<llvm::FunctionType>(I.getValueType()),
+                                llvm::GlobalValue::ExternalLinkage,
+                                I.getAddressSpace(),
+                                I.getName(),
+                                llvmModule.get()
+                            );
                         }
 
                         NF->copyAttributesFrom(&I);
@@ -432,9 +443,13 @@ struct VdbeRunner {
                             // correctness.
                             continue;
                         }
-                        auto *GA = llvm::GlobalAlias::create(I->getValueType(),
-                                                             I->getType()->getPointerAddressSpace(),
-                                                             I->getLinkage(), I->getName(), llvmModule.get());
+                        auto *GA = llvm::GlobalAlias::create(
+                                I->getValueType(),
+                                I->getType()->getPointerAddressSpace(),
+                                I->getLinkage(),
+                                I->getName(),
+                                llvmModule.get()
+                        );
                         GA->copyAttributesFrom(&*I);
                         VMap[&*I] = GA;
                     }
@@ -468,7 +483,7 @@ struct VdbeRunner {
                         if (I.isDeclaration())
                             continue;
 
-                        if (!shouldCopy(I)) {
+                        if (!shouldInline(I)) {
                             continue;
                         }
 
@@ -582,13 +597,13 @@ struct VdbeRunner {
                     engine->addGlobalMapping(gv["sqlite3Config"], (void*)&sqlite3Config);
 
                     extern sqlite3_pcache_methods2 sqlite3PCacheSetDefault_defaultMethods;
-                    engine->addGlobalMapping(gv["sqlite3PCacheSetDefault.defaultMethods"], (void*)&sqlite3PCacheSetDefault_defaultMethods);
+                    engine->addGlobalMapping(gv["sqlite3PCacheSetDefault_defaultMethods"], (void*)&sqlite3PCacheSetDefault_defaultMethods);
 
                     extern const sqlite3_mem_methods sqlite3MemSetDefault_defaultMethods;
-                    engine->addGlobalMapping(gv["sqlite3MemSetDefault.defaultMethods"], (void*)&sqlite3MemSetDefault_defaultMethods);
+                    engine->addGlobalMapping(gv["sqlite3MemSetDefault_defaultMethods"], (void*)&sqlite3MemSetDefault_defaultMethods);
 
                     extern FuncDef sqlite3RegisterDateTimeFunctions_aDateTimeFuncs[];
-                    engine->addGlobalMapping(gv["sqlite3RegisterDateTimeFunctions.aDateTimeFuncs"], (void*)&sqlite3RegisterDateTimeFunctions_aDateTimeFuncs);
+                    engine->addGlobalMapping(gv["sqlite3RegisterDateTimeFunctions_aDateTimeFuncs"], (void*)&sqlite3RegisterDateTimeFunctions_aDateTimeFuncs);
 
                     extern sqlite3_io_methods posixIoMethods;
                     engine->addGlobalMapping(gv["posixIoMethods"], (void*)&posixIoMethods);
