@@ -1185,23 +1185,23 @@ static void pcache1Destroy(sqlite3_pcache *p){
 ** install the default pluggable cache module, assuming the user has not
 ** already provided an alternative.
 */
+const sqlite3_pcache_methods2 sqlite3PCacheSetDefault_defaultMethods = {
+1,                       /* iVersion */
+0,                       /* pArg */
+pcache1Init,             /* xInit */
+pcache1Shutdown,         /* xShutdown */
+pcache1Create,           /* xCreate */
+pcache1Cachesize,        /* xCachesize */
+pcache1Pagecount,        /* xPagecount */
+pcache1Fetch,            /* xFetch */
+pcache1Unpin,            /* xUnpin */
+pcache1Rekey,            /* xRekey */
+pcache1Truncate,         /* xTruncate */
+pcache1Destroy,          /* xDestroy */
+pcache1Shrink            /* xShrink */
+};
 void sqlite3PCacheSetDefault(void){
-  static const sqlite3_pcache_methods2 defaultMethods = {
-    1,                       /* iVersion */
-    0,                       /* pArg */
-    pcache1Init,             /* xInit */
-    pcache1Shutdown,         /* xShutdown */
-    pcache1Create,           /* xCreate */
-    pcache1Cachesize,        /* xCachesize */
-    pcache1Pagecount,        /* xPagecount */
-    pcache1Fetch,            /* xFetch */
-    pcache1Unpin,            /* xUnpin */
-    pcache1Rekey,            /* xRekey */
-    pcache1Truncate,         /* xTruncate */
-    pcache1Destroy,          /* xDestroy */
-    pcache1Shrink            /* xShrink */
-  };
-  sqlite3_config(SQLITE_CONFIG_PCACHE2, &defaultMethods);
+  sqlite3_config(SQLITE_CONFIG_PCACHE2, &sqlite3PCacheSetDefault_defaultMethods);
 }
 
 /*

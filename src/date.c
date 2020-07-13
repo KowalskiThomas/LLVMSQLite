@@ -1228,8 +1228,7 @@ static void currentTimeFunc(
 ** functions.  This should be the only routine in this file with
 ** external linkage.
 */
-void sqlite3RegisterDateTimeFunctions(void){
-  static FuncDef aDateTimeFuncs[] = {
+FuncDef sqlite3RegisterDateTimeFunctions_aDateTimeFuncs[] = {
 #ifndef SQLITE_OMIT_DATETIME_FUNCS
     PURE_DATE(julianday,        -1, 0, 0, juliandayFunc ),
     PURE_DATE(date,             -1, 0, 0, dateFunc      ),
@@ -1245,5 +1244,9 @@ void sqlite3RegisterDateTimeFunctions(void){
     STR_FUNCTION(current_timestamp, 0, "%Y-%m-%d %H:%M:%S", 0, currentTimeFunc),
 #endif
   };
-  sqlite3InsertBuiltinFuncs(aDateTimeFuncs, ArraySize(aDateTimeFuncs));
+void sqlite3RegisterDateTimeFunctions(void){
+  sqlite3InsertBuiltinFuncs(
+      sqlite3RegisterDateTimeFunctions_aDateTimeFuncs,
+      ArraySize(sqlite3RegisterDateTimeFunctions_aDateTimeFuncs)
+  );
 }

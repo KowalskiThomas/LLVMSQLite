@@ -5234,7 +5234,7 @@ static int unixUnfetch(sqlite3_file *fd, i64 iOff, void *p){
 **      to the METHOD object in the previous bullet.
 */
 #define IOMETHODS(FINDER,METHOD,VERSION,CLOSE,LOCK,UNLOCK,CKLOCK,SHMMAP)     \
-static const sqlite3_io_methods METHOD = {                                   \
+const sqlite3_io_methods METHOD = {                                   \
    VERSION,                    /* iVersion */                                \
    CLOSE,                      /* xClose */                                  \
    unixRead,                   /* xRead */                                   \
@@ -5385,7 +5385,7 @@ IOMETHODS(
 **
 ** This is for MacOSX only.
 */
-static const sqlite3_io_methods *autolockIoFinderImpl(
+const sqlite3_io_methods *autolockIoFinderImpl(
   const char *filePath,    /* name of the database file */
   unixFile *pNew           /* open file object for the database file */
 ){

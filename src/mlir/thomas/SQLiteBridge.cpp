@@ -115,6 +115,28 @@ static void initRuntime() {
     mlir::registerDialect<VdbeDialect>();
 }
 
+void findUsages(llvm::Module& mod) {
+    std::set<std::string> matches;
+    for (auto &g : mod) {
+        for (auto &block : g) {
+            for (auto &inst : block) {
+                if (llvm::isa<llvm::CallInst>(inst))
+                    continue;
+
+                for (auto &op : inst.operands()) {
+                    if (op->getType()->isPointerTy()
+                        && op->getType()->getPointerElementType()->isFunctionTy()) {
+                        matches.insert(op->getName().str());
+                    }
+                }
+            }
+        }
+    }
+    for(auto& match : matches) {
+        out('"' << match << "\", ");
+    }
+}
+
 struct VdbeRunner {
     using MLIRContext = mlir::MLIRContext;
     using VdbeDialect = mlir::standalone::StandaloneDialect;
@@ -267,62 +289,122 @@ struct VdbeRunner {
                     llvm::ValueToValueMapTy VMap;
 
                     static std::unordered_set<std::string> inlined = {
-// /*
-                            "sqlite3VdbeMemIntegerify",
-                            "getPageNormal",
-                            "applyNumericAffinity", "sqlite3AtoF", "alsoAnInt", "sqlite3VdbeIntegerAffinity",
-                            "sqlite3BtreeNext",
-                            "btreeNext",
-                            "moveToChild",
-                            "getAndInitPage",
-                            "moveToParent",
-                            "releasePageNotNull"
-                            "moveToLeftmost",
-// */
+                        "sqlite3VdbeMemIntegerify",
+                        "applyNumericAffinity",
+                        "sqlite3AtoF",
+                        "alsoAnInt",
+                        "sqlite3VdbeIntegerAffinity",
+                        "doubleToInt64",
+                        "sqlite3Atoi64"
+
+                        "llvm.lifetime.end.p0i8",
+                        "llvm.lifetime.start.p0i8",
+
+//                        "getPageNormal",
+//                        "sqlite3BtreeNext",
+//                        "btreeNext",
+//                        "moveToChild",
+//                        "getAndInitPage",
+//                        "moveToParent",
+//                        "releasePageNotNull"
+//                        "moveToLeftmost",
+
                     };
 
+                    auto shouldCopy = [&](const llvm::Function& f) {
+                        if (f.getName().startswith("llvm."))
+                            return true;
+
+                        if (inlined.find(f.getName().str()) != inlined.cend())
+                            return true;
+
+                        return false;
+                    };
+
+                    std::set<std::string> globalsToExternalise {
+                        "sqlite3Config",
+                        "MemJournalMethods",
+                        "dotlockIoFinderImpl",
+                        "posixIoMethods",
+                        "sqlite3AlterFunctions.aAlterTableFuncs",
+                        "sqlite3Apis",
+                        "sqlite3Attach.attach_func",
+                        "sqlite3Detach.detach_func",
+                        "sqlite3MemSetDefault.defaultMethods",
+                        "sqlite3PCacheSetDefault.defaultMethods",
+                        "sqlite3RegisterBuiltinFunctions.aBuiltinFunc",
+                        "sqlite3RegisterDateTimeFunctions.aDateTimeFuncs",
+                        "sqlite3WindowFunctions.aWindowFuncs",
+                        "sqlite3_os_init.aVfs",
+                        "statGetFuncdef",
+                        "statInitFuncdef",
+                        "statPushFuncdef",
+                        "flockIoMethods",
+                        "proxyIoMethods",
+                        "dotlockIoMethods",
+                        "nfsIoMethods",
+                        "aSyscall",
+                        "nolockIoMethods",
+                        "afpIoMethods",
+
+                        "autolockIoFinderImpl",
+                        "nolockIoFinderImpl",
+                        "dotlockIoFinderImpl",
+                        "posixIoFinderImpl",
+                        "flockIoFinderImpl",
+                        "afpIoFinderImpl",
+                        "nfsIoFinderImpl",
+                        "proxyIoFinderImpl",
+
+                        "autolockIoFinder",
+                        "nolockIoFinder",
+                        "dotlockIoFinder",
+                        "posixIoFinder",
+                        "flockIoFinder",
+                        "afpIoFinder",
+                        "nfsIoFinder",
+                        "proxyIoFinder",
+                    };
+
+                    // Copy globals
                     for (auto I = loadedModule->global_begin(), E = loadedModule->global_end(); I != E; ++I) {
                         llvm::GlobalVariable *GV;
-                        if (I->getName() == "sqlite3Config") {
-                            GV = new llvm::GlobalVariable(*llvmModule,
-                                                          I->getValueType(),
-                                                          I->isConstant(),
-                                                          I->getLinkage(),
-                                                          (llvm::Constant *) nullptr,
-                                                          I->getName(),
-                                                          (llvm::GlobalVariable *) nullptr,
-                                                          I->getThreadLocalMode(),
-                                                          I->getType()->getAddressSpace());
+                        GV = new llvm::GlobalVariable(*llvmModule,
+                                                      I->getValueType(),
+                                                      I->isConstant(),
+                                                      I->getLinkage(),
+                                                      (llvm::Constant *) nullptr,
+                                                      I->getName(),
+                                                      (llvm::GlobalVariable *) nullptr,
+                                                      I->getThreadLocalMode(),
+                                                      I->getType()->getAddressSpace());
+                        out("Copying " << GV->getName());
+
+                        if (globalsToExternalise.find(I->getName().str()) != globalsToExternalise.cend())
                             GV->setExternallyInitialized(true);
-                        } else {
-                            GV = new llvm::GlobalVariable(*llvmModule,
-                                                          I->getValueType(),
-                                                          I->isConstant(),
-                                                          I->getLinkage(),
-                                                          (llvm::Constant *) nullptr, I->getName(),
-                                                          (llvm::GlobalVariable *) nullptr,
-                                                          I->getThreadLocalMode(),
-                                                          I->getType()->getAddressSpace());
-                        }
+
                         GV->copyAttributesFrom(&*I);
                         VMap[&*I] = GV;
                         gv[GV->getName().str()] = GV;
                     }
 
+                    findUsages(*loadedModule);
+
+                    // Copy function declarations
                     for (const llvm::Function &I : *loadedModule) {
-                        llvm::Function *NF;
+                        if (!shouldCopy(I)) {
+                            continue;
+                        } else {
+                            out("Inlining " << I.getName());
+                        }
 
-                        NF = llvmModule->getFunction(I.getName());
-
+                        auto* NF = llvmModule->getFunction(I.getName());
                         if (!NF) {
                             // If we don't already have that function declared, add it
                             NF = llvm::Function::Create(
                                     llvm::cast<llvm::FunctionType>(I.getValueType()),
                                     I.getLinkage(),
                                     I.getAddressSpace(), I.getName(), llvmModule.get());
-                        }
-                        if (inlined.find(NF->getName().str()) != inlined.cend()) {
-                            NF->setLinkage(llvm::GlobalValue::ExternalLinkage);
                         }
 
                         NF->copyAttributesFrom(&I);
@@ -332,7 +414,7 @@ struct VdbeRunner {
                     out("Copying alias declarations");
                     // Loop over the aliases in the module
                     for (auto I = loadedModule->alias_begin(), E = loadedModule->alias_end(); I != E; ++I) {
-                        if (false) { // (!ShouldCloneDefinition(&*I)) {
+                        if (false) {
                             // An alias cannot act as an external reference, so we need to create
                             // either a function or a global variable depending on the value type.
                             // FIXME: Once pointee types are gone we can probably pick one or the
@@ -366,7 +448,7 @@ struct VdbeRunner {
                             continue;
 
                         llvm::GlobalVariable *GV = llvm::cast<llvm::GlobalVariable>(VMap[&*I]);
-                        if (GV->getName() == "sqlite3Config") { // (!ShouldCloneDefinition(&*I)) {
+                        if (globalsToExternalise.find(GV->getName().str()) != globalsToExternalise.cend()) {
                             // Skip after setting the correct linkage for an external reference.
                             GV->setLinkage(llvm::GlobalValue::ExternalLinkage);
                             continue;
@@ -389,19 +471,16 @@ struct VdbeRunner {
                         if (I.isDeclaration())
                             continue;
 
-                        static std::set<std::string> nocopy = {
-                                "sqlite3VdbeExec",
-                                "sqlite3VdbeExecDefault"
-                        };
-                        llvm::Function *F = llvm::cast<llvm::Function>(VMap[&I]);
-                        if (nocopy.find(F->getName().str()) != nocopy.cend()) { //(!ShouldCloneDefinition(&I)) {
+                        if (inlined.find(I.getName().str()) == inlined.cend()) {
                             // Skip after setting the correct linkage for an external reference.
-                            F->setLinkage(llvm::GlobalValue::ExternalLinkage);
+                            // F->setLinkage(llvm::GlobalValue::ExternalLinkage);
                             // Personality function is not valid on a declaration.
-                            F->setPersonalityFn(nullptr);
+                            out("Not copying body of " << I.getName());
+                            // F->setPersonalityFn(nullptr);
                             continue;
                         }
 
+                        llvm::Function *F = llvm::cast<llvm::Function>(VMap[&I]);
                         llvm::Function::arg_iterator DestI = F->arg_begin();
                         for (llvm::Function::const_arg_iterator J = I.arg_begin(); J != I.arg_end();
                              ++J) {
@@ -490,6 +569,7 @@ struct VdbeRunner {
                 }
 
                 out("Module preparation done");
+                writeToFile("jit_llvm_final.ll", *llvmModule);
 
                 auto functions = std::set<llvm::StringRef>{};
                 for(auto& f : llvmModule->functions()) {
@@ -508,6 +588,18 @@ struct VdbeRunner {
 
                 if (duplicateFunctions) {
                     engine->addGlobalMapping(gv["sqlite3Config"], (void*)&sqlite3Config);
+
+                    extern sqlite3_pcache_methods2 sqlite3PCacheSetDefault_defaultMethods;
+                    engine->addGlobalMapping(gv["sqlite3PCacheSetDefault.defaultMethods"], (void*)&sqlite3PCacheSetDefault_defaultMethods);
+
+                    extern const sqlite3_mem_methods sqlite3MemSetDefault_defaultMethods;
+                    engine->addGlobalMapping(gv["sqlite3MemSetDefault.defaultMethods"], (void*)&sqlite3MemSetDefault_defaultMethods);
+
+                    extern FuncDef sqlite3RegisterDateTimeFunctions_aDateTimeFuncs[];
+                    engine->addGlobalMapping(gv["sqlite3RegisterDateTimeFunctions.aDateTimeFuncs"], (void*)&sqlite3RegisterDateTimeFunctions_aDateTimeFuncs);
+
+                    extern sqlite3_io_methods posixIoMethods;
+                    engine->addGlobalMapping(gv["posixIoMethods"], (void*)&posixIoMethods);
                 }
 
                 out("Compiling!")
