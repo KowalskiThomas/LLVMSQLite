@@ -295,7 +295,7 @@ struct VdbeRunner {
                         "alsoAnInt",
                         "sqlite3VdbeIntegerAffinity",
                         "doubleToInt64",
-                        "sqlite3Atoi64"
+                        "sqlite3Atoi64",
 
                         "llvm.lifetime.end.p0i8",
                         "llvm.lifetime.start.p0i8",
