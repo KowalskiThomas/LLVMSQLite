@@ -137,7 +137,7 @@ namespace mlir::standalone::passes {
 
                 call(LOC, f_sqlite3VdbeError,
                      vdbeCtx->p,
-                     constants(T::i8PtrTy, (char*)"%s"),
+                     vdbeCtx->percentS,
                      valueText
                 );
 

@@ -3674,7 +3674,7 @@ u32 sqlite3VdbeSerialType(Mem *pMem, int file_format, u32 *pLen){
 /*
 ** The sizes for serial types less than 128
 */
-static const u8 sqlite3SmallTypeSizes[] = {
+/* static */ const u8 sqlite3SmallTypeSizes[] = {
         /*  0   1   2   3   4   5   6   7   8   9 */   
 /*   0 */   0,  1,  2,  3,  4,  6,  8,  8,  0,  0,
 /*  10 */   0,  0,  0,  0,  1,  1,  2,  2,  3,  3,

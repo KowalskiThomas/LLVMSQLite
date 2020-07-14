@@ -47,4 +47,13 @@ struct VdbeContext {
 
     // The value of p->apCsr
     mlir::Value apCsr;
+
+    // The address of sqlite3CtypeMap
+    mlir::Value sqlite3CtypeMap;
+
+    // A reference to "%s"
+    mlir::Value percentS;
+
+    // The address of sqlite3SmallTypeSizes
+    mlir::Value sqlite3SmallTypeSizes;
 };

@@ -163,7 +163,7 @@ struct VdbeRunner {
 
     void (*jittedFunctionPointer)(void **) = nullptr;
 
-    using vdbeExecType = int (*)(Vdbe *);
+    using vdbeExecType = int (*)(Vdbe* p, const u8* sqlite3CtypeMap, int* iCompare, const char* percentS, char* sqlite3SmallTypeSizes);
 
     void initializeTargets();
 
@@ -250,7 +250,15 @@ struct VdbeRunner {
         }
 
         debug("Calling now");
-        int returnedValue = ((vdbeExecType) (jittedFunctionPointer))(vdbe);
+        extern int iCompare;
+        extern char sqlite3SmallTypeSizes[];
+        int returnedValue = ((vdbeExecType) (jittedFunctionPointer))(
+                vdbe,
+                sqlite3CtypeMap,
+                &iCompare,
+                "%s",
+                sqlite3SmallTypeSizes
+        );
 
         sqlite3VdbeLeave(vdbe);
 

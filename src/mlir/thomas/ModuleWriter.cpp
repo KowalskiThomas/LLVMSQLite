@@ -73,15 +73,31 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     auto myAssert = MyAssertOperator(rewriter, constants, ctx, __FILE_NAME__);
     myOperators
     { // Load "globals"
-
         /// Get the address of the VDBE
-        auto beg = vdbeCtx->entryBlock->args_begin();
+        auto arg = vdbeCtx->entryBlock->args_begin();
         auto end = vdbeCtx->entryBlock->args_end();
-        auto p = *beg;
-        vdbeCtx->p = p;
+        // First argument = Vdbe instance
+        vdbeCtx->p = *arg;
+        arg++;
+        // Second argument = sqlite3CtypeMap
+        vdbeCtx->sqlite3CtypeMap = *arg;
+        arg++;
+        // Third elements = &iCompare
+        //   It is supposed to be local to sqlite3VdbeExec but I moved it out
+        //   so we can interleave JIT execution and default implementation
+        vdbeCtx->iCompare = *arg;
+        arg++;
+        // Fourth argument = &"%s" (valid at runtime)
+        vdbeCtx->percentS = *arg;
+        arg++;
+        // Fifth argument = &sqlite3SmallTypeSizes
+        vdbeCtx->sqlite3SmallTypeSizes = *arg;
+        arg++;
+        LLVMSQLITE_ASSERT(arg == end);
+
 
         // aMem (an sqlite3_value*) is the 20-th element in the Clang-compiled Vdbe
-        auto aMemAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), p, 0, 19);
+        auto aMemAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy.getPointerTo(), vdbeCtx->p, 0, 19);
         // Load the value of aMem (the actual start of the array)
         auto aMem = load(LOC, aMemAddr);
         vdbeCtx->aMem = aMem;
@@ -92,12 +108,12 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         vdbeCtx->apCsr = apCsr;
 
         /// aOp (a VdbeOp*) is the 24-th element of the Clang-compiled Vdbe
-        auto aOpAddr = getElementPtrImm(LOC, T::VdbeOpPtrTy.getPointerTo(), p, 0, 23);
+        auto aOpAddr = getElementPtrImm(LOC, T::VdbeOpPtrTy.getPointerTo(), vdbeCtx->p, 0, 23);
         auto aOp = load(LOC, aOpAddr);
         vdbeCtx->aOp = aOp;
 
         /// db (a sqlite3*)
-        auto dbAddr = getElementPtrImm(LOC, T::sqlite3PtrTy.getPointerTo(), p, 0, 0);
+        auto dbAddr = getElementPtrImm(LOC, T::sqlite3PtrTy.getPointerTo(), vdbeCtx->p, 0, 0);
         auto db = load(LOC, dbAddr);
         vdbeCtx->db = db;
     }
@@ -114,12 +130,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     opBuilder.setInsertionPointToEnd(entryBlock);
     branch(LOC, jumpsBlock);
     opBuilder.setInsertionPointToStart(jumpsBlock);
-
-    // The iCompare value. It is supposed to be local to sqlite3VdbeExec but I moved it out
-    // so we can interleave JIT execution and default implementation
-    extern int iCompare;
-    // TODO: Fix iCompare
-    vdbeCtx->iCompare = constants(T::i32PtrTy, &iCompare);
 
     // Our goal here: check the value of vdbe->pc and jump to the right block
     auto pcAddr = getElementPtrImm(LOC, T::i32PtrTy, vdbeCtx->p, 0, 10);
@@ -1577,8 +1587,12 @@ void writeFunction(MLIRContext& context, LLVMDialect* llvmDialect, ModuleOp& the
         vdbeCtx->regInstances.emplace_back(&vdbe->aMem[i]);
     }
 
-    auto inTypes = SmallVector<mlir::Type, 1>{
-        T::VdbePtrTy
+    auto inTypes = SmallVector<mlir::Type, 8>{
+        T::VdbePtrTy,
+        T::i8PtrTy,
+        T::i32PtrTy,
+        T::i8PtrTy,
+        T::i8PtrTy
     };
 
     auto funcTy = rewriter.getFunctionType(inTypes, rewriter.getIntegerType(32));
