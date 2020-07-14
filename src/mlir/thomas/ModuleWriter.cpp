@@ -100,36 +100,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         auto dbAddr = getElementPtrImm(LOC, T::sqlite3PtrTy.getPointerTo(), p, 0, 0);
         auto db = load(LOC, dbAddr);
         vdbeCtx->db = db;
-
-#ifdef LLVMSQLITE_DEBUG
-        {
-            // The code in this scope allows us to check that the offsets we assume in the structs
-            // are indeed the right ones. Otherwise, the code will behave very weirdly.
-            // Ideally, it should work the offsets for every possible GEP instruction ever.
-            MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
-
-            // Get &aOp[1]
-            auto tmpAddress = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, 4);
-            auto tmpAddressInt = ptrToInt(LOC, tmpAddress);
-            auto compileTimeAddress = constants((uint64_t)&vdbe->aOp[4], 64);
-            auto addressesMatch = iCmp(LOC, ICmpPredicate::eq,
-                    compileTimeAddress,
-                    tmpAddressInt
-                );
-
-            myAssert(LOCL, addressesMatch);
-
-            tmpAddress = getElementPtrImm(LOC, T::i8PtrTy, vdbeCtx->aOp, 35, 1);
-            tmpAddressInt = ptrToInt(LOC, tmpAddress);
-            compileTimeAddress = constants((uint64_t)&vdbe->aOp[35].p4type, 64);
-            addressesMatch = iCmp(LOC, ICmpPredicate::eq,
-                compileTimeAddress,
-                tmpAddressInt
-            );
-
-            myAssert(LOCL, addressesMatch);
-        }
-#endif
     }
 
     // Each time we translate an instruction, we need to branch from its block to the next block

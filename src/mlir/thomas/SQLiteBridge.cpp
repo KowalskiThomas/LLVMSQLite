@@ -14,18 +14,21 @@ VdbeRunner* loadRunnerFromCache(Vdbe* p) {
     debug("Trying to load cached module from " << fileName);
 
     llvm::SMDiagnostic diag;
-    auto context = llvm::LLVMContext();
+    static auto context = llvm::LLVMContext();
     auto module = llvm::parseIRFile(fileName, diag, context);
 
-    if (!diag.getMessage().empty())
-        err("loadRunnerFromCache: Diagnostic:" << diag.getMessage());
+    if (!diag.getMessage().empty()) {
+        LLVMSQLITE_ASSERT(!module);
+        err("loadRunnerFromCache: Diagnostic: '" << diag.getMessage() << "'");
+    }
 
     if (!module) {
         return nullptr;
     }
 
     out("Loaded module!");
-    return new VdbeRunner(p, std::move(module));
+    auto* runner = new VdbeRunner(p, std::move(module));
+    return runner;
 }
 
 extern "C" {
@@ -46,7 +49,6 @@ int jitVdbeStep(Vdbe *p) {
         } else {
             LLVMSQLITE_ASSERT(runner->llvmModule);
             debug("Loaded VdbeRunner from cached module");
-            writeToFile("temp.vdbeStep.ll", *runner->llvmModule);
         }
 
         LLVMSQLITE_ASSERT(runner);

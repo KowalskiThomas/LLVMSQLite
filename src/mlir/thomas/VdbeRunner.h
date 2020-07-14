@@ -117,7 +117,6 @@ struct VdbeRunner {
               builder(static_cast<mlir::MLIRContext *>(nullptr)),
               moduleCreated(true),
               engineCreated(false) {
-        writeToFile("temp.ctor.ll", *llvmModule);
         initializeTargets();
     }
 
@@ -130,27 +129,21 @@ struct VdbeRunner {
     void optimiseModule();
 
     int run() {
-        if (llvmModule) {
-            LLVMSQLITE_ASSERT(moduleCreated);
-            writeToFile("temp.0.ll", *llvmModule);
-        } else {
-            out("Module created: " << moduleCreated << " llvmModule: " << llvmModule.get());
-        }
-
         if (!moduleCreated) {
+            LLVMSQLITE_ASSERT(!engineCreated);
             debug("Creating module");
             auto tick = system_clock::now();
             writeModule();
+            LLVMSQLITE_ASSERT(llvmModule);
             optimiseModule();
+            LLVMSQLITE_ASSERT(llvmModule);
             auto tock = system_clock::now();
             functionPreparationTime = (unsigned long long) (duration_cast<milliseconds>(tock - tick).count());
             moduleCreated = true;
         } else {
-            LLVMSQLITE_ASSERT(llvmModule);
             debug("Skipping module creation");
         }
 
-        writeToFile("temp.ll", *llvmModule);
         if (!engineCreated) {
             debug("Creating EE");
             LLVMSQLITE_ASSERT(!engine);
