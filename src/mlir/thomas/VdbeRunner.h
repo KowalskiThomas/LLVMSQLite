@@ -52,7 +52,7 @@
 using namespace std::chrono;
 
 // This takes too much time:
-static const constexpr bool shouldOptimiseModule = false;
+static const constexpr bool shouldOptimiseModule = true;
 static const constexpr bool optimiseFunctions = true;
 static const constexpr bool optimiseCodegen = true;
 static const constexpr bool optimiseOthers = true;
@@ -202,22 +202,23 @@ struct VdbeRunner {
         ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");
 
         if (duplicateFunctions) {
-            engine->addGlobalMapping(gv["sqlite3Config"], (void *) &sqlite3Config);
+            engine->addGlobalMapping("sqlite3Config", (uint64_t)(void *) &sqlite3Config);
 
             extern sqlite3_pcache_methods2 sqlite3PCacheSetDefault_defaultMethods;
-            engine->addGlobalMapping(gv["sqlite3PCacheSetDefault_defaultMethods"],
-                                     (void *) &sqlite3PCacheSetDefault_defaultMethods);
+            engine->addGlobalMapping("sqlite3PCacheSetDefault_defaultMethods",
+                                     (uint64_t)(void *) &sqlite3PCacheSetDefault_defaultMethods);
 
             extern const sqlite3_mem_methods sqlite3MemSetDefault_defaultMethods;
-            engine->addGlobalMapping(gv["sqlite3MemSetDefault_defaultMethods"],
-                                     (void *) &sqlite3MemSetDefault_defaultMethods);
+            engine->addGlobalMapping("sqlite3MemSetDefault_defaultMethods",
+                                     (uint64_t)(void *) &sqlite3MemSetDefault_defaultMethods);
 
             extern FuncDef sqlite3RegisterDateTimeFunctions_aDateTimeFuncs[];
-            engine->addGlobalMapping(gv["sqlite3RegisterDateTimeFunctions_aDateTimeFuncs"],
-                                     (void *) &sqlite3RegisterDateTimeFunctions_aDateTimeFuncs);
+            engine->addGlobalMapping("sqlite3RegisterDateTimeFunctions_aDateTimeFuncs",
+                                     (uint64_t)(void *) &sqlite3RegisterDateTimeFunctions_aDateTimeFuncs);
 
             extern sqlite3_io_methods posixIoMethods;
-            engine->addGlobalMapping(gv["posixIoMethods"], (void *) &posixIoMethods);
+            engine->addGlobalMapping("posixIoMethods",
+                                     (uint64_t)(void *) &posixIoMethods);
         }
 
         debug("Compiling!")
