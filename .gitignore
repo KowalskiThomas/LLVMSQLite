@@ -1,3 +1,9 @@
+o1/
+reldebinfo/
+san_address/
+san_undefined/
+vtune/
+xray/
 sqlite3.ll
 asan/
 .vscode
