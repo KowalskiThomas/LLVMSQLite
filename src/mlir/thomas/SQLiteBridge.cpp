@@ -11,7 +11,7 @@ unsigned long long functionOptimisationTime;
 
 VdbeRunner* loadRunnerFromCache(Vdbe* p) {
     std::string fileName = VdbeHash().getFileName(p);
-    debug("Trying to load cached module from " << fileName);
+    out("Trying to load cached module from " << fileName);
 
     llvm::SMDiagnostic diag;
     static auto context = llvm::LLVMContext();
