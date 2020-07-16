@@ -71,6 +71,7 @@ void VdbeRunner::optimiseModule() {
     passManagerBuilder.PerformThinLTO = optimiseOthers;
     passManagerBuilder.LibraryInfo = new llvm::TargetLibraryInfoImpl(targetTriple);
     machine->adjustPassManager(passManagerBuilder);
+    out("Triple: " << machine->getTargetTriple().getTriple());
 
     extern std::unique_ptr<llvm::Module> loadedModule;
     LLVMSQLITE_ASSERT(loadedModule != nullptr);
@@ -193,10 +194,7 @@ void VdbeRunner::optimiseModule() {
 
         // Copy function declarations
         for (const llvm::Function &I : *loadedModule) {
-            if (!shouldInline(I) && !shouldCopyNoInline(I)) {
-                continue;
-            }
-
+            debug("Copying declaration of " << I.getName());
             auto *NF = llvmModule->getFunction(I.getName());
             if (!NF) {
                 // If we don't already have that function declared, add it
@@ -243,6 +241,7 @@ void VdbeRunner::optimiseModule() {
                     I->getName(),
                     llvmModule.get()
             );
+            out("Copying GV " << GA->getName());
             GA->copyAttributesFrom(&*I);
             VMap[&*I] = GA;
         }
