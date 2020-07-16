@@ -22,6 +22,11 @@ if (NOT CMAKE_BUILD_TYPE)
     message("CMAKE_BUILD_TYPE defaulted to Debug")
 endif()
 
+set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE} -O2")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
 set(LLVM_ENABLE_LIBCXX ON)
 
 if (VTUNE)
@@ -270,7 +275,7 @@ target_link_libraries(profilable_shell ${CMAKE_DL_LIBS})
 # Target to build sqlite3.ll, used by JIT inlining features
 add_custom_command(
     OUTPUT sqlite3.ll
-    VERBATIM COMMAND ${CLANG11} -O3 -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll -DSQLITE_OMIT_VIRTUALTABLE=1 -DSQLITE_OMIT_TRACE=1
+    VERBATIM COMMAND ${CLANG11} -O3 -march=native -S -emit-llvm ${PROJECT_SOURCE_DIR}/sqlite3.c -o sqlite3.ll -DSQLITE_OMIT_VIRTUALTABLE=1 -DSQLITE_OMIT_TRACE=1
     DEPENDS ${PROJECT_SOURCE_DIR}/sqlite3.c
 )
 add_custom_target(assembly

@@ -4,8 +4,9 @@
 
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/IRReader/IRReader.h"
-
+#include "llvm/Config/llvm-config.h"
 #include "llvm/ExecutionEngine/MCJIT.h"
+#include "llvm/ExecutionEngine/Interpreter.h"
 #include "llvm/ExecutionEngine/JITLink/JITLink.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/GenericValue.h"
@@ -16,6 +17,7 @@
 #include <llvm/IR/LegacyPassManager.h>
 #include "llvm/Support/TargetSelect.h"
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
+#include <src/mlir/include/Standalone/TypeDefinitions.h>
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
@@ -57,10 +59,6 @@ const constexpr bool optimiseCodegen = true;
 const constexpr bool optimiseOthers = true;
 const constexpr bool duplicateFunctions = true;
 const constexpr int optLevel = 3;
-
-extern "C" {
-    SQLITE_NOINLINE void vdbeMemClear(Mem *p);
-}
 
 void initializeDialects();
 
@@ -139,8 +137,6 @@ struct VdbeRunner {
             optimiseModule();
             LLVMSQLITE_ASSERT(llvmModule);
             moduleCreated = true;
-        } else {
-            debug("Skipping module creation");
         }
 
         if (!engineCreated) {
@@ -183,14 +179,31 @@ struct VdbeRunner {
                 functions.insert(f.getName().str());
         }
 
+        std::set<llvm::GlobalVariable*> vars;
+        for(auto& gv : llvmModule->globals()) {
+            if (!gv.hasNUsesOrMore(1)) {
+                out("Removing " << gv.getName());
+                vars.insert(&gv);
+            }
+        }
+        for(auto& v : vars) {
+            v->eraseFromParent();
+        }
+
+        writeToFile("jit_llvm_final_dce.ll", *llvmModule);
+
+        auto mainFunc = llvmModule->getFunction(JIT_MAIN_FN_NAME);
+
         auto builder = llvm::EngineBuilder(std::move(llvmModule));
         std::string s;
         builder.setErrorStr(&s);
 
         initializeTargets();
+        static constexpr const bool useInterpreter = false;
         engine = std::unique_ptr<llvm::ExecutionEngine>
                 (builder
-                         .setEngineKind(llvm::EngineKind::JIT)
+                         .setEngineKind(useInterpreter ? llvm::EngineKind::Interpreter
+                                                       : llvm::EngineKind::JIT)
                          .setOptLevel(
                                  optimiseCodegen ? llvm::CodeGenOpt::Aggressive
                                                  : llvm::CodeGenOpt::None)
@@ -201,7 +214,7 @@ struct VdbeRunner {
         if (!engine) err("Error: " << s);
         ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");
 
-        if (duplicateFunctions) {
+        if (duplicateFunctions && !useInterpreter) {
             debug("Adding mappings");
 
             engine->addGlobalMapping("sqlite3Config", (uint64_t)(void *) &sqlite3Config);
@@ -225,8 +238,21 @@ struct VdbeRunner {
 
         debug("Compiling!")
         jittedFunctionPointer = reinterpret_cast<decltype(jittedFunctionPointer)>(
-                engine->getFunctionAddress(JIT_MAIN_FN_NAME)
+            engine->getFunctionAddress(JIT_MAIN_FN_NAME)
         );
+
+        if (useInterpreter) {
+            // using vdbeExecType = int (*)(Vdbe* p, const u8* sqlite3CtypeMap, int* iCompare, const char* percentS, char* sqlite3SmallTypeSizes);
+            extern int iCompare;
+            extern char sqlite3SmallTypeSizes[];
+            engine->runFunction(mainFunc, {
+                llvm::GenericValue(vdbe),
+                llvm::GenericValue((void*)sqlite3CtypeMap),
+                llvm::GenericValue(&iCompare),
+                llvm::GenericValue((void*)"%s"),
+                llvm::GenericValue((void*)sqlite3SmallTypeSizes)
+            });
+        }
 
         std::map<void *, llvm::StringRef> addresses;
         for (auto &fname : functions) {
@@ -236,7 +262,7 @@ struct VdbeRunner {
         for (auto &p : addresses) {
             debug(p.first << " -> " << p.second);
         }
-            ALWAYS_ASSERT(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
+        ALWAYS_ASSERT(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
 
         engineCreated = true;
 

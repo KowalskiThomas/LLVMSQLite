@@ -380,7 +380,7 @@ void VdbeRunner::optimiseModule() {
     debug("Module preparation done");
     writeToFile("jit_llvm_final.ll", *llvmModule);
 
-    static const constexpr auto dumpToDisk = true;
+    static const constexpr auto dumpToDisk = false;
     if (dumpToDisk)
     { // Cache the module to disk
         VdbeHash vdbeHash;
