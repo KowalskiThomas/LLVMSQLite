@@ -88,13 +88,21 @@ int sqlite3VdbeExec(Vdbe *p) {
 #if ENABLE_JIT
         extern unsigned long long functionPreparationTime;
         extern unsigned long long functionOptimisationTime;
+        extern unsigned long long functionCompilationTime;
+        extern unsigned long long vdbeRunnerCreationTime;
+        printf("VdbeRunner creation time: %llu ms\n", vdbeRunnerCreationTime);
         printf("Preparation time: %llu ms\n", functionPreparationTime);
         printf("Optimisation time: %llu ms\n", functionOptimisationTime);
+        printf("Compilation time: %llu ms\n", functionCompilationTime);
 #endif
-        printf("Total Vdbe execution time: %llu ms\n", initialDiff);
+        printf("Default Implementation Vdbe execution time: %llu ms\n", initialDiff);
 #if ENABLE_JIT
-        printf("Vdbe execution time without compilation: %llu ms\n",
-                initialDiff - functionPreparationTime - functionOptimisationTime);
+        printf("JIT Vdbe execution time: %llu ms\n",
+                initialDiff
+                - functionPreparationTime
+                - functionOptimisationTime
+                - functionCompilationTime
+                - vdbeRunnerCreationTime);
 #endif
         lastVdbe = nullptr;
     }

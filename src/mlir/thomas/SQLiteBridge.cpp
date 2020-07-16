@@ -8,6 +8,8 @@ const char *const JIT_MAIN_FN_NAME = "jittedFunction";
 
 unsigned long long functionPreparationTime;
 unsigned long long functionOptimisationTime;
+unsigned long long functionCompilationTime;
+unsigned long long vdbeRunnerCreationTime;
 
 VdbeRunner* loadRunnerFromCache(Vdbe* p) {
     std::string fileName = VdbeHash().getFileName(p);
@@ -40,22 +42,24 @@ int jitVdbeStep(Vdbe *p) {
     if (VdbeRunner::runners.find(p) == VdbeRunner::runners.end()) {
         auto hash = vdbeHash(*p);
 
+        auto tick = system_clock::now();
         runner = loadRunnerFromCache(p);
         if (runner == nullptr) {
             debug("Creating a new VDBERunner");
-            auto tick = std::chrono::system_clock::now();
             runner = new VdbeRunner(p);
-            printTimeDifference(tick, "VdbeRunner creation");
         } else {
             LLVMSQLITE_ASSERT(runner->llvmModule);
             debug("Loaded VdbeRunner from cached module");
         }
+        auto tock = system_clock::now();
+        vdbeRunnerCreationTime = duration_cast<milliseconds>(tock - tick).count();
 
         LLVMSQLITE_ASSERT(runner);
         VdbeRunner::runners[p] = runner;
     }
 
     runner = VdbeRunner::runners[p];
+
     auto result = runner->run();
     return result;
 }

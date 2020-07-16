@@ -134,13 +134,10 @@ struct VdbeRunner {
         if (!moduleCreated) {
             LLVMSQLITE_ASSERT(!engineCreated);
             debug("Creating module");
-            auto tick = system_clock::now();
             writeModule();
             LLVMSQLITE_ASSERT(llvmModule);
             optimiseModule();
             LLVMSQLITE_ASSERT(llvmModule);
-            auto tock = system_clock::now();
-            functionPreparationTime = (unsigned long long) (duration_cast<milliseconds>(tock - tick).count());
             moduleCreated = true;
         } else {
             debug("Skipping module creation");
@@ -171,6 +168,8 @@ struct VdbeRunner {
     void initializeTargets();
 
     void createExecutionEngine() {
+        auto tick = system_clock::now();
+
         debug("Creating an execution engine")
         LLVMSQLITE_ASSERT(llvmModule && "Can't create an ExecutionEngine with no LLVMModule");
 
@@ -203,6 +202,8 @@ struct VdbeRunner {
         ALWAYS_ASSERT(engine != nullptr && "ExecutionEngine is null!");
 
         if (duplicateFunctions) {
+            debug("Adding mappings");
+
             engine->addGlobalMapping("sqlite3Config", (uint64_t)(void *) &sqlite3Config);
 
             extern sqlite3_pcache_methods2 sqlite3PCacheSetDefault_defaultMethods;
@@ -238,6 +239,9 @@ struct VdbeRunner {
             ALWAYS_ASSERT(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
 
         engineCreated = true;
+
+        auto tock = system_clock::now();
+        functionCompilationTime = duration_cast<milliseconds>(tock - tick).count();
     }
 
     int runJit() {

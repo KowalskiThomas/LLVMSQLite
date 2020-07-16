@@ -31,6 +31,7 @@ class Vdbe;
 extern const char* const JIT_MAIN_FN_NAME;
 extern unsigned long long functionPreparationTime;
 extern unsigned long long functionOptimisationTime;
+extern unsigned long long functionCompilationTime;
 
 extern "C" {
     int jitVdbeStep(Vdbe*);
