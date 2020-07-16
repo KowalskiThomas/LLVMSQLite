@@ -47,25 +47,17 @@ The difference between my LLVM and `llvm/llvm-project` is that:
    * `stackSave` and `stackRestore` 
    * `call` can now call values (and not only `LLVMFuncOp`'s)
 
-As explained earlier, you'll need to compile MLIR and Clang:
+As explained earlier, you'll need to compile and install MLIR and Clang:
 
-**For MLIR:**
 ```
 mkdir ~/llvm/
+mkdir build && cd build
 export CC=clang
 export CXX=clang++
-cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS=mlir -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLLVM_ENABLE_ASSERTIONS=ON
+cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="mlir;clang" -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLLVM_ENABLE_ASSERTIONS=ON
 DESTDIR=~/llvm ninja install
 ```
 
-**For Clang:**
-
-```
-export CC=clang
-export CXX=clang++
-cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS=clang
-ninja
-```
 
 # Usage 
 
