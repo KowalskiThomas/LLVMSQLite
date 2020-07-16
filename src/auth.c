@@ -87,7 +87,7 @@ int sqlite3_set_authorizer(
 ** Write an error message into pParse->zErrMsg that explains that the
 ** user-supplied authorization function returned an illegal value.
 */
-static void sqliteAuthBadReturnCode(Parse *pParse){
+void sqliteAuthBadReturnCode(Parse *pParse){
   sqlite3ErrorMsg(pParse, "authorizer malfunction");
   pParse->rc = SQLITE_ERROR;
 }

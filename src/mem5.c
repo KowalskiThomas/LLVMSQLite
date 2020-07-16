@@ -89,7 +89,7 @@ struct Mem5Link {
 ** static variables organized and to reduce namespace pollution
 ** when this module is combined with other in the amalgamation.
 */
-static SQLITE_WSD struct Mem5Global {
+SQLITE_WSD struct Mem5Global {
   /*
   ** Memory available for allocation
   */
@@ -146,7 +146,7 @@ static SQLITE_WSD struct Mem5Global {
 ** Unlink the chunk at mem5.aPool[i] from list it is currently
 ** on.  It should be found on mem5.aiFreelist[iLogsize].
 */
-static void memsys5Unlink(int i, int iLogsize){
+void memsys5Unlink(int i, int iLogsize){
   int next, prev;
   assert( i>=0 && i<mem5.nBlock );
   assert( iLogsize>=0 && iLogsize<=LOGMAX );
@@ -168,7 +168,7 @@ static void memsys5Unlink(int i, int iLogsize){
 ** Link the chunk at mem5.aPool[i] so that is on the iLogsize
 ** free list.
 */
-static void memsys5Link(int i, int iLogsize){
+void memsys5Link(int i, int iLogsize){
   int x;
   assert( sqlite3_mutex_held(mem5.mutex) );
   assert( i>=0 && i<mem5.nBlock );
@@ -187,10 +187,10 @@ static void memsys5Link(int i, int iLogsize){
 /*
 ** Obtain or release the mutex needed to access global data structures.
 */
-static void memsys5Enter(void){
+void memsys5Enter(void){
   sqlite3_mutex_enter(mem5.mutex);
 }
-static void memsys5Leave(void){
+void memsys5Leave(void){
   sqlite3_mutex_leave(mem5.mutex);
 }
 
@@ -198,7 +198,7 @@ static void memsys5Leave(void){
 ** Return the size of an outstanding allocation, in bytes.
 ** This only works for chunks that are currently checked out.
 */
-static int memsys5Size(void *p){
+int memsys5Size(void *p){
   int iSize, i;
   assert( p!=0 );
   i = (int)(((u8 *)p-mem5.zPool)/mem5.szAtom);
@@ -217,7 +217,7 @@ static int memsys5Size(void *p){
 ** routine so there is never any chance that two or more
 ** threads can be in this routine at the same time.
 */
-static void *memsys5MallocUnsafe(int nByte){
+void *memsys5MallocUnsafe(int nByte){
   int i;           /* Index of a mem5.aPool[] slot */
   int iBin;        /* Index into mem5.aiFreelist[] */
   int iFullSz;     /* Size of allocation rounded up to power of 2 */
@@ -287,7 +287,7 @@ static void *memsys5MallocUnsafe(int nByte){
 /*
 ** Free an outstanding memory allocation.
 */
-static void memsys5FreeUnsafe(void *pOld){
+void memsys5FreeUnsafe(void *pOld){
   u32 size, iLogsize;
   int iBlock;
 
@@ -353,7 +353,7 @@ static void memsys5FreeUnsafe(void *pOld){
 /*
 ** Allocate nBytes of memory.
 */
-static void *memsys5Malloc(int nBytes){
+void *memsys5Malloc(int nBytes){
   sqlite3_int64 *p = 0;
   if( nBytes>0 ){
     memsys5Enter();
@@ -369,7 +369,7 @@ static void *memsys5Malloc(int nBytes){
 ** The outer layer memory allocator prevents this routine from
 ** being called with pPrior==0.
 */
-static void memsys5Free(void *pPrior){
+void memsys5Free(void *pPrior){
   assert( pPrior!=0 );
   memsys5Enter();
   memsys5FreeUnsafe(pPrior);
@@ -388,7 +388,7 @@ static void memsys5Free(void *pPrior){
 ** (an allocation larger than 0x40000000) was requested and this
 ** routine should return 0 without freeing pPrior.
 */
-static void *memsys5Realloc(void *pPrior, int nBytes){
+void *memsys5Realloc(void *pPrior, int nBytes){
   int nOld;
   void *p;
   assert( pPrior!=0 );
@@ -418,7 +418,7 @@ static void *memsys5Realloc(void *pPrior, int nBytes){
 ** 32-bit signed integer.  Hence the largest allocation is 0x40000000
 ** or 1073741824 bytes.
 */
-static int memsys5Roundup(int n){
+int memsys5Roundup(int n){
   int iFullSz;
   if( n > 0x40000000 ) return 0;
   for(iFullSz=mem5.szAtom; iFullSz<n; iFullSz *= 2);
@@ -435,7 +435,7 @@ static int memsys5Roundup(int n){
 **             memsys5Log(8) -> 3
 **             memsys5Log(9) -> 4
 */
-static int memsys5Log(int iValue){
+int memsys5Log(int iValue){
   int iLog;
   for(iLog=0; (iLog<(int)((sizeof(int)*8)-1)) && (1<<iLog)<iValue; iLog++);
   return iLog;
@@ -447,7 +447,7 @@ static int memsys5Log(int iValue){
 ** This routine is not threadsafe.  The caller must be holding a mutex
 ** to prevent multiple threads from entering at the same time.
 */
-static int memsys5Init(void *NotUsed){
+int memsys5Init(void *NotUsed){
   int ii;            /* Loop counter */
   int nByte;         /* Number of bytes of memory available to this allocator */
   u8 *zByte;         /* Memory usable by this allocator */
@@ -505,7 +505,7 @@ static int memsys5Init(void *NotUsed){
 /*
 ** Deinitialize this module.
 */
-static void memsys5Shutdown(void *NotUsed){
+void memsys5Shutdown(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
   mem5.mutex = 0;
   return;

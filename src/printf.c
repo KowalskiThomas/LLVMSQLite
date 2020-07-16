@@ -67,9 +67,9 @@ typedef struct et_info {   /* Information about each format field */
 ** The following table is searched linearly, so it is good to put the
 ** most frequently used conversion types first.
 */
-static const char aDigits[] = "0123456789ABCDEF0123456789abcdef";
-static const char aPrefix[] = "-x0\000X0";
-static const et_info fmtinfo[] = {
+const char aDigits[] = "0123456789ABCDEF0123456789abcdef";
+const char aPrefix[] = "-x0\000X0";
+const et_info fmtinfo[] = {
   {  'd', 10, 1, etDECIMAL,    0,  0 },
   {  's',  0, 4, etSTRING,     0,  0 },
   {  'g',  0, 1, etGENERIC,    30, 0 },
@@ -100,7 +100,7 @@ static const et_info fmtinfo[] = {
 };
 
 /* Floating point constants used for rounding */
-static const double arRound[] = {
+const double arRound[] = {
   5.0e-01, 5.0e-02, 5.0e-03, 5.0e-04, 5.0e-05,
   5.0e-06, 5.0e-07, 5.0e-08, 5.0e-09, 5.0e-10,
 };
@@ -123,7 +123,7 @@ static const double arRound[] = {
 ** 16 (the number of significant digits in a 64-bit float) '0' is
 ** always returned.
 */
-static char et_getdigit(LONGDOUBLE_TYPE *val, int *cnt){
+char et_getdigit(LONGDOUBLE_TYPE *val, int *cnt){
   int digit;
   LONGDOUBLE_TYPE d;
   if( (*cnt)<=0 ) return '0';
@@ -139,7 +139,7 @@ static char et_getdigit(LONGDOUBLE_TYPE *val, int *cnt){
 /*
 ** Set the StrAccum object to an error mode.
 */
-static void setStrAccumError(StrAccum *p, u8 eError){
+void setStrAccumError(StrAccum *p, u8 eError){
   assert( eError==SQLITE_NOMEM || eError==SQLITE_TOOBIG );
   p->accError = eError;
   if( p->mxAlloc ) sqlite3_str_reset(p);
@@ -149,15 +149,15 @@ static void setStrAccumError(StrAccum *p, u8 eError){
 /*
 ** Extra argument values from a PrintfArguments object
 */
-static sqlite3_int64 getIntArg(PrintfArguments *p){
+sqlite3_int64 getIntArg(PrintfArguments *p){
   if( p->nArg<=p->nUsed ) return 0;
   return sqlite3_value_int64(p->apArg[p->nUsed++]);
 }
-static double getDoubleArg(PrintfArguments *p){
+double getDoubleArg(PrintfArguments *p){
   if( p->nArg<=p->nUsed ) return 0.0;
   return sqlite3_value_double(p->apArg[p->nUsed++]);
 }
-static char *getTextArg(PrintfArguments *p){
+char *getTextArg(PrintfArguments *p){
   if( p->nArg<=p->nUsed ) return 0;
   return (char*)sqlite3_value_text(p->apArg[p->nUsed++]);
 }
@@ -171,7 +171,7 @@ static char *getTextArg(PrintfArguments *p){
 ** SQL from requesting large allocations using the precision or width
 ** field of the printf() function.
 */
-static char *printfTempBuf(sqlite3_str *pAccum, sqlite3_int64 n){
+char *printfTempBuf(sqlite3_str *pAccum, sqlite3_int64 n){
   char *z;
   if( pAccum->accError ) return 0;
   if( n>pAccum->nAlloc && n>pAccum->mxAlloc ){
@@ -894,7 +894,7 @@ void sqlite3_str_vappendf(
 ** Return the number of bytes of text that StrAccum is able to accept
 ** after the attempted enlargement.  The value returned might be zero.
 */
-static int sqlite3StrAccumEnlarge(StrAccum *p, int N){
+int sqlite3StrAccumEnlarge(StrAccum *p, int N){
   char *zNew;
   assert( p->nChar+(i64)N >= p->nAlloc ); /* Only called if really needed */
   if( p->accError ){
@@ -960,7 +960,7 @@ void sqlite3_str_appendchar(sqlite3_str *p, int N, char c){
 ** work (enlarging the buffer) using tail recursion, so that the
 ** sqlite3_str_append() routine can use fast calling semantics.
 */
-static void SQLITE_NOINLINE enlargeAndAppend(StrAccum *p, const char *z, int N){
+void SQLITE_NOINLINE enlargeAndAppend(StrAccum *p, const char *z, int N){
   N = sqlite3StrAccumEnlarge(p, N);
   if( N>0 ){
     memcpy(&p->zText[p->nChar], z, N);
@@ -999,7 +999,7 @@ void sqlite3_str_appendall(sqlite3_str *p, const char *z){
 ** Return a pointer to the resulting string.  Return a NULL
 ** pointer if any kind of error was encountered.
 */
-static SQLITE_NOINLINE char *strAccumFinishRealloc(StrAccum *p){
+SQLITE_NOINLINE char *strAccumFinishRealloc(StrAccum *p){
   char *zText;
   assert( p->mxAlloc>0 && !isMalloced(p) );
   zText = sqlite3DbMallocRaw(p->db, p->nChar+1 );
@@ -1028,7 +1028,7 @@ char *sqlite3StrAccumFinish(StrAccum *p){
 ** sqlite3_str object accepts no new text and always returns
 ** an SQLITE_NOMEM error.
 */
-static sqlite3_str sqlite3OomStr = {
+sqlite3_str sqlite3OomStr = {
    0, 0, 0, 0, 0, SQLITE_NOMEM, 0
 };
 
@@ -1235,7 +1235,7 @@ char *sqlite3_snprintf(int n, char *zBuf, const char *zFormat, ...){
 ** Care must be taken that any sqlite3_log() calls that occur while the
 ** memory mutex is held do not use these mechanisms.
 */
-static void renderLogMsg(int iErrCode, const char *zFormat, va_list ap){
+void renderLogMsg(int iErrCode, const char *zFormat, va_list ap){
   StrAccum acc;                          /* String accumulator */
   char zMsg[SQLITE_PRINT_BUF_SIZE*3];    /* Complete log message */
 

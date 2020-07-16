@@ -94,7 +94,7 @@ extern const char *sqlite3ErrName(int);
 #include <sys/types.h>
 #include <errno.h>
 
-static struct TestSyscallGlobal {
+struct TestSyscallGlobal {
   int bPersist;                   /* 1 for persistent errors, 0 for transient */
   int nCount;                     /* Fail after this many more calls */
   int nFail;                      /* Number of failures that have occurred */
@@ -102,27 +102,27 @@ static struct TestSyscallGlobal {
   sqlite3_syscall_ptr orig_getpagesize;
 } gSyscall = { 0, 0, 0, 0, 0 };
 
-static int ts_open(const char *, int, int);
-static int ts_close(int fd);
-static int ts_access(const char *zPath, int mode);
-static char *ts_getcwd(char *zPath, size_t nPath);
-static int ts_stat(const char *zPath, struct stat *p);
-static int ts_fstat(int fd, struct stat *p);
-static int ts_ftruncate(int fd, off_t n);
-static int ts_fcntl(int fd, int cmd, ... );
-static int ts_read(int fd, void *aBuf, size_t nBuf);
-static int ts_pread(int fd, void *aBuf, size_t nBuf, off_t off);
+int ts_open(const char *, int, int);
+int ts_close(int fd);
+int ts_access(const char *zPath, int mode);
+char *ts_getcwd(char *zPath, size_t nPath);
+int ts_stat(const char *zPath, struct stat *p);
+int ts_fstat(int fd, struct stat *p);
+int ts_ftruncate(int fd, off_t n);
+int ts_fcntl(int fd, int cmd, ... );
+int ts_read(int fd, void *aBuf, size_t nBuf);
+int ts_pread(int fd, void *aBuf, size_t nBuf, off_t off);
 /* Note:  pread64() and pwrite64() actually use off64_t as the type on their
 ** last parameter.  But that datatype is not defined on many systems 
 ** (ex: Mac, OpenBSD).  So substitute a likely equivalent: sqlite3_uint64 */
-static int ts_pread64(int fd, void *aBuf, size_t nBuf, sqlite3_uint64 off);
-static int ts_write(int fd, const void *aBuf, size_t nBuf);
-static int ts_pwrite(int fd, const void *aBuf, size_t nBuf, off_t off);
-static int ts_pwrite64(int fd, const void *aBuf, size_t nBuf, sqlite3_uint64 off);
-static int ts_fchmod(int fd, mode_t mode);
-static int ts_fallocate(int fd, off_t off, off_t len);
-static void *ts_mmap(void *, size_t, int, int, int, off_t);
-static void *ts_mremap(void*, size_t, size_t, int, ...);
+int ts_pread64(int fd, void *aBuf, size_t nBuf, sqlite3_uint64 off);
+int ts_write(int fd, const void *aBuf, size_t nBuf);
+int ts_pwrite(int fd, const void *aBuf, size_t nBuf, off_t off);
+int ts_pwrite64(int fd, const void *aBuf, size_t nBuf, sqlite3_uint64 off);
+int ts_fchmod(int fd, mode_t mode);
+int ts_fallocate(int fd, off_t off, off_t len);
+void *ts_mmap(void *, size_t, int, int, int, off_t);
+void *ts_mremap(void*, size_t, size_t, int, ...);
 
 struct TestSyscallArray {
   const char *zName;
@@ -178,7 +178,7 @@ struct TestSyscallArray {
 ** system call wrapper in this file. It returns 1 if the function should
 ** fail, or 0 if it should succeed.
 */
-static int tsIsFail(void){
+int tsIsFail(void){
   gSyscall.nCount--;
   if( gSyscall.nCount==0 || (gSyscall.nFail && gSyscall.bPersist) ){
     gSyscall.nFail++;
@@ -195,7 +195,7 @@ static int tsIsFail(void){
 ** to if the named system call fails. The exception is "fallocate". See 
 ** comments above the implementation of ts_fallocate() for details.
 */
-static int tsErrno(const char *zFunc){
+int tsErrno(const char *zFunc){
   int i;
   int nFunc = strlen(zFunc);
   for(i=0; aSyscall[i].zName; i++){
@@ -212,7 +212,7 @@ static int tsErrno(const char *zFunc){
 ** A wrapper around tsIsFail(). If tsIsFail() returns non-zero, set the
 ** value of errno before returning.
 */ 
-static int tsIsFailErrno(const char *zFunc){
+int tsIsFailErrno(const char *zFunc){
   if( tsIsFail() ){
     errno = tsErrno(zFunc);
     return 1;
@@ -223,7 +223,7 @@ static int tsIsFailErrno(const char *zFunc){
 /*
 ** A wrapper around open().
 */
-static int ts_open(const char *zFile, int flags, int mode){
+int ts_open(const char *zFile, int flags, int mode){
   if( tsIsFailErrno("open") ){
     return -1;
   }
@@ -233,7 +233,7 @@ static int ts_open(const char *zFile, int flags, int mode){
 /*
 ** A wrapper around close().
 */
-static int ts_close(int fd){
+int ts_close(int fd){
   if( tsIsFail() ){
     /* Even if simulating an error, close the original file-descriptor. 
     ** This is to stop the test process from running out of file-descriptors
@@ -249,7 +249,7 @@ static int ts_close(int fd){
 /*
 ** A wrapper around access().
 */
-static int ts_access(const char *zPath, int mode){
+int ts_access(const char *zPath, int mode){
   if( tsIsFail() ){
     return -1;
   }
@@ -259,7 +259,7 @@ static int ts_access(const char *zPath, int mode){
 /*
 ** A wrapper around getcwd().
 */
-static char *ts_getcwd(char *zPath, size_t nPath){
+char *ts_getcwd(char *zPath, size_t nPath){
   if( tsIsFail() ){
     return NULL;
   }
@@ -269,7 +269,7 @@ static char *ts_getcwd(char *zPath, size_t nPath){
 /*
 ** A wrapper around stat().
 */
-static int ts_stat(const char *zPath, struct stat *p){
+int ts_stat(const char *zPath, struct stat *p){
   if( tsIsFail() ){
     return -1;
   }
@@ -279,7 +279,7 @@ static int ts_stat(const char *zPath, struct stat *p){
 /*
 ** A wrapper around fstat().
 */
-static int ts_fstat(int fd, struct stat *p){
+int ts_fstat(int fd, struct stat *p){
   if( tsIsFailErrno("fstat") ){
     return -1;
   }
@@ -289,7 +289,7 @@ static int ts_fstat(int fd, struct stat *p){
 /*
 ** A wrapper around ftruncate().
 */
-static int ts_ftruncate(int fd, off_t n){
+int ts_ftruncate(int fd, off_t n){
   if( tsIsFailErrno("ftruncate") ){
     return -1;
   }
@@ -299,7 +299,7 @@ static int ts_ftruncate(int fd, off_t n){
 /*
 ** A wrapper around fcntl().
 */
-static int ts_fcntl(int fd, int cmd, ... ){
+int ts_fcntl(int fd, int cmd, ... ){
   va_list ap;
   void *pArg;
   if( tsIsFailErrno("fcntl") ){
@@ -313,7 +313,7 @@ static int ts_fcntl(int fd, int cmd, ... ){
 /*
 ** A wrapper around read().
 */
-static int ts_read(int fd, void *aBuf, size_t nBuf){
+int ts_read(int fd, void *aBuf, size_t nBuf){
   if( tsIsFailErrno("read") ){
     return -1;
   }
@@ -323,7 +323,7 @@ static int ts_read(int fd, void *aBuf, size_t nBuf){
 /*
 ** A wrapper around pread().
 */
-static int ts_pread(int fd, void *aBuf, size_t nBuf, off_t off){
+int ts_pread(int fd, void *aBuf, size_t nBuf, off_t off){
   if( tsIsFailErrno("pread") ){
     return -1;
   }
@@ -333,7 +333,7 @@ static int ts_pread(int fd, void *aBuf, size_t nBuf, off_t off){
 /*
 ** A wrapper around pread64().
 */
-static int ts_pread64(int fd, void *aBuf, size_t nBuf, sqlite3_uint64 off){
+int ts_pread64(int fd, void *aBuf, size_t nBuf, sqlite3_uint64 off){
   if( tsIsFailErrno("pread64") ){
     return -1;
   }
@@ -343,7 +343,7 @@ static int ts_pread64(int fd, void *aBuf, size_t nBuf, sqlite3_uint64 off){
 /*
 ** A wrapper around write().
 */
-static int ts_write(int fd, const void *aBuf, size_t nBuf){
+int ts_write(int fd, const void *aBuf, size_t nBuf){
   if( tsIsFailErrno("write") ){
     if( tsErrno("write")==EINTR ) orig_write(fd, aBuf, nBuf/2);
     return -1;
@@ -354,7 +354,7 @@ static int ts_write(int fd, const void *aBuf, size_t nBuf){
 /*
 ** A wrapper around pwrite().
 */
-static int ts_pwrite(int fd, const void *aBuf, size_t nBuf, off_t off){
+int ts_pwrite(int fd, const void *aBuf, size_t nBuf, off_t off){
   if( tsIsFailErrno("pwrite") ){
     return -1;
   }
@@ -364,7 +364,7 @@ static int ts_pwrite(int fd, const void *aBuf, size_t nBuf, off_t off){
 /*
 ** A wrapper around pwrite64().
 */
-static int ts_pwrite64(int fd, const void *aBuf, size_t nBuf, sqlite3_uint64 off){
+int ts_pwrite64(int fd, const void *aBuf, size_t nBuf, sqlite3_uint64 off){
   if( tsIsFailErrno("pwrite64") ){
     return -1;
   }
@@ -374,7 +374,7 @@ static int ts_pwrite64(int fd, const void *aBuf, size_t nBuf, sqlite3_uint64 off
 /*
 ** A wrapper around fchmod().
 */
-static int ts_fchmod(int fd, mode_t mode){
+int ts_fchmod(int fd, mode_t mode){
   if( tsIsFail() ){
     return -1;
   }
@@ -390,14 +390,14 @@ static int ts_fchmod(int fd, mode_t mode){
 **   posix_fallocate() returns  zero on success, or an error number on
 **   failure. Note that errno is not set.
 */
-static int ts_fallocate(int fd, off_t off, off_t len){
+int ts_fallocate(int fd, off_t off, off_t len){
   if( tsIsFail() ){
     return tsErrno("fallocate");
   }
   return orig_fallocate(fd, off, len);
 }
 
-static void *ts_mmap(
+void *ts_mmap(
   void *pAddr, 
   size_t nByte, 
   int prot, 
@@ -411,7 +411,7 @@ static void *ts_mmap(
   return orig_mmap(pAddr, nByte, prot, flags, fd, iOff);
 }
 
-static void *ts_mremap(void *a, size_t b, size_t c, int d, ...){
+void *ts_mremap(void *a, size_t b, size_t c, int d, ...){
   va_list ap;
   void *pArg;
   if( tsIsFailErrno("mremap") ){
@@ -422,7 +422,7 @@ static void *ts_mremap(void *a, size_t b, size_t c, int d, ...){
   return orig_mremap(a, b, c, d, pArg);
 }
 
-static int SQLITE_TCLAPI test_syscall_install(
+int SQLITE_TCLAPI test_syscall_install(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -458,7 +458,7 @@ static int SQLITE_TCLAPI test_syscall_install(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_syscall_uninstall(
+int SQLITE_TCLAPI test_syscall_uninstall(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -482,7 +482,7 @@ static int SQLITE_TCLAPI test_syscall_uninstall(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_syscall_reset(
+int SQLITE_TCLAPI test_syscall_reset(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -520,7 +520,7 @@ static int SQLITE_TCLAPI test_syscall_reset(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_syscall_exists(
+int SQLITE_TCLAPI test_syscall_exists(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -541,7 +541,7 @@ static int SQLITE_TCLAPI test_syscall_exists(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_syscall_fault(
+int SQLITE_TCLAPI test_syscall_fault(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -570,7 +570,7 @@ static int SQLITE_TCLAPI test_syscall_fault(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_syscall_errno(
+int SQLITE_TCLAPI test_syscall_errno(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -616,7 +616,7 @@ static int SQLITE_TCLAPI test_syscall_errno(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_syscall_list(
+int SQLITE_TCLAPI test_syscall_list(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -646,7 +646,7 @@ static int SQLITE_TCLAPI test_syscall_list(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_syscall_defaultvfs(
+int SQLITE_TCLAPI test_syscall_defaultvfs(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -664,11 +664,11 @@ static int SQLITE_TCLAPI test_syscall_defaultvfs(
   return TCL_OK;
 }
 
-static int ts_getpagesize(void){
+int ts_getpagesize(void){
   return gSyscall.pgsz;
 }
 
-static int SQLITE_TCLAPI test_syscall_pagesize(
+int SQLITE_TCLAPI test_syscall_pagesize(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -703,7 +703,7 @@ static int SQLITE_TCLAPI test_syscall_pagesize(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_syscall(
+int SQLITE_TCLAPI test_syscall(
   void * clientData,
   Tcl_Interp *interp,
   int objc,

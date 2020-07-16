@@ -21,7 +21,7 @@
 /* All threads share a single random number generator.
 ** This structure is the current state of the generator.
 */
-static SQLITE_WSD struct sqlite3PrngType {
+SQLITE_WSD struct sqlite3PrngType {
   unsigned char isInit;          /* True if initialized */
   unsigned char i, j;            /* State variables */
   unsigned char s[256];          /* State variables */
@@ -116,7 +116,7 @@ void sqlite3_randomness(int N, void *pBuf){
 ** The sqlite3_test_control() interface calls these routines to
 ** control the PRNG.
 */
-static SQLITE_WSD struct sqlite3PrngType sqlite3SavedPrng;
+SQLITE_WSD struct sqlite3PrngType sqlite3SavedPrng;
 void sqlite3PrngSaveState(void){
   memcpy(
     &GLOBAL(struct sqlite3PrngType, sqlite3SavedPrng),

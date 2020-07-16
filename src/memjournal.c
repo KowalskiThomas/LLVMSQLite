@@ -84,7 +84,7 @@ struct MemJournal {
 ** Read data from the in-memory journal file.  This is the implementation
 ** of the sqlite3_vfs.xRead method.
 */
-static int memjrnlRead(
+int memjrnlRead(
   sqlite3_file *pJfd,    /* The journal file from which to read */
   void *zBuf,            /* Put the results here */
   int iAmt,              /* Number of bytes to read */
@@ -131,7 +131,7 @@ static int memjrnlRead(
 /*
 ** Free the list of FileChunk structures headed at MemJournal.pFirst.
 */
-static void memjrnlFreeChunks(MemJournal *p){
+void memjrnlFreeChunks(MemJournal *p){
   FileChunk *pIter;
   FileChunk *pNext;
   for(pIter=p->pFirst; pIter; pIter=pNext){
@@ -144,7 +144,7 @@ static void memjrnlFreeChunks(MemJournal *p){
 /*
 ** Flush the contents of memory to a real file on disk.
 */
-static int memjrnlCreateFile(MemJournal *p){
+int memjrnlCreateFile(MemJournal *p){
   int rc;
   sqlite3_file *pReal = (sqlite3_file*)p;
   MemJournal copy = *p;
@@ -183,7 +183,7 @@ static int memjrnlCreateFile(MemJournal *p){
 /*
 ** Write data to the file.
 */
-static int memjrnlWrite(
+int memjrnlWrite(
   sqlite3_file *pJfd,    /* The journal file into which to write */
   const void *zBuf,      /* Take data to be written from here */
   int iAmt,              /* Number of bytes to write */
@@ -262,7 +262,7 @@ static int memjrnlWrite(
 ** is still in main memory but is being truncated to zero bytes in size,
 ** ignore 
 */
-static int memjrnlTruncate(sqlite3_file *pJfd, sqlite_int64 size){
+int memjrnlTruncate(sqlite3_file *pJfd, sqlite_int64 size){
   MemJournal *p = (MemJournal *)pJfd;
   if( ALWAYS(size==0) ){
     memjrnlFreeChunks(p);
@@ -278,7 +278,7 @@ static int memjrnlTruncate(sqlite3_file *pJfd, sqlite_int64 size){
 /*
 ** Close the file.
 */
-static int memjrnlClose(sqlite3_file *pJfd){
+int memjrnlClose(sqlite3_file *pJfd){
   MemJournal *p = (MemJournal *)pJfd;
   memjrnlFreeChunks(p);
   return SQLITE_OK;
@@ -290,7 +290,7 @@ static int memjrnlClose(sqlite3_file *pJfd){
 ** If the real file has been created, call its xSync method. Otherwise, 
 ** syncing an in-memory journal is a no-op. 
 */
-static int memjrnlSync(sqlite3_file *pJfd, int flags){
+int memjrnlSync(sqlite3_file *pJfd, int flags){
   UNUSED_PARAMETER2(pJfd, flags);
   return SQLITE_OK;
 }
@@ -298,7 +298,7 @@ static int memjrnlSync(sqlite3_file *pJfd, int flags){
 /*
 ** Query the size of the file in bytes.
 */
-static int memjrnlFileSize(sqlite3_file *pJfd, sqlite_int64 *pSize){
+int memjrnlFileSize(sqlite3_file *pJfd, sqlite_int64 *pSize){
   MemJournal *p = (MemJournal *)pJfd;
   *pSize = (sqlite_int64) p->endpoint.iOffset;
   return SQLITE_OK;
@@ -307,7 +307,7 @@ static int memjrnlFileSize(sqlite3_file *pJfd, sqlite_int64 *pSize){
 /*
 ** Table of methods for MemJournal sqlite3_file object.
 */
-static const struct sqlite3_io_methods MemJournalMethods = {
+const struct sqlite3_io_methods MemJournalMethods = {
   1,                /* iVersion */
   memjrnlClose,     /* xClose */
   memjrnlRead,      /* xRead */

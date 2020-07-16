@@ -144,7 +144,7 @@ struct multiplexConn {
 ** All global variables used by this file are containing within the following
 ** gMultiplex structure.
 */
-static struct {
+struct {
   /* The pOrigVfs is the real, original underlying VFS implementation.
   ** Most operations pass-through to the real VFS.  This value is read-only
   ** during operation.  It is only modified at start-time and thus does not
@@ -184,7 +184,7 @@ static struct {
 ** than the actual length of the string.  For very long strings (greater
 ** than 1GiB) the value returned might be less than the true string length.
 */
-static int multiplexStrlen30(const char *z){
+int multiplexStrlen30(const char *z){
   const char *z2 = z;
   if( z==0 ) return 0;
   while( *z2 ){ z2++; }
@@ -216,7 +216,7 @@ static int multiplexStrlen30(const char *z){
 ** The output buffer string is terminated by 2 0x00 bytes. This makes it safe
 ** to pass to sqlite3_uri_parameter() and similar.
 */
-static void multiplexFilename(
+void multiplexFilename(
   const char *zBase,              /* Filename for chunk 0 */
   int nBase,                      /* Size of zBase in bytes (without \0) */
   int flags,                      /* Flags used to open file */
@@ -253,7 +253,7 @@ static void multiplexFilename(
 
 /* Compute the filename for the iChunk-th chunk
 */
-static int multiplexSubFilename(multiplexGroup *pGroup, int iChunk){
+int multiplexSubFilename(multiplexGroup *pGroup, int iChunk){
   if( iChunk>=pGroup->nReal ){
     struct multiplexReal *p;
     p = sqlite3_realloc64(pGroup->aReal, (iChunk+1)*sizeof(*p));
@@ -286,7 +286,7 @@ static int multiplexSubFilename(multiplexGroup *pGroup, int iChunk){
 ** is created if it does not already exist.  For chunks 1 and higher, the
 ** file is created only if createFlag is 1.
 */
-static sqlite3_file *multiplexSubOpen(
+sqlite3_file *multiplexSubOpen(
   multiplexGroup *pGroup,    /* The multiplexor group */
   int iChunk,                /* Which chunk to open.  0==original file */
   int *rc,                   /* Result code in and out */
@@ -354,7 +354,7 @@ static sqlite3_file *multiplexSubOpen(
 ** does not exist, then return 0.  This function does not distingish between
 ** non-existant files and zero-length files.
 */
-static sqlite3_int64 multiplexSubSize(
+sqlite3_int64 multiplexSubSize(
   multiplexGroup *pGroup,    /* The multiplexor group */
   int iChunk,                /* Which chunk to open.  0==original file */
   int *rc                    /* Result code in and out */
@@ -372,7 +372,7 @@ static sqlite3_int64 multiplexSubSize(
 /*
 ** This is the implementation of the multiplex_control() SQL function.
 */
-static void multiplexControlFunc(
+void multiplexControlFunc(
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
@@ -414,7 +414,7 @@ static void multiplexControlFunc(
 ** This is the entry point to register the auto-extension for the 
 ** multiplex_control() function.
 */
-static int multiplexFuncInit(
+int multiplexFuncInit(
   sqlite3 *db, 
   char **pzErrMsg, 
   const sqlite3_api_routines *pApi
@@ -428,7 +428,7 @@ static int multiplexFuncInit(
 /*
 ** Close a single sub-file in the connection group.
 */
-static void multiplexSubClose(
+void multiplexSubClose(
   multiplexGroup *pGroup,
   int iChunk,
   sqlite3_vfs *pOrigVfs
@@ -448,7 +448,7 @@ static void multiplexSubClose(
 /*
 ** Deallocate memory held by a multiplexGroup
 */
-static void multiplexFreeComponents(multiplexGroup *pGroup){
+void multiplexFreeComponents(multiplexGroup *pGroup){
   int i;
   for(i=0; i<pGroup->nReal; i++){ multiplexSubClose(pGroup, i, 0); }
   sqlite3_free(pGroup->aReal);
@@ -466,7 +466,7 @@ static void multiplexFreeComponents(multiplexGroup *pGroup){
 ** simply links the new file into the appropriate multiplex group if it is a
 ** file that needs to be tracked.
 */
-static int multiplexOpen(
+int multiplexOpen(
   sqlite3_vfs *pVfs,         /* The multiplex VFS */
   const char *zName,         /* Name of file to be opened */
   sqlite3_file *pConn,       /* Fill in this file descriptor */
@@ -608,7 +608,7 @@ static int multiplexOpen(
 ** This is the xDelete method used for the "multiplex" VFS.
 ** It attempts to delete the filename specified.
 */
-static int multiplexDelete(
+int multiplexDelete(
   sqlite3_vfs *pVfs,         /* The multiplex VFS */
   const char *zName,         /* Name of file to delete */
   int syncDir
@@ -653,41 +653,41 @@ static int multiplexDelete(
   return rc;
 }
 
-static int multiplexAccess(sqlite3_vfs *a, const char *b, int c, int *d){
+int multiplexAccess(sqlite3_vfs *a, const char *b, int c, int *d){
   return gMultiplex.pOrigVfs->xAccess(gMultiplex.pOrigVfs, b, c, d);
 }
-static int multiplexFullPathname(sqlite3_vfs *a, const char *b, int c, char *d){
+int multiplexFullPathname(sqlite3_vfs *a, const char *b, int c, char *d){
   return gMultiplex.pOrigVfs->xFullPathname(gMultiplex.pOrigVfs, b, c, d);
 }
-static void *multiplexDlOpen(sqlite3_vfs *a, const char *b){
+void *multiplexDlOpen(sqlite3_vfs *a, const char *b){
   return gMultiplex.pOrigVfs->xDlOpen(gMultiplex.pOrigVfs, b);
 }
-static void multiplexDlError(sqlite3_vfs *a, int b, char *c){
+void multiplexDlError(sqlite3_vfs *a, int b, char *c){
   gMultiplex.pOrigVfs->xDlError(gMultiplex.pOrigVfs, b, c);
 }
-static void (*multiplexDlSym(sqlite3_vfs *a, void *b, const char *c))(void){
+void (*multiplexDlSym(sqlite3_vfs *a, void *b, const char *c))(void){
   return gMultiplex.pOrigVfs->xDlSym(gMultiplex.pOrigVfs, b, c);
 }
-static void multiplexDlClose(sqlite3_vfs *a, void *b){
+void multiplexDlClose(sqlite3_vfs *a, void *b){
   gMultiplex.pOrigVfs->xDlClose(gMultiplex.pOrigVfs, b);
 }
-static int multiplexRandomness(sqlite3_vfs *a, int b, char *c){
+int multiplexRandomness(sqlite3_vfs *a, int b, char *c){
   return gMultiplex.pOrigVfs->xRandomness(gMultiplex.pOrigVfs, b, c);
 }
-static int multiplexSleep(sqlite3_vfs *a, int b){
+int multiplexSleep(sqlite3_vfs *a, int b){
   return gMultiplex.pOrigVfs->xSleep(gMultiplex.pOrigVfs, b);
 }
-static int multiplexCurrentTime(sqlite3_vfs *a, double *b){
+int multiplexCurrentTime(sqlite3_vfs *a, double *b){
   return gMultiplex.pOrigVfs->xCurrentTime(gMultiplex.pOrigVfs, b);
 }
-static int multiplexGetLastError(sqlite3_vfs *a, int b, char *c){
+int multiplexGetLastError(sqlite3_vfs *a, int b, char *c){
   if( gMultiplex.pOrigVfs->xGetLastError ){
     return gMultiplex.pOrigVfs->xGetLastError(gMultiplex.pOrigVfs, b, c);
   }else{
     return 0;
   }
 }
-static int multiplexCurrentTimeInt64(sqlite3_vfs *a, sqlite3_int64 *b){
+int multiplexCurrentTimeInt64(sqlite3_vfs *a, sqlite3_int64 *b){
   return gMultiplex.pOrigVfs->xCurrentTimeInt64(gMultiplex.pOrigVfs, b);
 }
 
@@ -698,7 +698,7 @@ static int multiplexCurrentTimeInt64(sqlite3_vfs *a, sqlite3_int64 *b){
 ** The group structure for this file is unlinked from 
 ** our list of groups and freed.
 */
-static int multiplexClose(sqlite3_file *pConn){
+int multiplexClose(sqlite3_file *pConn){
   multiplexConn *p = (multiplexConn*)pConn;
   multiplexGroup *pGroup = p->pGroup;
   int rc = SQLITE_OK;
@@ -711,7 +711,7 @@ static int multiplexClose(sqlite3_file *pConn){
 ** determining the correct chunk to operate on.
 ** Break up reads across chunk boundaries.
 */
-static int multiplexRead(
+int multiplexRead(
   sqlite3_file *pConn,
   void *pBuf,
   int iAmt,
@@ -756,7 +756,7 @@ static int multiplexRead(
 ** determining the correct chunk to operate on.
 ** Break up writes across chunk boundaries.
 */
-static int multiplexWrite(
+int multiplexWrite(
   sqlite3_file *pConn,
   const void *pBuf,
   int iAmt,
@@ -796,7 +796,7 @@ static int multiplexWrite(
 ** determining the correct chunk to operate on.  Delete any
 ** chunks above the truncate mark.
 */
-static int multiplexTruncate(sqlite3_file *pConn, sqlite3_int64 size){
+int multiplexTruncate(sqlite3_file *pConn, sqlite3_int64 size){
   multiplexConn *p = (multiplexConn*)pConn;
   multiplexGroup *pGroup = p->pGroup;
   int rc = SQLITE_OK;
@@ -836,7 +836,7 @@ static int multiplexTruncate(sqlite3_file *pConn, sqlite3_int64 size){
 
 /* Pass xSync requests through to the original VFS without change
 */
-static int multiplexSync(sqlite3_file *pConn, int flags){
+int multiplexSync(sqlite3_file *pConn, int flags){
   multiplexConn *p = (multiplexConn*)pConn;
   multiplexGroup *pGroup = p->pGroup;
   int rc = SQLITE_OK;
@@ -854,7 +854,7 @@ static int multiplexSync(sqlite3_file *pConn, int flags){
 /* Pass xFileSize requests through to the original VFS.
 ** Aggregate the size of all the chunks before returning.
 */
-static int multiplexFileSize(sqlite3_file *pConn, sqlite3_int64 *pSize){
+int multiplexFileSize(sqlite3_file *pConn, sqlite3_int64 *pSize){
   multiplexConn *p = (multiplexConn*)pConn;
   multiplexGroup *pGroup = p->pGroup;
   int rc = SQLITE_OK;
@@ -879,7 +879,7 @@ static int multiplexFileSize(sqlite3_file *pConn, sqlite3_int64 *pSize){
 
 /* Pass xLock requests through to the original VFS unchanged.
 */
-static int multiplexLock(sqlite3_file *pConn, int lock){
+int multiplexLock(sqlite3_file *pConn, int lock){
   multiplexConn *p = (multiplexConn*)pConn;
   int rc;
   sqlite3_file *pSubOpen = multiplexSubOpen(p->pGroup, 0, &rc, NULL, 0);
@@ -891,7 +891,7 @@ static int multiplexLock(sqlite3_file *pConn, int lock){
 
 /* Pass xUnlock requests through to the original VFS unchanged.
 */
-static int multiplexUnlock(sqlite3_file *pConn, int lock){
+int multiplexUnlock(sqlite3_file *pConn, int lock){
   multiplexConn *p = (multiplexConn*)pConn;
   int rc;
   sqlite3_file *pSubOpen = multiplexSubOpen(p->pGroup, 0, &rc, NULL, 0);
@@ -903,7 +903,7 @@ static int multiplexUnlock(sqlite3_file *pConn, int lock){
 
 /* Pass xCheckReservedLock requests through to the original VFS unchanged.
 */
-static int multiplexCheckReservedLock(sqlite3_file *pConn, int *pResOut){
+int multiplexCheckReservedLock(sqlite3_file *pConn, int *pResOut){
   multiplexConn *p = (multiplexConn*)pConn;
   int rc;
   sqlite3_file *pSubOpen = multiplexSubOpen(p->pGroup, 0, &rc, NULL, 0);
@@ -916,7 +916,7 @@ static int multiplexCheckReservedLock(sqlite3_file *pConn, int *pResOut){
 /* Pass xFileControl requests through to the original VFS unchanged,
 ** except for any MULTIPLEX_CTRL_* requests here.
 */
-static int multiplexFileControl(sqlite3_file *pConn, int op, void *pArg){
+int multiplexFileControl(sqlite3_file *pConn, int op, void *pArg){
   multiplexConn *p = (multiplexConn*)pConn;
   multiplexGroup *pGroup = p->pGroup;
   int rc = SQLITE_ERROR;
@@ -1001,7 +1001,7 @@ static int multiplexFileControl(sqlite3_file *pConn, int op, void *pArg){
 
 /* Pass xSectorSize requests through to the original VFS unchanged.
 */
-static int multiplexSectorSize(sqlite3_file *pConn){
+int multiplexSectorSize(sqlite3_file *pConn){
   multiplexConn *p = (multiplexConn*)pConn;
   int rc;
   sqlite3_file *pSubOpen = multiplexSubOpen(p->pGroup, 0, &rc, NULL, 0);
@@ -1013,7 +1013,7 @@ static int multiplexSectorSize(sqlite3_file *pConn){
 
 /* Pass xDeviceCharacteristics requests through to the original VFS unchanged.
 */
-static int multiplexDeviceCharacteristics(sqlite3_file *pConn){
+int multiplexDeviceCharacteristics(sqlite3_file *pConn){
   multiplexConn *p = (multiplexConn*)pConn;
   int rc;
   sqlite3_file *pSubOpen = multiplexSubOpen(p->pGroup, 0, &rc, NULL, 0);
@@ -1025,7 +1025,7 @@ static int multiplexDeviceCharacteristics(sqlite3_file *pConn){
 
 /* Pass xShmMap requests through to the original VFS unchanged.
 */
-static int multiplexShmMap(
+int multiplexShmMap(
   sqlite3_file *pConn,            /* Handle open on database file */
   int iRegion,                    /* Region to retrieve */
   int szRegion,                   /* Size of regions */
@@ -1043,7 +1043,7 @@ static int multiplexShmMap(
 
 /* Pass xShmLock requests through to the original VFS unchanged.
 */
-static int multiplexShmLock(
+int multiplexShmLock(
   sqlite3_file *pConn,       /* Database file holding the shared memory */
   int ofst,                  /* First lock to acquire or release */
   int n,                     /* Number of locks to acquire or release */
@@ -1060,7 +1060,7 @@ static int multiplexShmLock(
 
 /* Pass xShmBarrier requests through to the original VFS unchanged.
 */
-static void multiplexShmBarrier(sqlite3_file *pConn){
+void multiplexShmBarrier(sqlite3_file *pConn){
   multiplexConn *p = (multiplexConn*)pConn;
   int rc;
   sqlite3_file *pSubOpen = multiplexSubOpen(p->pGroup, 0, &rc, NULL, 0);
@@ -1071,7 +1071,7 @@ static void multiplexShmBarrier(sqlite3_file *pConn){
 
 /* Pass xShmUnmap requests through to the original VFS unchanged.
 */
-static int multiplexShmUnmap(sqlite3_file *pConn, int deleteFlag){
+int multiplexShmUnmap(sqlite3_file *pConn, int deleteFlag){
   multiplexConn *p = (multiplexConn*)pConn;
   int rc;
   sqlite3_file *pSubOpen = multiplexSubOpen(p->pGroup, 0, &rc, NULL, 0);
@@ -1180,7 +1180,7 @@ extern const char *sqlite3ErrName(int);
 /*
 ** tclcmd: sqlite3_multiplex_initialize NAME MAKEDEFAULT
 */
-static int SQLITE_TCLAPI test_multiplex_initialize(
+int SQLITE_TCLAPI test_multiplex_initialize(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -1211,7 +1211,7 @@ static int SQLITE_TCLAPI test_multiplex_initialize(
 /*
 ** tclcmd: sqlite3_multiplex_shutdown
 */
-static int SQLITE_TCLAPI test_multiplex_shutdown(
+int SQLITE_TCLAPI test_multiplex_shutdown(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -1239,7 +1239,7 @@ static int SQLITE_TCLAPI test_multiplex_shutdown(
 /*
 ** Tclcmd: test_multiplex_control HANDLE DBNAME SUB-COMMAND ?INT-VALUE?
 */
-static int SQLITE_TCLAPI test_multiplex_control(
+int SQLITE_TCLAPI test_multiplex_control(
   ClientData cd,
   Tcl_Interp *interp,
   int objc,

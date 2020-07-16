@@ -88,7 +88,7 @@ void sqlite3TableLock(
 ** Code an OP_TableLock instruction for each table locked by the
 ** statement (configured by calls to sqlite3TableLock()).
 */
-static void codeTableLocks(Parse *pParse){
+void codeTableLocks(Parse *pParse){
   int i;
   Vdbe *pVdbe; 
 
@@ -613,7 +613,7 @@ void sqlite3DeleteColumnNames(sqlite3 *db, Table *pTable){
 ** db parameter can be used with db->pnBytesFreed to measure the memory
 ** used by the Table object.
 */
-static void SQLITE_NOINLINE deleteTable(sqlite3 *db, Table *pTable){
+void SQLITE_NOINLINE deleteTable(sqlite3 *db, Table *pTable){
   Index *pIndex, *pNext;
 
 #ifdef SQLITE_DEBUG
@@ -1452,7 +1452,7 @@ void sqlite3AddDefaultValue(
 ** If the expression is anything other than TK_STRING, the expression is
 ** unchanged.
 */
-static void sqlite3StringToId(Expr *p){
+void sqlite3StringToId(Expr *p){
   if( p->op==TK_STRING ){
     p->op = TK_ID;
   }else if( p->op==TK_COLLATE && p->pLeft->op==TK_STRING ){
@@ -1463,7 +1463,7 @@ static void sqlite3StringToId(Expr *p){
 /*
 ** Tag the given column as being part of the PRIMARY KEY
 */
-static void makeColumnPartOfPrimaryKey(Parse *pParse, Column *pCol){
+void makeColumnPartOfPrimaryKey(Parse *pParse, Column *pCol){
   pCol->colFlags |= COLFLAG_PRIMKEY;
 #ifndef SQLITE_OMIT_GENERATED_COLUMNS
   if( pCol->colFlags & COLFLAG_GENERATED ){
@@ -1712,7 +1712,7 @@ void sqlite3ChangeCookie(Parse *pParse, int iDb){
 ** The estimate is conservative.  It might be larger that what is
 ** really needed.
 */
-static int identLength(const char *z){
+int identLength(const char *z){
   int n;
   for(n=0; *z; n++, z++){
     if( *z=='"' ){ n++; }
@@ -1733,7 +1733,7 @@ static int identLength(const char *z){
 ** then it is copied to the output buffer exactly as it is. Otherwise,
 ** it is quoted using double-quotes.
 */
-static void identPut(char *z, int *pIdx, char *zSignedIdent){
+void identPut(char *z, int *pIdx, char *zSignedIdent){
   unsigned char *zIdent = (unsigned char*)zSignedIdent;
   int i, j, needQuote;
   i = *pIdx;
@@ -1761,7 +1761,7 @@ static void identPut(char *z, int *pIdx, char *zSignedIdent){
 ** table.  Memory to hold the text of the statement is obtained
 ** from sqliteMalloc() and must be freed by the calling function.
 */
-static char *createTableStmt(sqlite3 *db, Table *p){
+char *createTableStmt(sqlite3 *db, Table *p){
   int i, k, n;
   char *zStmt;
   char *zSep, *zSep2, *zEnd;
@@ -1829,7 +1829,7 @@ static char *createTableStmt(sqlite3 *db, Table *p){
 ** Resize an Index object to hold N columns total.  Return SQLITE_OK
 ** on success and SQLITE_NOMEM on an OOM error.
 */
-static int resizeIndexObject(sqlite3 *db, Index *pIdx, int N){
+int resizeIndexObject(sqlite3 *db, Index *pIdx, int N){
   char *zExtra;
   int nByte;
   if( pIdx->nColumn>=N ) return SQLITE_OK;
@@ -1853,7 +1853,7 @@ static int resizeIndexObject(sqlite3 *db, Index *pIdx, int N){
 /*
 ** Estimate the total row width for a table.
 */
-static void estimateTableWidth(Table *pTab){
+void estimateTableWidth(Table *pTab){
   unsigned wTable = 0;
   const Column *pTabCol;
   int i;
@@ -1867,7 +1867,7 @@ static void estimateTableWidth(Table *pTab){
 /*
 ** Estimate the average size of a row for an index.
 */
-static void estimateIndexWidth(Index *pIdx){
+void estimateIndexWidth(Index *pIdx){
   unsigned wIndex = 0;
   int i;
   const Column *aCol = pIdx->pTable->aCol;
@@ -1883,7 +1883,7 @@ static void estimateIndexWidth(Index *pIdx){
 ** This is used to determine if the column number x appears in any of the
 ** first nCol entries of an index.
 */
-static int hasColumn(const i16 *aiCol, int nCol, int x){
+int hasColumn(const i16 *aiCol, int nCol, int x){
   while( nCol-- > 0 ){
     assert( aiCol[0]>=0 );
     if( x==*(aiCol++) ){
@@ -1906,7 +1906,7 @@ static int hasColumn(const i16 *aiCol, int nCol, int x){
 ** collating sequence must match for this routine, but for hasColumn() only
 ** the column name must match.
 */
-static int isDupColumn(Index *pIdx, int nKey, Index *pPk, int iCol){
+int isDupColumn(Index *pIdx, int nKey, Index *pPk, int iCol){
   int i, j;
   assert( nKey<=pIdx->nColumn );
   assert( iCol<MAX(pPk->nColumn,pPk->nKeyCol) );
@@ -1945,7 +1945,7 @@ static int isDupColumn(Index *pIdx, int nKey, Index *pPk, int iCol){
 ** The colNotIdxed mask is AND-ed with the SrcList.a[].colUsed mask
 ** to determine if the index is covering index.
 */
-static void recomputeColumnsNotIndexed(Index *pIdx){
+void recomputeColumnsNotIndexed(Index *pIdx){
   Bitmask m = 0;
   int j;
   Table *pTab = pIdx->pTable;
@@ -1985,7 +1985,7 @@ static void recomputeColumnsNotIndexed(Index *pIdx){
 **
 ** For virtual tables, only (1) is performed.
 */
-static void convertToWithoutRowidTable(Parse *pParse, Table *pTab){
+void convertToWithoutRowidTable(Parse *pParse, Table *pTab){
   Index *pIdx;
   Index *pPk;
   int nPk;
@@ -2164,11 +2164,11 @@ int sqlite3ShadowTableName(sqlite3 *db, const char *zName){
 ** index definition are tagged this way to help ensure that we do
 ** not pass them into code generator routines by mistake.
 */
-static int markImmutableExprStep(Walker *pWalker, Expr *pExpr){
+int markImmutableExprStep(Walker *pWalker, Expr *pExpr){
   ExprSetVVAProperty(pExpr, EP_Immutable);
   return WRC_Continue;
 }
-static void markExprListImmutable(ExprList *pList){
+void markExprListImmutable(ExprList *pList){
   if( pList ){
     Walker w;
     memset(&w, 0, sizeof(w));
@@ -2709,7 +2709,7 @@ int sqlite3ViewGetColumnNames(Parse *pParse, Table *pTable){
 /*
 ** Clear the column names from every VIEW in database idx.
 */
-static void sqliteViewResetAll(sqlite3 *db, int idx){
+void sqliteViewResetAll(sqlite3 *db, int idx){
   HashElem *i;
   assert( sqlite3SchemaMutexHeld(db, idx, 0) );
   if( !DbHasProperty(db, idx, DB_UnresetViews) ) return;
@@ -2775,7 +2775,7 @@ void sqlite3RootPageMoved(sqlite3 *db, int iDb, int iFrom, int iTo){
 ** if a root-page of another table is moved by the btree-layer whilst
 ** erasing iTable (this can happen with an auto-vacuum database).
 */ 
-static void destroyRootPage(Parse *pParse, int iTable, int iDb){
+void destroyRootPage(Parse *pParse, int iTable, int iDb){
   Vdbe *v = sqlite3GetVdbe(pParse);
   int r1 = sqlite3GetTempReg(pParse);
   if( iTable<2 ) sqlite3ErrorMsg(pParse, "corrupt schema");
@@ -2804,7 +2804,7 @@ static void destroyRootPage(Parse *pParse, int iTable, int iDb){
 ** in case a root-page belonging to another table is moved by the btree layer
 ** is also added (this can happen with an auto-vacuum database).
 */
-static void destroyTable(Parse *pParse, Table *pTab){
+void destroyTable(Parse *pParse, Table *pTab){
   /* If the database may be auto-vacuum capable (if SQLITE_OMIT_AUTOVACUUM
   ** is not defined), then it is important to call OP_Destroy on the
   ** table and index root-pages in order, starting with the numerically 
@@ -2853,7 +2853,7 @@ static void destroyTable(Parse *pParse, Table *pTab){
 ** Remove entries from the sqlite_statN tables (for N in (1,2,3))
 ** after a DROP INDEX or DROP TABLE command.
 */
-static void sqlite3ClearStatTables(
+void sqlite3ClearStatTables(
   Parse *pParse,         /* The parsing context */
   int iDb,               /* The database number */
   const char *zType,     /* "idx" or "tbl" */
@@ -2963,7 +2963,7 @@ int sqlite3ReadOnlyShadowTables(sqlite3 *db){
 /*
 ** Return true if it is not allowed to drop the given table
 */
-static int tableMayNotBeDropped(sqlite3 *db, Table *pTab){
+int tableMayNotBeDropped(sqlite3 *db, Table *pTab){
   if( sqlite3StrNICmp(pTab->zName, "sqlite_", 7)==0 ){
     if( sqlite3StrNICmp(pTab->zName+7, "stat", 4)==0 ) return 0;
     if( sqlite3StrNICmp(pTab->zName+7, "parameters", 10)==0 ) return 0;
@@ -3247,7 +3247,7 @@ void sqlite3DeferForeignKey(Parse *pParse, int isDeferred){
 ** the index already exists and must be cleared before being refilled and
 ** the root page number of the index is taken from pIndex->tnum.
 */
-static void sqlite3RefillIndex(Parse *pParse, Index *pIndex, int memRootPage){
+void sqlite3RefillIndex(Parse *pParse, Index *pIndex, int memRootPage){
   Table *pTab = pIndex->pTable;  /* The table that is indexed */
   int iTab = pParse->nTab++;     /* Btree cursor used for pTab */
   int iIdx = pParse->nTab++;     /* Btree cursor used for pIndex */
@@ -4810,7 +4810,7 @@ void sqlite3RowidConstraint(
 ** true if it does and false if it does not.
 */
 #ifndef SQLITE_OMIT_REINDEX
-static int collationMatch(const char *zColl, Index *pIndex){
+int collationMatch(const char *zColl, Index *pIndex){
   int i;
   assert( zColl!=0 );
   for(i=0; i<pIndex->nColumn; i++){
@@ -4829,7 +4829,7 @@ static int collationMatch(const char *zColl, Index *pIndex){
 ** If pColl==0 then recompute all indices of pTab.
 */
 #ifndef SQLITE_OMIT_REINDEX
-static void reindexTable(Parse *pParse, Table *pTab, char const *zColl){
+void reindexTable(Parse *pParse, Table *pTab, char const *zColl){
   if( !IsVirtual(pTab) ){
     Index *pIndex;              /* An index associated with pTab */
 
@@ -4850,7 +4850,7 @@ static void reindexTable(Parse *pParse, Table *pTab, char const *zColl){
 ** all indices everywhere.
 */
 #ifndef SQLITE_OMIT_REINDEX
-static void reindexDatabases(Parse *pParse, char const *zColl){
+void reindexDatabases(Parse *pParse, char const *zColl){
   Db *pDb;                    /* A single database */
   int iDb;                    /* The database index number */
   sqlite3 *db = pParse->db;   /* The database connection */

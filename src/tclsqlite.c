@@ -199,7 +199,7 @@ struct IncrblobChannel {
 ** Compute a string length that is limited to what can be stored in
 ** lower 30 bits of a 32-bit signed integer.
 */
-static int strlen30(const char *z){
+int strlen30(const char *z){
   const char *z2 = z;
   while( *z2 ){ z2++; }
   return 0x3fffffff & (int)(z2 - z);
@@ -211,7 +211,7 @@ static int strlen30(const char *z){
 ** Close all incrblob channels opened using database connection pDb.
 ** This is called when shutting down the database connection.
 */
-static void closeIncrblobChannels(SqliteDb *pDb){
+void closeIncrblobChannels(SqliteDb *pDb){
   IncrblobChannel *p;
   IncrblobChannel *pNext;
 
@@ -229,7 +229,7 @@ static void closeIncrblobChannels(SqliteDb *pDb){
 /*
 ** Close an incremental blob channel.
 */
-static int SQLITE_TCLAPI incrblobClose(
+int SQLITE_TCLAPI incrblobClose(
   ClientData instanceData,
   Tcl_Interp *interp
 ){
@@ -261,7 +261,7 @@ static int SQLITE_TCLAPI incrblobClose(
 /*
 ** Read data from an incremental blob channel.
 */
-static int SQLITE_TCLAPI incrblobInput(
+int SQLITE_TCLAPI incrblobInput(
   ClientData instanceData,
   char *buf,
   int bufSize,
@@ -293,7 +293,7 @@ static int SQLITE_TCLAPI incrblobInput(
 /*
 ** Write data to an incremental blob channel.
 */
-static int SQLITE_TCLAPI incrblobOutput(
+int SQLITE_TCLAPI incrblobOutput(
   ClientData instanceData,
   CONST char *buf,
   int toWrite,
@@ -326,7 +326,7 @@ static int SQLITE_TCLAPI incrblobOutput(
 /*
 ** Seek an incremental blob channel.
 */
-static int SQLITE_TCLAPI incrblobSeek(
+int SQLITE_TCLAPI incrblobSeek(
   ClientData instanceData,
   long offset,
   int seekMode,
@@ -352,13 +352,13 @@ static int SQLITE_TCLAPI incrblobSeek(
 }
 
 
-static void SQLITE_TCLAPI incrblobWatch(
+void SQLITE_TCLAPI incrblobWatch(
   ClientData instanceData,
   int mode
 ){
   /* NO-OP */
 }
-static int SQLITE_TCLAPI incrblobHandle(
+int SQLITE_TCLAPI incrblobHandle(
   ClientData instanceData,
   int dir,
   ClientData *hPtr
@@ -366,7 +366,7 @@ static int SQLITE_TCLAPI incrblobHandle(
   return TCL_ERROR;
 }
 
-static Tcl_ChannelType IncrblobChannelType = {
+Tcl_ChannelType IncrblobChannelType = {
   "incrblob",                        /* typeName                             */
   TCL_CHANNEL_VERSION_2,             /* version                              */
   incrblobClose,                     /* closeProc                            */
@@ -387,7 +387,7 @@ static Tcl_ChannelType IncrblobChannelType = {
 /*
 ** Create a new incrblob channel.
 */
-static int createIncrblobChannel(
+int createIncrblobChannel(
   Tcl_Interp *interp,
   SqliteDb *pDb,
   const char *zDb,
@@ -448,7 +448,7 @@ static int createIncrblobChannel(
 ** or {...} or ; to be seen anywhere.  Most callback scripts consist
 ** of just a single procedure name and they meet this requirement.
 */
-static int safeToUseEvalObjv(Tcl_Interp *interp, Tcl_Obj *pCmd){
+int safeToUseEvalObjv(Tcl_Interp *interp, Tcl_Obj *pCmd){
   /* We could try to do something with Tcl_Parse().  But we will instead
   ** just do a search for forbidden characters.  If any of the forbidden
   ** characters appear in pCmd, we will report the string as unsafe.
@@ -468,7 +468,7 @@ static int safeToUseEvalObjv(Tcl_Interp *interp, Tcl_Obj *pCmd){
 ** one if an existing one cannot be found.  Return a pointer to the
 ** structure.
 */
-static SqlFunc *findSqlFunc(SqliteDb *pDb, const char *zName){
+SqlFunc *findSqlFunc(SqliteDb *pDb, const char *zName){
   SqlFunc *p, *pNew;
   int nName = strlen30(zName);
   pNew = (SqlFunc*)Tcl_Alloc( sizeof(*pNew) + nName + 1 );
@@ -491,7 +491,7 @@ static SqlFunc *findSqlFunc(SqliteDb *pDb, const char *zName){
 /*
 ** Free a single SqlPreparedStmt object.
 */
-static void dbFreeStmt(SqlPreparedStmt *pStmt){
+void dbFreeStmt(SqlPreparedStmt *pStmt){
 #ifdef SQLITE_TEST
   if( sqlite3_sql(pStmt->pStmt)==0 ){
     Tcl_Free((char *)pStmt->zSql);
@@ -504,7 +504,7 @@ static void dbFreeStmt(SqlPreparedStmt *pStmt){
 /*
 ** Finalize and free a list of prepared statements
 */
-static void flushStmtCache(SqliteDb *pDb){
+void flushStmtCache(SqliteDb *pDb){
   SqlPreparedStmt *pPreStmt;
   SqlPreparedStmt *pNext;
 
@@ -521,7 +521,7 @@ static void flushStmtCache(SqliteDb *pDb){
 ** TCL calls this procedure when an sqlite3 database command is
 ** deleted.
 */
-static void SQLITE_TCLAPI DbDeleteCmd(void *db){
+void SQLITE_TCLAPI DbDeleteCmd(void *db){
   SqliteDb *pDb = (SqliteDb*)db;
   flushStmtCache(pDb);
   closeIncrblobChannels(pDb);
@@ -581,7 +581,7 @@ static void SQLITE_TCLAPI DbDeleteCmd(void *db){
 ** This routine is called when a database file is locked while trying
 ** to execute SQL.
 */
-static int DbBusyHandler(void *cd, int nTries){
+int DbBusyHandler(void *cd, int nTries){
   SqliteDb *pDb = (SqliteDb*)cd;
   int rc;
   char zVal[30];
@@ -598,7 +598,7 @@ static int DbBusyHandler(void *cd, int nTries){
 /*
 ** This routine is invoked as the 'progress callback' for the database.
 */
-static int DbProgressHandler(void *cd){
+int DbProgressHandler(void *cd){
   SqliteDb *pDb = (SqliteDb*)cd;
   int rc;
 
@@ -617,7 +617,7 @@ static int DbProgressHandler(void *cd){
 ** This routine is called by the SQLite trace handler whenever a new
 ** block of SQL is executed.  The TCL script in pDb->zTrace is executed.
 */
-static void DbTraceHandler(void *cd, const char *zSql){
+void DbTraceHandler(void *cd, const char *zSql){
   SqliteDb *pDb = (SqliteDb*)cd;
   Tcl_DString str;
 
@@ -637,7 +637,7 @@ static void DbTraceHandler(void *cd, const char *zSql){
 ** The TCL script in pDb->zTraceV2 is executed, with the arguments for
 ** the event appended to it (as list elements).
 */
-static int DbTraceV2Handler(
+int DbTraceV2Handler(
   unsigned type, /* One of the SQLITE_TRACE_* event types. */
   void *cd,      /* The original context data pointer. */
   void *pd,      /* Primary event data, depends on event type. */
@@ -712,7 +712,7 @@ static int DbTraceV2Handler(
 ** This routine is called by the SQLite profile handler after a statement
 ** SQL has executed.  The TCL script in pDb->zProfile is evaluated.
 */
-static void DbProfileHandler(void *cd, const char *zSql, sqlite_uint64 tm){
+void DbProfileHandler(void *cd, const char *zSql, sqlite_uint64 tm){
   SqliteDb *pDb = (SqliteDb*)cd;
   Tcl_DString str;
   char zTm[100];
@@ -734,7 +734,7 @@ static void DbProfileHandler(void *cd, const char *zSql, sqlite_uint64 tm){
 ** if it throws an exception, the transaction is rolled back instead
 ** of being committed.
 */
-static int DbCommitHandler(void *cd){
+int DbCommitHandler(void *cd){
   SqliteDb *pDb = (SqliteDb*)cd;
   int rc;
 
@@ -745,7 +745,7 @@ static int DbCommitHandler(void *cd){
   return 0;
 }
 
-static void DbRollbackHandler(void *clientData){
+void DbRollbackHandler(void *clientData){
   SqliteDb *pDb = (SqliteDb*)clientData;
   assert(pDb->pRollbackHook);
   if( TCL_OK!=Tcl_EvalObjEx(pDb->interp, pDb->pRollbackHook, 0) ){
@@ -756,7 +756,7 @@ static void DbRollbackHandler(void *clientData){
 /*
 ** This procedure handles wal_hook callbacks.
 */
-static int DbWalHandler(
+int DbWalHandler(
   void *clientData,
   sqlite3 *db,
   const char *zDb,
@@ -784,7 +784,7 @@ static int DbWalHandler(
 }
 
 #if defined(SQLITE_TEST) && defined(SQLITE_ENABLE_UNLOCK_NOTIFY)
-static void setTestUnlockNotifyVars(Tcl_Interp *interp, int iArg, int nArg){
+void setTestUnlockNotifyVars(Tcl_Interp *interp, int iArg, int nArg){
   char zBuf[64];
   sqlite3_snprintf(sizeof(zBuf), zBuf, "%d", iArg);
   Tcl_SetVar(interp, "sqlite_unlock_notify_arg", zBuf, TCL_GLOBAL_ONLY);
@@ -796,7 +796,7 @@ static void setTestUnlockNotifyVars(Tcl_Interp *interp, int iArg, int nArg){
 #endif
 
 #ifdef SQLITE_ENABLE_UNLOCK_NOTIFY
-static void DbUnlockNotify(void **apArg, int nArg){
+void DbUnlockNotify(void **apArg, int nArg){
   int i;
   for(i=0; i<nArg; i++){
     const int flags = (TCL_EVAL_GLOBAL|TCL_EVAL_DIRECT);
@@ -814,7 +814,7 @@ static void DbUnlockNotify(void **apArg, int nArg){
 /*
 ** Pre-update hook callback.
 */
-static void DbPreUpdateHandler(
+void DbPreUpdateHandler(
   void *p,
   sqlite3 *db,
   int op,
@@ -846,7 +846,7 @@ static void DbPreUpdateHandler(
 }
 #endif /* SQLITE_ENABLE_PREUPDATE_HOOK */
 
-static void DbUpdateHandler(
+void DbUpdateHandler(
   void *p,
   int op,
   const char *zDb,
@@ -874,7 +874,7 @@ static void DbUpdateHandler(
   Tcl_DecrRefCount(pCmd);
 }
 
-static void tclCollateNeeded(
+void tclCollateNeeded(
   void *pCtx,
   sqlite3 *db,
   int enc,
@@ -892,7 +892,7 @@ static void tclCollateNeeded(
 ** This routine is called to evaluate an SQL collation function implemented
 ** using TCL script.
 */
-static int tclSqlCollate(
+int tclSqlCollate(
   void *pCtx,
   int nA,
   const void *zA,
@@ -915,7 +915,7 @@ static int tclSqlCollate(
 ** This routine is called to evaluate an SQL function implemented
 ** using TCL script.
 */
-static void tclSqlFunc(sqlite3_context *context, int argc, sqlite3_value**argv){
+void tclSqlFunc(sqlite3_context *context, int argc, sqlite3_value**argv){
   SqlFunc *p = sqlite3_user_data(context);
   Tcl_Obj *pCmd;
   int i;
@@ -1066,7 +1066,7 @@ static void tclSqlFunc(sqlite3_context *context, int argc, sqlite3_value**argv){
 ** on the interpreter.  The reply is examined to determine if the
 ** authentication fails or succeeds.
 */
-static int auth_callback(
+int auth_callback(
   void *pArg,
   int code,
   const char *zArg1,
@@ -1165,7 +1165,7 @@ static int auth_callback(
 **
 ** copied from shell.c from '.import' command
 */
-static char *local_getline(char *zPrompt, FILE *in){
+char *local_getline(char *zPrompt, FILE *in){
   char *zLine;
   int nLine;
   int n;
@@ -1208,7 +1208,7 @@ static char *local_getline(char *zPrompt, FILE *in){
 ** It is invoked after evaluating the script SCRIPT to commit or rollback
 ** the transaction or savepoint opened by the [transaction] command.
 */
-static int SQLITE_TCLAPI DbTransPostCmd(
+int SQLITE_TCLAPI DbTransPostCmd(
   ClientData data[],                   /* data[0] is the Sqlite3Db* for $db */
   Tcl_Interp *interp,                  /* Tcl interpreter */
   int result                           /* Result of evaluating SCRIPT */
@@ -1256,7 +1256,7 @@ static int SQLITE_TCLAPI DbTransPostCmd(
 ** on whether or not the [db_use_legacy_prepare] command has been used to
 ** configure the connection.
 */
-static int dbPrepare(
+int dbPrepare(
   SqliteDb *pDb,                  /* Database object */
   const char *zSql,               /* SQL to compile */
   sqlite3_stmt **ppStmt,          /* OUT: Prepared statement */
@@ -1291,7 +1291,7 @@ static int dbPrepare(
 ** If successful, TCL_OK is returned. Otherwise, TCL_ERROR is returned
 ** and an error message loaded into interpreter pDb->interp.
 */
-static int dbPrepareAndBind(
+int dbPrepareAndBind(
   SqliteDb *pDb,                  /* Database object */
   char const *zIn,                /* SQL to compile */
   char const **pzOut,             /* OUT: Pointer to next SQL statement */
@@ -1467,7 +1467,7 @@ static int dbPrepareAndBind(
 ** immediately. Otherwise it is added to the LRU list and may be returned
 ** by a subsequent call to dbPrepareAndBind().
 */
-static void dbReleaseStmt(
+void dbReleaseStmt(
   SqliteDb *pDb,                  /* Database handle */
   SqlPreparedStmt *pPreStmt,      /* Prepared statement handle to release */
   int discard                     /* True to delete (not cache) the pPreStmt */
@@ -1538,7 +1538,7 @@ struct DbEvalContext {
 ** Release any cache of column names currently held as part of
 ** the DbEvalContext structure passed as the first argument.
 */
-static void dbReleaseColumnNames(DbEvalContext *p){
+void dbReleaseColumnNames(DbEvalContext *p){
   if( p->apColName ){
     int i;
     for(i=0; i<p->nCol; i++){
@@ -1562,7 +1562,7 @@ static void dbReleaseColumnNames(DbEvalContext *p){
 **
 **     set ${pArray}(*) {a b c}
 */
-static void dbEvalInit(
+void dbEvalInit(
   DbEvalContext *p,               /* Pointer to structure to initialize */
   SqliteDb *pDb,                  /* Database handle */
   Tcl_Obj *pSql,                  /* Object containing SQL script */
@@ -1585,7 +1585,7 @@ static void dbEvalInit(
 ** Obtain information about the row that the DbEvalContext passed as the
 ** first argument currently points to.
 */
-static void dbEvalRowInfo(
+void dbEvalRowInfo(
   DbEvalContext *p,               /* Evaluation context */
   int *pnCol,                     /* OUT: Number of column names */
   Tcl_Obj ***papColName           /* OUT: Array of column names */
@@ -1643,7 +1643,7 @@ static void dbEvalRowInfo(
 ** is returned, then the SQL script has finished executing and there are
 ** no further rows available. This is similar to SQLITE_DONE.
 */
-static int dbEvalStep(DbEvalContext *p){
+int dbEvalStep(DbEvalContext *p){
   const char *zPrevSql = 0;       /* Previous value of p->zSql */
 
   while( p->zSql[0] || p->pPreStmt ){
@@ -1707,7 +1707,7 @@ static int dbEvalStep(DbEvalContext *p){
 ** as the first argument. There should be exactly one call to this function
 ** for each call to dbEvalInit().
 */
-static void dbEvalFinalize(DbEvalContext *p){
+void dbEvalFinalize(DbEvalContext *p){
   if( p->pPreStmt ){
     sqlite3_reset(p->pPreStmt->pStmt);
     dbReleaseStmt(p->pDb, p->pPreStmt, 0);
@@ -1726,7 +1726,7 @@ static void dbEvalFinalize(DbEvalContext *p){
 ** the value for the iCol'th column of the row currently pointed to by
 ** the DbEvalContext structure passed as the first argument.
 */
-static Tcl_Obj *dbEvalColumnValue(DbEvalContext *p, int iCol){
+Tcl_Obj *dbEvalColumnValue(DbEvalContext *p, int iCol){
   sqlite3_stmt *pStmt = p->pPreStmt->pStmt;
   switch( sqlite3_column_type(pStmt, iCol) ){
     case SQLITE_BLOB: {
@@ -1763,7 +1763,7 @@ static Tcl_Obj *dbEvalColumnValue(DbEvalContext *p, int iCol){
 */
 #if TCL_MAJOR_VERSION>8 || (TCL_MAJOR_VERSION==8 && TCL_MINOR_VERSION>=6)
 # define SQLITE_TCL_NRE 1
-static int DbUseNre(void){
+int DbUseNre(void){
   int major, minor;
   Tcl_GetVersion(&major, &minor, 0, 0);
   return( (major==8 && minor>=6) || major>8 );
@@ -1790,7 +1790,7 @@ static int DbUseNre(void){
 **
 **   $db eval SQL ?ARRAYNAME? SCRIPT
 */
-static int SQLITE_TCLAPI DbEvalNextCmd(
+int SQLITE_TCLAPI DbEvalNextCmd(
   ClientData data[],                   /* data[0] is the (DbEvalContext*) */
   Tcl_Interp *interp,                  /* Tcl interpreter */
   int result                           /* Result so far */
@@ -1860,7 +1860,7 @@ static int SQLITE_TCLAPI DbEvalNextCmd(
 **   $db commit_hook ?SCRIPT?
 **   $db preupdate hook ?SCRIPT?
 */
-static void DbHookCmd(
+void DbHookCmd(
   Tcl_Interp *interp,             /* Tcl interpreter */
   SqliteDb *pDb,                  /* Database handle */
   Tcl_Obj *pArg,                  /* SCRIPT argument (or NULL) */
@@ -1904,7 +1904,7 @@ static void DbHookCmd(
 ** and calls that connection "db1".  The second command causes this
 ** subroutine to be invoked.
 */
-static int SQLITE_TCLAPI DbObjCmd(
+int SQLITE_TCLAPI DbObjCmd(
   void *cd,
   Tcl_Interp *interp,
   int objc,
@@ -3644,7 +3644,7 @@ deserialize_error:
 ** Adaptor that provides an objCmd interface to the NRE-enabled
 ** interface implementation.
 */
-static int SQLITE_TCLAPI DbObjCmdAdaptor(
+int SQLITE_TCLAPI DbObjCmdAdaptor(
   void *cd,
   Tcl_Interp *interp,
   int objc,
@@ -3658,7 +3658,7 @@ static int SQLITE_TCLAPI DbObjCmdAdaptor(
 ** Issue the usage message when the "sqlite3" command arguments are
 ** incorrect.
 */
-static int sqliteCmdUsage(
+int sqliteCmdUsage(
   Tcl_Interp *interp,
   Tcl_Obj *const*objv
 ){
@@ -3686,7 +3686,7 @@ static int sqliteCmdUsage(
 ** The second argument is the name of the database file.
 **
 */
-static int SQLITE_TCLAPI DbMain(
+int SQLITE_TCLAPI DbMain(
   void *cd,
   Tcl_Interp *interp,
   int objc,
@@ -3908,7 +3908,7 @@ int Tclsqlite_Unload(Tcl_Interp *interp, int flags){ return TCL_OK; }
 ** are arguments, run the first argument as a script.  Otherwise,
 ** read TCL commands from standard input
 */
-static const char *tclsh_main_loop(void){
+const char *tclsh_main_loop(void){
   static const char zMainloop[] =
     "if {[llength $argv]>=1} {\n"
       "set argv0 [lindex $argv 0]\n"

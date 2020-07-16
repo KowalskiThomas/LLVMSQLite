@@ -29,7 +29,7 @@
 /* defined in main.c */
 extern const char *sqlite3ErrName(int);
 
-static const char *aName[MAX_MUTEXES+1] = {
+const char *aName[MAX_MUTEXES+1] = {
   "fast",        "recursive",   "static_master", "static_mem",
   "static_open", "static_prng", "static_lru",    "static_pmem",
   "static_app1", "static_app2", "static_app3",   "static_vfs1",
@@ -43,7 +43,7 @@ struct sqlite3_mutex {
 };
 
 /* State variables */
-static struct test_mutex_globals {
+struct test_mutex_globals {
   int isInstalled;           /* True if installed */
   int disableInit;           /* True to cause sqlite3_initalize() to fail */
   int disableTry;            /* True to force sqlite3_mutex_try() to fail */
@@ -54,12 +54,12 @@ static struct test_mutex_globals {
 } g = {0};
 
 /* Return true if the countable mutex is currently held */
-static int counterMutexHeld(sqlite3_mutex *p){
+int counterMutexHeld(sqlite3_mutex *p){
   return g.m.xMutexHeld(p->pReal);
 }
 
 /* Return true if the countable mutex is not currently held */
-static int counterMutexNotheld(sqlite3_mutex *p){
+int counterMutexNotheld(sqlite3_mutex *p){
   return g.m.xMutexNotheld(p->pReal);
 }
 
@@ -68,7 +68,7 @@ static int counterMutexNotheld(sqlite3_mutex *p){
 ** return the value of g.disableInit as the result code.  This can be used
 ** to simulate an initialization failure.
 */
-static int counterMutexInit(void){ 
+int counterMutexInit(void){
   int rc;
   if( g.disableInit ) return g.disableInit;
   rc = g.m.xMutexInit();
@@ -79,7 +79,7 @@ static int counterMutexInit(void){
 /*
 ** Uninitialize the mutex subsystem
 */
-static int counterMutexEnd(void){ 
+int counterMutexEnd(void){
   g.isInit = 0;
   return g.m.xMutexEnd();
 }
@@ -87,7 +87,7 @@ static int counterMutexEnd(void){
 /*
 ** Allocate a countable mutex
 */
-static sqlite3_mutex *counterMutexAlloc(int eType){
+sqlite3_mutex *counterMutexAlloc(int eType){
   sqlite3_mutex *pReal;
   sqlite3_mutex *pRet = 0;
 
@@ -115,7 +115,7 @@ static sqlite3_mutex *counterMutexAlloc(int eType){
 /*
 ** Free a countable mutex
 */
-static void counterMutexFree(sqlite3_mutex *p){
+void counterMutexFree(sqlite3_mutex *p){
   assert( g.isInit );
   g.m.xMutexFree(p->pReal);
   if( p->eType==SQLITE_MUTEX_FAST || p->eType==SQLITE_MUTEX_RECURSIVE ){
@@ -126,7 +126,7 @@ static void counterMutexFree(sqlite3_mutex *p){
 /*
 ** Enter a countable mutex.  Block until entry is safe.
 */
-static void counterMutexEnter(sqlite3_mutex *p){
+void counterMutexEnter(sqlite3_mutex *p){
   assert( g.isInit );
   assert( p->eType>=0 );
   assert( p->eType<MAX_MUTEXES );
@@ -137,7 +137,7 @@ static void counterMutexEnter(sqlite3_mutex *p){
 /*
 ** Try to enter a mutex.  Return true on success.
 */
-static int counterMutexTry(sqlite3_mutex *p){
+int counterMutexTry(sqlite3_mutex *p){
   assert( g.isInit );
   assert( p->eType>=0 );
   assert( p->eType<MAX_MUTEXES );
@@ -148,7 +148,7 @@ static int counterMutexTry(sqlite3_mutex *p){
 
 /* Leave a mutex
 */
-static void counterMutexLeave(sqlite3_mutex *p){
+void counterMutexLeave(sqlite3_mutex *p){
   assert( g.isInit );
   g.m.xMutexLeave(p->pReal);
 }
@@ -156,7 +156,7 @@ static void counterMutexLeave(sqlite3_mutex *p){
 /*
 ** sqlite3_shutdown
 */
-static int SQLITE_TCLAPI test_shutdown(
+int SQLITE_TCLAPI test_shutdown(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -177,7 +177,7 @@ static int SQLITE_TCLAPI test_shutdown(
 /*
 ** sqlite3_initialize
 */
-static int SQLITE_TCLAPI test_initialize(
+int SQLITE_TCLAPI test_initialize(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -198,7 +198,7 @@ static int SQLITE_TCLAPI test_initialize(
 /*
 ** install_mutex_counters BOOLEAN
 */
-static int SQLITE_TCLAPI test_install_mutex_counters(
+int SQLITE_TCLAPI test_install_mutex_counters(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -259,7 +259,7 @@ static int SQLITE_TCLAPI test_install_mutex_counters(
 /*
 ** read_mutex_counters
 */
-static int SQLITE_TCLAPI test_read_mutex_counters(
+int SQLITE_TCLAPI test_read_mutex_counters(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -288,7 +288,7 @@ static int SQLITE_TCLAPI test_read_mutex_counters(
 /*
 ** clear_mutex_counters
 */
-static int SQLITE_TCLAPI test_clear_mutex_counters(
+int SQLITE_TCLAPI test_clear_mutex_counters(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -312,7 +312,7 @@ static int SQLITE_TCLAPI test_clear_mutex_counters(
 ** will be invalid since the mutex has already been freed.  The
 ** return pointer just checks to see if the mutex really was allocated.
 */
-static int SQLITE_TCLAPI test_alloc_mutex(
+int SQLITE_TCLAPI test_alloc_mutex(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -339,7 +339,7 @@ static int SQLITE_TCLAPI test_alloc_mutex(
 **
 ** Or OPTION can be an raw integer.
 */
-static int SQLITE_TCLAPI test_config(
+int SQLITE_TCLAPI test_config(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -376,7 +376,7 @@ static int SQLITE_TCLAPI test_config(
   return TCL_OK;
 }
 
-static sqlite3 *getDbPointer(Tcl_Interp *pInterp, Tcl_Obj *pObj){
+sqlite3 *getDbPointer(Tcl_Interp *pInterp, Tcl_Obj *pObj){
   sqlite3 *db;
   Tcl_CmdInfo info;
   char *zCmd = Tcl_GetString(pObj);
@@ -389,7 +389,7 @@ static sqlite3 *getDbPointer(Tcl_Interp *pInterp, Tcl_Obj *pObj){
   return db;
 }
 
-static sqlite3_mutex *getStaticMutexPointer(
+sqlite3_mutex *getStaticMutexPointer(
   Tcl_Interp *pInterp,
   Tcl_Obj *pObj
 ){
@@ -401,7 +401,7 @@ static sqlite3_mutex *getStaticMutexPointer(
   return counterMutexAlloc(iMutex);
 }
 
-static int SQLITE_TCLAPI test_enter_static_mutex(
+int SQLITE_TCLAPI test_enter_static_mutex(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -420,7 +420,7 @@ static int SQLITE_TCLAPI test_enter_static_mutex(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_leave_static_mutex(
+int SQLITE_TCLAPI test_leave_static_mutex(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -439,7 +439,7 @@ static int SQLITE_TCLAPI test_leave_static_mutex(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_enter_db_mutex(
+int SQLITE_TCLAPI test_enter_db_mutex(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -458,7 +458,7 @@ static int SQLITE_TCLAPI test_enter_db_mutex(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_leave_db_mutex(
+int SQLITE_TCLAPI test_leave_db_mutex(
   void * clientData,
   Tcl_Interp *interp,
   int objc,

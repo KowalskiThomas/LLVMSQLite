@@ -16,7 +16,7 @@
 
 #ifndef SQLITE_OMIT_VIRTUALTABLE
 /* Forward declaration */
-static void updateVirtualTable(
+void updateVirtualTable(
   Parse *pParse,       /* The parsing context */
   SrcList *pSrc,       /* The virtual table to be modified */
   Table *pTab,         /* The virtual table */
@@ -90,7 +90,7 @@ void sqlite3ColumnDefault(Vdbe *v, Table *pTab, int i, int iReg){
 ** being updated.  chngRowid will be true if the rowid of the table is
 ** being updated.
 */
-static int indexColumnIsBeingUpdated(
+int indexColumnIsBeingUpdated(
   Index *pIdx,      /* The index to check */
   int iCol,         /* Which column of the index to check */
   int *aXRef,       /* aXRef[j]>=0 if column j is being updated */
@@ -120,7 +120,7 @@ static int indexColumnIsBeingUpdated(
 ** being updated.  chngRowid will be true if the rowid of the table is
 ** being updated.
 */
-static int indexWhereClauseMightChange(
+int indexWhereClauseMightChange(
   Index *pIdx,      /* The index to check */
   int *aXRef,       /* aXRef[j]>=0 if column j is being updated */
   int chngRowid     /* true if the rowid is being updated */
@@ -949,7 +949,7 @@ update_cleanup:
 ** stores the same values (A, B and C above) in a register array and
 ** makes a single invocation of VUpdate.
 */
-static void updateVirtualTable(
+void updateVirtualTable(
   Parse *pParse,       /* The parsing context */
   SrcList *pSrc,       /* The virtual table to be modified */
   Table *pTab,         /* The virtual table */

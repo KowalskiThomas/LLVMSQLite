@@ -20,7 +20,7 @@
 ** Invoke the 'collation needed' callback to request a collation sequence
 ** in the encoding enc of name zName, length nName.
 */
-static void callCollNeeded(sqlite3 *db, int enc, const char *zName){
+void callCollNeeded(sqlite3 *db, int enc, const char *zName){
   assert( !db->xCollNeeded || !db->xCollNeeded16 );
   if( db->xCollNeeded ){
     char *zExternal = sqlite3DbStrDup(db, zName);
@@ -49,7 +49,7 @@ static void callCollNeeded(sqlite3 *db, int enc, const char *zName){
 ** of these instead if they exist. Avoid a UTF-8 <-> UTF-16 conversion if
 ** possible.
 */
-static int synthCollSeq(sqlite3 *db, CollSeq *pColl){
+int synthCollSeq(sqlite3 *db, CollSeq *pColl){
   CollSeq *pColl2;
   char *z = pColl->zName;
   int i;
@@ -104,7 +104,7 @@ int sqlite3CheckCollSeq(Parse *pParse, CollSeq *pColl){
 ** the collation sequence name. A pointer to this string is stored in
 ** each collation sequence structure.
 */
-static CollSeq *findCollSeqEntry(
+CollSeq *findCollSeqEntry(
   sqlite3 *db,          /* Database connection */
   const char *zName,    /* Name of the collating sequence */
   int create            /* Create a new entry if true */
@@ -295,7 +295,7 @@ CollSeq *sqlite3LocateCollSeq(Parse *pParse, const char *zName){
 ** a non-match.
 */
 #define FUNC_PERFECT_MATCH 6  /* The score for a perfect match */
-static int matchQuality(
+int matchQuality(
   FuncDef *p,     /* The function we are evaluating for match quality */
   int nArg,       /* Desired number of arguments.  (-1)==any */
   u8 enc          /* Desired text encoding */

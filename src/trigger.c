@@ -367,7 +367,7 @@ triggerfinish_cleanup:
 ** Duplicate a range of text from an SQL statement, then convert all
 ** whitespace characters into ordinary space characters.
 */
-static char *triggerSpanDup(sqlite3 *db, const char *zStart, const char *zEnd){
+char *triggerSpanDup(sqlite3 *db, const char *zStart, const char *zEnd){
   char *z = sqlite3DbSpanDup(db, zStart, zEnd);
   int i;
   if( z ) for(i=0; z[i]; i++) if( sqlite3Isspace(z[i]) ) z[i] = ' ';
@@ -405,7 +405,7 @@ TriggerStep *sqlite3TriggerSelectStep(
 **
 ** If an OOM error occurs, NULL is returned and db->mallocFailed is set.
 */
-static TriggerStep *triggerStepAllocate(
+TriggerStep *triggerStepAllocate(
   Parse *pParse,              /* Parser context */
   u8 op,                      /* Trigger opcode */
   Token *pName,               /* The target name */
@@ -604,7 +604,7 @@ drop_trigger_cleanup:
 ** Return a pointer to the Table structure for the table that a trigger
 ** is set on.
 */
-static Table *tableOfTrigger(Trigger *pTrigger){
+Table *tableOfTrigger(Trigger *pTrigger){
   return sqlite3HashFind(&pTrigger->pTabSchema->tblHash, pTrigger->table);
 }
 
@@ -684,7 +684,7 @@ void sqlite3UnlinkAndDeleteTrigger(sqlite3 *db, int iDb, const char *zName){
 ** it matches anything so always return true.  Return false only
 ** if there is no match.
 */
-static int checkColumnOverlap(IdList *pIdList, ExprList *pEList){
+int checkColumnOverlap(IdList *pIdList, ExprList *pEList){
   int e;
   if( pIdList==0 || NEVER(pEList==0) ) return 1;
   for(e=0; e<pEList->nExpr; e++){
@@ -735,7 +735,7 @@ Trigger *sqlite3TriggersExist(
 ** trigger is in TEMP in which case it can refer to any other database it
 ** wants.
 */
-static SrcList *targetSrcList(
+SrcList *targetSrcList(
   Parse *pParse,       /* The parsing context */
   TriggerStep *pStep   /* The trigger containing the target token */
 ){
@@ -762,7 +762,7 @@ static SrcList *targetSrcList(
 ** Generate VDBE code for the statements inside the body of a single 
 ** trigger.
 */
-static int codeTriggerProgram(
+int codeTriggerProgram(
   Parse *pParse,            /* The parser context */
   TriggerStep *pStepList,   /* List of statements inside the trigger body */
   int orconf                /* Conflict algorithm. (OE_Abort, etc) */  
@@ -848,7 +848,7 @@ static int codeTriggerProgram(
 ** This function is used to add VdbeComment() annotations to a VDBE
 ** program. It is not used in production code, only for debugging.
 */
-static const char *onErrorText(int onError){
+const char *onErrorText(int onError){
   switch( onError ){
     case OE_Abort:    return "abort";
     case OE_Rollback: return "rollback";
@@ -866,7 +866,7 @@ static const char *onErrorText(int onError){
 ** (trigger program). If an error has occurred, transfer error information
 ** from pFrom to pTo.
 */
-static void transferParseError(Parse *pTo, Parse *pFrom){
+void transferParseError(Parse *pTo, Parse *pFrom){
   assert( pFrom->zErrMsg==0 || pFrom->nErr );
   assert( pTo->zErrMsg==0 || pTo->nErr );
   if( pTo->nErr==0 ){
@@ -882,7 +882,7 @@ static void transferParseError(Parse *pTo, Parse *pFrom){
 ** Create and populate a new TriggerPrg object with a sub-program 
 ** implementing trigger pTrigger with ON CONFLICT policy orconf.
 */
-static TriggerPrg *codeRowTrigger(
+TriggerPrg *codeRowTrigger(
   Parse *pParse,       /* Current parse context */
   Trigger *pTrigger,   /* Trigger to code */
   Table *pTab,         /* The table pTrigger is attached to */
@@ -998,7 +998,7 @@ static TriggerPrg *codeRowTrigger(
 ** TriggerPrg object exists, a new object is allocated and populated before
 ** being returned.
 */
-static TriggerPrg *getRowTrigger(
+TriggerPrg *getRowTrigger(
   Parse *pParse,       /* Current parse context */
   Trigger *pTrigger,   /* Trigger to code */
   Table *pTab,         /* The table trigger pTrigger is attached to */

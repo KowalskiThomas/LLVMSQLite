@@ -35,7 +35,7 @@ struct TestWindowCtx {
   Tcl_Obj *pVal;
 };
 
-static void doTestWindowStep(
+void doTestWindowStep(
   int bInverse,
   sqlite3_context *ctx, 
   int nArg, 
@@ -73,7 +73,7 @@ static void doTestWindowStep(
   Tcl_DecrRefCount(pEval);
 }
 
-static void doTestWindowFinalize(int bValue, sqlite3_context *ctx){
+void doTestWindowFinalize(int bValue, sqlite3_context *ctx){
   TestWindow *p = (TestWindow*)sqlite3_user_data(ctx);
   Tcl_Obj *pEval = Tcl_DuplicateObj(bValue ? p->xValue : p->xFinal);
   TestWindowCtx *pCtx = sqlite3_aggregate_context(ctx, sizeof(TestWindowCtx));
@@ -104,14 +104,14 @@ static void doTestWindowFinalize(int bValue, sqlite3_context *ctx){
   Tcl_DecrRefCount(pEval);
 }
 
-static void testWindowStep(
+void testWindowStep(
   sqlite3_context *ctx, 
   int nArg, 
   sqlite3_value **apArg
 ){
   doTestWindowStep(0, ctx, nArg, apArg);
 }
-static void testWindowInverse(
+void testWindowInverse(
   sqlite3_context *ctx, 
   int nArg, 
   sqlite3_value **apArg
@@ -119,21 +119,21 @@ static void testWindowInverse(
   doTestWindowStep(1, ctx, nArg, apArg);
 }
 
-static void testWindowFinal(sqlite3_context *ctx){
+void testWindowFinal(sqlite3_context *ctx){
   doTestWindowFinalize(0, ctx);
 }
-static void testWindowValue(sqlite3_context *ctx){
+void testWindowValue(sqlite3_context *ctx){
   doTestWindowFinalize(1, ctx);
 }
 
-static void testWindowDestroy(void *pCtx){
+void testWindowDestroy(void *pCtx){
   ckfree(pCtx);
 }
 
 /*
 ** Usage: sqlite3_create_window_function DB NAME XSTEP XFINAL XVALUE XINVERSE
 */
-static int SQLITE_TCLAPI test_create_window(
+int SQLITE_TCLAPI test_create_window(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -176,7 +176,7 @@ static int SQLITE_TCLAPI test_create_window(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_create_window_misuse(
+int SQLITE_TCLAPI test_create_window_misuse(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -222,7 +222,7 @@ static int SQLITE_TCLAPI test_create_window_misuse(
 /*
 ** xStep for sumint().
 */
-static void sumintStep(
+void sumintStep(
   sqlite3_context *ctx, 
   int nArg, 
   sqlite3_value *apArg[]
@@ -243,7 +243,7 @@ static void sumintStep(
 /*
 ** xInverse for sumint().
 */
-static void sumintInverse(
+void sumintInverse(
   sqlite3_context *ctx, 
   int nArg, 
   sqlite3_value *apArg[]
@@ -256,7 +256,7 @@ static void sumintInverse(
 /*
 ** xFinal for sumint().
 */
-static void sumintFinal(sqlite3_context *ctx){
+void sumintFinal(sqlite3_context *ctx){
   sqlite3_int64 res = 0;
   sqlite3_int64 *pInt;
   pInt = (sqlite3_int64*)sqlite3_aggregate_context(ctx, 0);
@@ -267,7 +267,7 @@ static void sumintFinal(sqlite3_context *ctx){
 /*
 ** xValue for sumint().
 */
-static void sumintValue(sqlite3_context *ctx){
+void sumintValue(sqlite3_context *ctx){
   sqlite3_int64 res = 0;
   sqlite3_int64 *pInt;
   pInt = (sqlite3_int64*)sqlite3_aggregate_context(ctx, 0);
@@ -275,7 +275,7 @@ static void sumintValue(sqlite3_context *ctx){
   sqlite3_result_int64(ctx, res);
 }
 
-static int SQLITE_TCLAPI test_create_sumint(
+int SQLITE_TCLAPI test_create_sumint(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -302,7 +302,7 @@ static int SQLITE_TCLAPI test_create_sumint(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI test_override_sum(
+int SQLITE_TCLAPI test_override_sum(
   void * clientData,
   Tcl_Interp *interp,
   int objc,

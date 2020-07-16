@@ -15,8 +15,8 @@
 #include "sqliteInt.h"
 
 /* Forward declarations */
-static void exprCodeBetween(Parse*,Expr*,int,void(*)(Parse*,Expr*,int,int),int);
-static int exprCodeVector(Parse *pParse, Expr *p, int *piToFree);
+void exprCodeBetween(Parse*,Expr*,int,void(*)(Parse*,Expr*,int,int),int);
+int exprCodeVector(Parse *pParse, Expr *p, int *piToFree);
 
 /*
 ** Return the affinity character for a single column of a table.
@@ -267,7 +267,7 @@ char sqlite3CompareAffinity(const Expr *pExpr, char aff2){
 ** pExpr is a comparison operator.  Return the type affinity that should
 ** be applied to both operands prior to doing the comparison.
 */
-static char comparisonAffinity(const Expr *pExpr){
+char comparisonAffinity(const Expr *pExpr){
   char aff;
   assert( pExpr->op==TK_EQ || pExpr->op==TK_IN || pExpr->op==TK_LT ||
           pExpr->op==TK_GT || pExpr->op==TK_GE || pExpr->op==TK_LE ||
@@ -305,7 +305,7 @@ int sqlite3IndexAffinityOk(const Expr *pExpr, char idx_affinity){
 ** Return the P5 value that should be used for a binary comparison
 ** opcode (OP_Eq, OP_Ge etc.) used to compare pExpr1 and pExpr2.
 */
-static u8 binaryCompareP5(
+u8 binaryCompareP5(
   const Expr *pExpr1,   /* Left operand */
   const Expr *pExpr2,   /* Right operand */
   int jumpIfNull        /* Extra flags added to P5 */
@@ -366,7 +366,7 @@ CollSeq *sqlite3ExprCompareCollSeq(Parse *pParse, const Expr *p){
 /*
 ** Generate code for a comparison operator.
 */
-static int codeCompare(
+int codeCompare(
   Parse *pParse,    /* The parsing (and code generating) context */
   Expr *pLeft,      /* The left operand */
   Expr *pRight,     /* The right operand */
@@ -519,7 +519,7 @@ Expr *sqlite3ExprForVectorField(
 **
 ** If pExpr is not a TK_SELECT expression, return 0.
 */
-static int exprCodeSubselect(Parse *pParse, Expr *pExpr){
+int exprCodeSubselect(Parse *pParse, Expr *pExpr){
   int reg = 0;
 #ifndef SQLITE_OMIT_SUBQUERY
   if( pExpr->op==TK_SELECT ){
@@ -547,7 +547,7 @@ static int exprCodeSubselect(Parse *pParse, Expr *pExpr){
 ** Before returning, output parameter (*ppExpr) is set to point to the
 ** Expr object corresponding to element iElem of the vector.
 */
-static int exprVectorRegister(
+int exprVectorRegister(
   Parse *pParse,                  /* Parse context */
   Expr *pVector,                  /* Vector to extract element from */
   int iField,                     /* Field to extract from pVector */
@@ -580,7 +580,7 @@ static int exprVectorRegister(
 **    if pExpr->op==TK_ISNOT:   op==TK_NE and p5==SQLITE_NULLEQ
 **    otherwise:                op==pExpr->op and p5==0
 */
-static void codeVectorCompare(
+void codeVectorCompare(
   Parse *pParse,        /* Code generator context */
   Expr *pExpr,          /* The comparison operation */
   int dest,             /* Write results into this register */
@@ -686,14 +686,14 @@ int sqlite3ExprCheckHeight(Parse *pParse, int nHeight){
 ** to by pnHeight, the second parameter, then set *pnHeight to that
 ** value.
 */
-static void heightOfExpr(Expr *p, int *pnHeight){
+void heightOfExpr(Expr *p, int *pnHeight){
   if( p ){
     if( p->nHeight>*pnHeight ){
       *pnHeight = p->nHeight;
     }
   }
 }
-static void heightOfExprList(ExprList *p, int *pnHeight){
+void heightOfExprList(ExprList *p, int *pnHeight){
   if( p ){
     int i;
     for(i=0; i<p->nExpr; i++){
@@ -701,7 +701,7 @@ static void heightOfExprList(ExprList *p, int *pnHeight){
     }
   }
 }
-static void heightOfSelect(Select *pSelect, int *pnHeight){
+void heightOfSelect(Select *pSelect, int *pnHeight){
   Select *p;
   for(p=pSelect; p; p=p->pPrior){
     heightOfExpr(p->pWhere, pnHeight);
@@ -723,7 +723,7 @@ static void heightOfSelect(Select *pSelect, int *pnHeight){
 ** Also propagate EP_Propagate flags up from Expr.x.pList to Expr.flags,
 ** if appropriate.
 */
-static void exprSetHeight(Expr *p){
+void exprSetHeight(Expr *p){
   int nHeight = 0;
   heightOfExpr(p->pLeft, &nHeight);
   heightOfExpr(p->pRight, &nHeight);
@@ -1096,7 +1096,7 @@ void sqlite3ExprAssignVarNumber(Parse *pParse, Expr *pExpr, u32 n){
 /*
 ** Recursively delete an expression tree.
 */
-static SQLITE_NOINLINE void sqlite3ExprDeleteNN(sqlite3 *db, Expr *p){
+SQLITE_NOINLINE void sqlite3ExprDeleteNN(sqlite3 *db, Expr *p){
   assert( p!=0 );
   /* Sanity check: Assert that the IntValue is non-negative if it exists */
   assert( !ExprHasProperty(p, EP_IntValue) || p->u.iValue>=0 );
@@ -1156,7 +1156,7 @@ void sqlite3ExprUnmapAndDelete(Parse *pParse, Expr *p){
 ** passed as the first argument. This is always one of EXPR_FULLSIZE,
 ** EXPR_REDUCEDSIZE or EXPR_TOKENONLYSIZE.
 */
-static int exprStructSize(Expr *p){
+int exprStructSize(Expr *p){
   if( ExprHasProperty(p, EP_TokenOnly) ) return EXPR_TOKENONLYSIZE;
   if( ExprHasProperty(p, EP_Reduced) ) return EXPR_REDUCEDSIZE;
   return EXPR_FULLSIZE;
@@ -1196,7 +1196,7 @@ static int exprStructSize(Expr *p){
 ** of dupedExprStructSize() contain multiple assert() statements that attempt
 ** to enforce this constraint.
 */
-static int dupedExprStructSize(Expr *p, int flags){
+int dupedExprStructSize(Expr *p, int flags){
   int nSize;
   assert( flags==EXPRDUP_REDUCE || flags==0 ); /* Only one flag value allowed */
   assert( EXPR_FULLSIZE<=0xfff );
@@ -1227,7 +1227,7 @@ static int dupedExprStructSize(Expr *p, int flags){
 ** of the Expr structure and a copy of the Expr.u.zToken string (if that
 ** string is defined.)
 */
-static int dupedExprNodeSize(Expr *p, int flags){
+int dupedExprNodeSize(Expr *p, int flags){
   int nByte = dupedExprStructSize(p, flags) & 0xfff;
   if( !ExprHasProperty(p, EP_IntValue) && p->u.zToken ){
     nByte += sqlite3Strlen30NN(p->u.zToken)+1;
@@ -1248,7 +1248,7 @@ static int dupedExprNodeSize(Expr *p, int flags){
 ** and Expr.pRight variables (but not for any structures pointed to or 
 ** descended from the Expr.x.pList or Expr.x.pSelect variables).
 */
-static int dupedExprSize(Expr *p, int flags){
+int dupedExprSize(Expr *p, int flags){
   int nByte = 0;
   if( p ){
     nByte = dupedExprNodeSize(p, flags);
@@ -1267,7 +1267,7 @@ static int dupedExprSize(Expr *p, int flags){
 ** if any. Before returning, *pzBuffer is set to the first byte past the
 ** portion of the buffer copied into by this function.
 */
-static Expr *exprDup(sqlite3 *db, Expr *p, int dupFlags, u8 **pzBuffer){
+Expr *exprDup(sqlite3 *db, Expr *p, int dupFlags, u8 **pzBuffer){
   Expr *pNew;           /* Value to return */
   u8 *zAlloc;           /* Memory space from which to build Expr object */
   u32 staticFlag;       /* EP_Static if space not obtained from malloc */
@@ -1376,7 +1376,7 @@ static Expr *exprDup(sqlite3 *db, Expr *p, int dupFlags, u8 **pzBuffer){
 ** and the db->mallocFailed flag set.
 */
 #ifndef SQLITE_OMIT_CTE
-static With *withDup(sqlite3 *db, With *p){
+With *withDup(sqlite3 *db, With *p){
   With *pRet = 0;
   if( p ){
     sqlite3_int64 nByte = sizeof(*p) + sizeof(p->a[0]) * (p->nCte-1);
@@ -1404,7 +1404,7 @@ static With *withDup(sqlite3 *db, With *p){
 ** an a newly duplicated SELECT statement and gather all of the Window
 ** objects found there, assembling them onto the linked list at Select->pWin.
 */
-static int gatherSelectWindowsCallback(Walker *pWalker, Expr *pExpr){
+int gatherSelectWindowsCallback(Walker *pWalker, Expr *pExpr){
   if( pExpr->op==TK_FUNCTION && ExprHasProperty(pExpr, EP_WinFunc) ){
     Select *pSelect = pWalker->u.pSelect;
     Window *pWin = pExpr->y.pWin;
@@ -1415,10 +1415,10 @@ static int gatherSelectWindowsCallback(Walker *pWalker, Expr *pExpr){
   }
   return WRC_Continue;
 }
-static int gatherSelectWindowsSelectCallback(Walker *pWalker, Select *p){
+int gatherSelectWindowsSelectCallback(Walker *pWalker, Select *p){
   return p==pWalker->u.pSelect ? WRC_Continue : WRC_Prune;
 }
-static void gatherSelectWindows(Select *p){
+void gatherSelectWindows(Select *p){
   Walker w;
   w.xExprCallback = gatherSelectWindowsCallback;
   w.xSelectCallback = gatherSelectWindowsSelectCallback;
@@ -1847,7 +1847,7 @@ void sqlite3ExprListCheckLength(
 /*
 ** Delete an entire expression list.
 */
-static SQLITE_NOINLINE void exprListDeleteNN(sqlite3 *db, ExprList *pList){
+SQLITE_NOINLINE void exprListDeleteNN(sqlite3 *db, ExprList *pList){
   int i = pList->nExpr;
   struct ExprList_item *pItem =  pList->a;
   assert( pList->nExpr>0 );
@@ -1990,7 +1990,7 @@ Expr *sqlite3ExprSimplifiedAndOr(Expr *pExpr){
 ** of SQLite to be parsed by newer versions of SQLite without raising a
 ** malformed schema error.
 */
-static int exprNodeIsConstant(Walker *pWalker, Expr *pExpr){
+int exprNodeIsConstant(Walker *pWalker, Expr *pExpr){
 
   /* If pWalker->eCode is 2 then any term of the expression that comes from
   ** the ON or USING clauses of a left join disqualifies the expression
@@ -2060,7 +2060,7 @@ static int exprNodeIsConstant(Walker *pWalker, Expr *pExpr){
       return WRC_Continue;
   }
 }
-static int exprIsConst(Expr *p, int initFlag, int iCur){
+int exprIsConst(Expr *p, int initFlag, int iCur){
   Walker w;
   w.eCode = initFlag;
   w.xExprCallback = exprNodeIsConstant;
@@ -2116,7 +2116,7 @@ int sqlite3ExprIsTableConstant(Expr *p, int iCur){
 /*
 ** sqlite3WalkExpr() callback used by sqlite3ExprIsConstantOrGroupBy().
 */
-static int exprNodeIsConstantOrGroupBy(Walker *pWalker, Expr *pExpr){
+int exprNodeIsConstantOrGroupBy(Walker *pWalker, Expr *pExpr){
   ExprList *pGroupBy = pWalker->u.pGroupBy;
   int i;
 
@@ -2352,7 +2352,7 @@ int sqlite3IsRowid(const char *z){
 ** table, then return NULL.
 */
 #ifndef SQLITE_OMIT_SUBQUERY
-static Select *isCandidateForInOpt(Expr *pX){
+Select *isCandidateForInOpt(Expr *pX){
   Select *p;
   SrcList *pSrc;
   ExprList *pEList;
@@ -2397,7 +2397,7 @@ static Select *isCandidateForInOpt(Expr *pX){
 ** to a non-NULL value if iCur contains no NULLs.  Cause register regHasNull
 ** to be set to NULL if iCur contains one or more NULL values.
 */
-static void sqlite3SetHasNullFlag(Vdbe *v, int iCur, int regHasNull){
+void sqlite3SetHasNullFlag(Vdbe *v, int iCur, int regHasNull){
   int addr1;
   sqlite3VdbeAddOp2(v, OP_Integer, 0, regHasNull);
   addr1 = sqlite3VdbeAddOp1(v, OP_Rewind, iCur); VdbeCoverage(v);
@@ -2414,7 +2414,7 @@ static void sqlite3SetHasNullFlag(Vdbe *v, int iCur, int regHasNull){
 ** The argument is an IN operator with a list (not a subquery) on the 
 ** right-hand side.  Return TRUE if that list is constant.
 */
-static int sqlite3InRhsIsConstant(Expr *pIn){
+int sqlite3InRhsIsConstant(Expr *pIn){
   Expr *pLHS;
   int res;
   assert( !ExprHasProperty(pIn, EP_xIsSelect) );
@@ -2729,7 +2729,7 @@ int sqlite3FindInIndex(
 ** It is the responsibility of the caller to ensure that the returned
 ** string is eventually freed using sqlite3DbFree().
 */
-static char *exprINAffinity(Parse *pParse, Expr *pExpr){
+char *exprINAffinity(Parse *pParse, Expr *pExpr){
   Expr *pLeft = pExpr->pLeft;
   int nVal = sqlite3ExprVectorSize(pLeft);
   Select *pSelect = (pExpr->flags & EP_xIsSelect) ? pExpr->x.pSelect : 0;
@@ -3156,7 +3156,7 @@ int sqlite3ExprCheckIN(Parse *pParse, Expr *pIn){
 ** See the separate in-operator.md documentation file in the canonical
 ** SQLite source tree for additional information.
 */
-static void sqlite3ExprCodeIN(
+void sqlite3ExprCodeIN(
   Parse *pParse,        /* Parsing and code generating context */
   Expr *pExpr,          /* The IN expression */
   int destIfFalse,      /* Jump here if LHS is not contained in the RHS */
@@ -3413,7 +3413,7 @@ sqlite3ExprCodeIN_oom_error:
 ** z[n] character is guaranteed to be something that does not look
 ** like the continuation of the number.
 */
-static void codeReal(Vdbe *v, const char *z, int negateFlag, int iMem){
+void codeReal(Vdbe *v, const char *z, int negateFlag, int iMem){
   if( ALWAYS(z!=0) ){
     double value;
     sqlite3AtoF(z, &value, sqlite3Strlen30(z), SQLITE_UTF8);
@@ -3431,7 +3431,7 @@ static void codeReal(Vdbe *v, const char *z, int negateFlag, int iMem){
 **
 ** Expr.u.zToken is always UTF8 and zero-terminated.
 */
-static void codeInteger(Parse *pParse, Expr *pExpr, int negFlag, int iMem){
+void codeInteger(Parse *pParse, Expr *pExpr, int negFlag, int iMem){
   Vdbe *v = pParse->pVdbe;
   if( pExpr->flags & EP_IntValue ){
     int i = pExpr->u.iValue;
@@ -3605,7 +3605,7 @@ void sqlite3ExprCodeMove(Parse *pParse, int iFrom, int iTo, int nReg){
 ** register iReg.  The caller must ensure that iReg already contains
 ** the correct value for the expression.
 */
-static void exprToRegister(Expr *pExpr, int iReg){
+void exprToRegister(Expr *pExpr, int iReg){
   Expr *p = sqlite3ExprSkipCollateAndLikely(pExpr);
   p->op2 = p->op;
   p->op = TK_REGISTER;
@@ -3623,7 +3623,7 @@ static void exprToRegister(Expr *pExpr, int iReg){
 ** is not a temporary or if the expression is a vector set *piFreeable
 ** to 0.
 */
-static int exprCodeVector(Parse *pParse, Expr *p, int *piFreeable){
+int exprCodeVector(Parse *pParse, Expr *p, int *piFreeable){
   int iResult;
   int nResult = sqlite3ExprVectorSize(p);
   if( nResult==1 ){
@@ -3652,7 +3652,7 @@ static int exprCodeVector(Parse *pParse, Expr *p, int *piFreeable){
 ** If the last opcode is a OP_Copy, then set the do-not-merge flag (p5)
 ** so that a subsequent copy will not be merged into this one.
 */
-static void setDoNotMergeFlagOnCopy(Vdbe *v){
+void setDoNotMergeFlagOnCopy(Vdbe *v){
   if( sqlite3VdbeGetOp(v, -1)->opcode==OP_Copy ){
     sqlite3VdbeChangeP5(v, 1);  /* Tag trailing OP_Copy as not mergable */
   }
@@ -3662,7 +3662,7 @@ static void setDoNotMergeFlagOnCopy(Vdbe *v){
 ** Generate code to implement special SQL functions that are implemented
 ** in-line rather than by using the usual callbacks.
 */
-static int exprCodeInlineFunction(
+int exprCodeInlineFunction(
   Parse *pParse,        /* Parsing context */
   ExprList *pFarg,      /* List of function arguments */
   int iFuncId,          /* Function ID.  One of the INTFUNC_... values */
@@ -4746,7 +4746,7 @@ int sqlite3ExprCodeExprList(
 **
 ** The jumpIfNull parameter is ignored if xJumpIf is NULL.
 */
-static void exprCodeBetween(
+void exprCodeBetween(
   Parse *pParse,    /* Parsing and code generating context */
   Expr *pExpr,      /* The BETWEEN expression */
   int dest,         /* Jump destination or storage location */
@@ -5154,7 +5154,7 @@ void sqlite3ExprIfFalseDup(Parse *pParse, Expr *pExpr, int dest,int jumpIfNull){
 ** Otherwise, if the values are not the same or if pExpr is not a simple
 ** SQL value, zero is returned.
 */
-static int exprCompareVariable(Parse *pParse, Expr *pVar, Expr *pExpr){
+int exprCompareVariable(Parse *pParse, Expr *pVar, Expr *pExpr){
   int res = 0;
   int iVar;
   sqlite3_value *pL, *pR = 0;
@@ -5322,7 +5322,7 @@ int sqlite3ExprCompareSkip(Expr *pA, Expr *pB, int iTab){
 ** Or if seenNot is true, return non-zero if Expr p can only be
 ** non-NULL if pNN is not NULL
 */
-static int exprImpliesNotNull(
+int exprImpliesNotNull(
   Parse *pParse,      /* Parsing context */
   Expr *p,            /* The expression to be checked */
   Expr *pNN,          /* The expression that is NOT NULL */
@@ -5445,7 +5445,7 @@ int sqlite3ExprImpliesExpr(Parse *pParse, Expr *pE1, Expr *pE2, int iTab){
 ** pWalker->eCode to 1 when it should not be) are deadly, but false-negatives
 ** (never setting pWalker->eCode) is a harmless missed optimization.
 */
-static int impliesNotNullRow(Walker *pWalker, Expr *pExpr){
+int impliesNotNullRow(Walker *pWalker, Expr *pExpr){
   testcase( pExpr->op==TK_AGG_COLUMN );
   testcase( pExpr->op==TK_AGG_FUNCTION );
   if( ExprHasProperty(pExpr, EP_FromJoin) ) return WRC_Prune;
@@ -5587,7 +5587,7 @@ struct IdxCover {
 ** pWalker->u.pIdxCover->iCur can be satisfied using the index
 ** pWalker->u.pIdxCover->pIdx.
 */
-static int exprIdxCover(Walker *pWalker, Expr *pExpr){
+int exprIdxCover(Walker *pWalker, Expr *pExpr){
   if( pExpr->op==TK_COLUMN
    && pExpr->iTable==pWalker->u.pIdxCover->iCur
    && sqlite3TableColumnToIndex(pWalker->u.pIdxCover->pIdx, pExpr->iColumn)<0
@@ -5640,7 +5640,7 @@ struct SrcCount {
 /*
 ** Count the number of references to columns.
 */
-static int exprSrcCount(Walker *pWalker, Expr *pExpr){
+int exprSrcCount(Walker *pWalker, Expr *pExpr){
   /* There was once a NEVER() on the second term on the grounds that
   ** sqlite3FunctionUsesThisSrc() was always called before 
   ** sqlite3ExprAnalyzeAggregates() and so the TK_COLUMNs have not yet 
@@ -5697,7 +5697,7 @@ int sqlite3FunctionUsesThisSrc(Expr *pExpr, SrcList *pSrcList){
 ** Add a new element to the pAggInfo->aCol[] array.  Return the index of
 ** the new element.  Return a negative number if malloc fails.
 */
-static int addAggInfoColumn(sqlite3 *db, AggInfo *pInfo){
+int addAggInfoColumn(sqlite3 *db, AggInfo *pInfo){
   int i;
   pInfo->aCol = sqlite3ArrayAllocate(
        db,
@@ -5713,7 +5713,7 @@ static int addAggInfoColumn(sqlite3 *db, AggInfo *pInfo){
 ** Add a new element to the pAggInfo->aFunc[] array.  Return the index of
 ** the new element.  Return a negative number if malloc fails.
 */
-static int addAggInfoFunc(sqlite3 *db, AggInfo *pInfo){
+int addAggInfoFunc(sqlite3 *db, AggInfo *pInfo){
   int i;
   pInfo->aFunc = sqlite3ArrayAllocate(
        db, 
@@ -5730,7 +5730,7 @@ static int addAggInfoFunc(sqlite3 *db, AggInfo *pInfo){
 ** implement sqlite3ExprAnalyzeAggregates().  See sqlite3ExprAnalyzeAggregates
 ** for additional information.
 */
-static int analyzeAggregate(Walker *pWalker, Expr *pExpr){
+int analyzeAggregate(Walker *pWalker, Expr *pExpr){
   int i;
   NameContext *pNC = pWalker->u.pNC;
   Parse *pParse = pNC->pParse;
@@ -5856,12 +5856,12 @@ static int analyzeAggregate(Walker *pWalker, Expr *pExpr){
   }
   return WRC_Continue;
 }
-static int analyzeAggregatesInSelect(Walker *pWalker, Select *pSelect){
+int analyzeAggregatesInSelect(Walker *pWalker, Select *pSelect){
   UNUSED_PARAMETER(pSelect);
   pWalker->walkerDepth++;
   return WRC_Continue;
 }
-static void analyzeAggregatesInSelectEnd(Walker *pWalker, Select *pSelect){
+void analyzeAggregatesInSelectEnd(Walker *pWalker, Select *pSelect){
   UNUSED_PARAMETER(pSelect);
   pWalker->walkerDepth--;
 }

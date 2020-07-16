@@ -56,7 +56,7 @@
 **
 **      '/1c2/000/'               // Left-most child of 451st child of root
 */
-static const char zDbstatSchema[] = 
+const char zDbstatSchema[] = 
   "CREATE TABLE x("
   " name       TEXT,"          /*  0 Name of table or index */
   " path       TEXT,"          /*  1 Path to page from root (NULL for agg) */
@@ -145,7 +145,7 @@ struct StatTable {
 /*
 ** Connect to or create a new DBSTAT virtual table.
 */
-static int statConnect(
+int statConnect(
   sqlite3 *db,
   void *pAux,
   int argc, const char *const*argv,
@@ -188,7 +188,7 @@ static int statConnect(
 /*
 ** Disconnect from or destroy the DBSTAT virtual table.
 */
-static int statDisconnect(sqlite3_vtab *pVtab){
+int statDisconnect(sqlite3_vtab *pVtab){
   sqlite3_free(pVtab);
   return SQLITE_OK;
 }
@@ -203,7 +203,7 @@ static int statDisconnect(sqlite3_vtab *pVtab){
 **      0x04           There is an aggregate=? term in the WHERE clause
 **      0x08           Output should be ordered by name and path
 */
-static int statBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
+int statBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
   int i;
   int iSchema = -1;
   int iName = -1;
@@ -275,7 +275,7 @@ static int statBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
 /*
 ** Open a new DBSTAT cursor.
 */
-static int statOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
+int statOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   StatTable *pTab = (StatTable *)pVTab;
   StatCursor *pCsr;
 
@@ -292,7 +292,7 @@ static int statOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   return SQLITE_OK;
 }
 
-static void statClearCells(StatPage *p){
+void statClearCells(StatPage *p){
   int i;
   if( p->aCell ){
     for(i=0; i<p->nCell; i++){
@@ -304,14 +304,14 @@ static void statClearCells(StatPage *p){
   p->aCell = 0;
 }
 
-static void statClearPage(StatPage *p){
+void statClearPage(StatPage *p){
   statClearCells(p);
   sqlite3PagerUnref(p->pPg);
   sqlite3_free(p->zPath);
   memset(p, 0, sizeof(StatPage));
 }
 
-static void statResetCsr(StatCursor *pCsr){
+void statResetCsr(StatCursor *pCsr){
   int i;
   sqlite3_reset(pCsr->pStmt);
   for(i=0; i<ArraySize(pCsr->aPage); i++){
@@ -324,7 +324,7 @@ static void statResetCsr(StatCursor *pCsr){
 }
 
 /* Resize the space-used counters inside of the cursor */
-static void statResetCounts(StatCursor *pCsr){
+void statResetCounts(StatCursor *pCsr){
   pCsr->nCell = 0;
   pCsr->nMxPayload = 0;
   pCsr->nUnused = 0;
@@ -336,7 +336,7 @@ static void statResetCounts(StatCursor *pCsr){
 /*
 ** Close a DBSTAT cursor.
 */
-static int statClose(sqlite3_vtab_cursor *pCursor){
+int statClose(sqlite3_vtab_cursor *pCursor){
   StatCursor *pCsr = (StatCursor *)pCursor;
   statResetCsr(pCsr);
   sqlite3_finalize(pCsr->pStmt);
@@ -349,7 +349,7 @@ static int statClose(sqlite3_vtab_cursor *pCursor){
 ** content (payload) stored on that page.  That is to say, compute the
 ** number of bytes of content not found on overflow pages.
 */
-static int getLocalPayload(
+int getLocalPayload(
   int nUsable,                    /* Usable bytes per page */
   u8 flags,                       /* Page flags */
   int nTotal                      /* Total record (payload) size */
@@ -374,7 +374,7 @@ static int getLocalPayload(
 /* Populate the StatPage object with information about the all
 ** cells found on the page currently under analysis.
 */
-static int statDecodePage(Btree *pBt, StatPage *p){
+int statDecodePage(Btree *pBt, StatPage *p){
   int nUnused;
   int iOff;
   int nHdr;
@@ -487,7 +487,7 @@ statPageIsCorrupt:
 ** Populate the pCsr->iOffset and pCsr->szPage member variables. Based on
 ** the current value of pCsr->iPageno.
 */
-static void statSizeAndOffset(StatCursor *pCsr){
+void statSizeAndOffset(StatCursor *pCsr){
   StatTable *pTab = (StatTable *)((sqlite3_vtab_cursor *)pCsr)->pVtab;
   Btree *pBt = pTab->db->aDb[pTab->iDb].pBt;
   Pager *pPager = sqlite3BtreePager(pBt);
@@ -514,7 +514,7 @@ static void statSizeAndOffset(StatCursor *pCsr){
 ** entry will be the next page, but in aggregated mode (pCsr->isAgg!=0),
 ** the next entry is the next btree.
 */
-static int statNext(sqlite3_vtab_cursor *pCursor){
+int statNext(sqlite3_vtab_cursor *pCursor){
   int rc;
   int nPayload;
   char *z;
@@ -671,7 +671,7 @@ statNextRestart:
   return rc;
 }
 
-static int statEof(sqlite3_vtab_cursor *pCursor){
+int statEof(sqlite3_vtab_cursor *pCursor){
   StatCursor *pCsr = (StatCursor *)pCursor;
   return pCsr->isEof;
 }
@@ -680,7 +680,7 @@ static int statEof(sqlite3_vtab_cursor *pCursor){
 ** arguments in argv[0].  See statBestIndex() for a description of the
 ** meaning of the bits in idxNum.
 */
-static int statFilter(
+int statFilter(
   sqlite3_vtab_cursor *pCursor, 
   int idxNum, const char *idxStr,
   int argc, sqlite3_value **argv
@@ -746,7 +746,7 @@ static int statFilter(
   return rc;
 }
 
-static int statColumn(
+int statColumn(
   sqlite3_vtab_cursor *pCursor, 
   sqlite3_context *ctx, 
   int i
@@ -807,7 +807,7 @@ static int statColumn(
   return SQLITE_OK;
 }
 
-static int statRowid(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid){
+int statRowid(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid){
   StatCursor *pCsr = (StatCursor *)pCursor;
   *pRowid = pCsr->iPageno;
   return SQLITE_OK;

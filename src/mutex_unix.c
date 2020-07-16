@@ -75,10 +75,10 @@ struct sqlite3_mutex {
 ** routines are never called.
 */
 #if !defined(NDEBUG) || defined(SQLITE_DEBUG)
-static int pthreadMutexHeld(sqlite3_mutex *p){
+int pthreadMutexHeld(sqlite3_mutex *p){
   return (p->nRef!=0 && pthread_equal(p->owner, pthread_self()));
 }
-static int pthreadMutexNotheld(sqlite3_mutex *p){
+int pthreadMutexNotheld(sqlite3_mutex *p){
   return p->nRef==0 || pthread_equal(p->owner, pthread_self())==0;
 }
 #endif
@@ -99,8 +99,8 @@ void sqlite3MemoryBarrier(void){
 /*
 ** Initialize and deinitialize the mutex subsystem.
 */
-static int pthreadMutexInit(void){ return SQLITE_OK; }
-static int pthreadMutexEnd(void){ return SQLITE_OK; }
+int pthreadMutexInit(void){ return SQLITE_OK; }
+int pthreadMutexEnd(void){ return SQLITE_OK; }
 
 /*
 ** The sqlite3_mutex_alloc() routine allocates a new
@@ -150,7 +150,7 @@ static int pthreadMutexEnd(void){ return SQLITE_OK; }
 ** mutex types, the same mutex is returned on every call that has
 ** the same type number.
 */
-static sqlite3_mutex *pthreadMutexAlloc(int iType){
+sqlite3_mutex *pthreadMutexAlloc(int iType){
   static sqlite3_mutex staticMutexes[] = {
     SQLITE3_MUTEX_INITIALIZER(2),
     SQLITE3_MUTEX_INITIALIZER(3),
@@ -221,7 +221,7 @@ static sqlite3_mutex *pthreadMutexAlloc(int iType){
 ** allocated mutex.  SQLite is careful to deallocate every
 ** mutex that it allocates.
 */
-static void pthreadMutexFree(sqlite3_mutex *p){
+void pthreadMutexFree(sqlite3_mutex *p){
   assert( p->nRef==0 );
 #if SQLITE_ENABLE_API_ARMOR
   if( p->id==SQLITE_MUTEX_FAST || p->id==SQLITE_MUTEX_RECURSIVE )
@@ -248,7 +248,7 @@ static void pthreadMutexFree(sqlite3_mutex *p){
 ** can enter.  If the same thread tries to enter any other kind of mutex
 ** more than once, the behavior is undefined.
 */
-static void pthreadMutexEnter(sqlite3_mutex *p){
+void pthreadMutexEnter(sqlite3_mutex *p){
   assert( p->id==SQLITE_MUTEX_RECURSIVE || pthreadMutexNotheld(p) );
 
 #ifdef SQLITE_HOMEGROWN_RECURSIVE_MUTEX
@@ -290,7 +290,7 @@ static void pthreadMutexEnter(sqlite3_mutex *p){
   }
 #endif
 }
-static int pthreadMutexTry(sqlite3_mutex *p){
+int pthreadMutexTry(sqlite3_mutex *p){
   int rc;
   assert( p->id==SQLITE_MUTEX_RECURSIVE || pthreadMutexNotheld(p) );
 
@@ -347,7 +347,7 @@ static int pthreadMutexTry(sqlite3_mutex *p){
 ** is undefined if the mutex is not currently entered or
 ** is not currently allocated.  SQLite will never do either.
 */
-static void pthreadMutexLeave(sqlite3_mutex *p){
+void pthreadMutexLeave(sqlite3_mutex *p){
   assert( pthreadMutexHeld(p) );
 #if SQLITE_MUTEX_NREF
   p->nRef--;

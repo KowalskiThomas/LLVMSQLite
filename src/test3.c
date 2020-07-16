@@ -29,15 +29,15 @@ extern const char *sqlite3ErrName(int);
 ** A bogus sqlite3 connection structure for use in the btree
 ** tests.
 */
-static sqlite3 sDb;
-static int nRefSqlite3 = 0;
+sqlite3 sDb;
+int nRefSqlite3 = 0;
 
 /*
 ** Usage:   btree_open FILENAME NCACHE
 **
 ** Open a new database
 */
-static int SQLITE_TCLAPI btree_open(
+int SQLITE_TCLAPI btree_open(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -83,7 +83,7 @@ static int SQLITE_TCLAPI btree_open(
 **
 ** Close the given database.
 */
-static int SQLITE_TCLAPI btree_close(
+int SQLITE_TCLAPI btree_close(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -118,7 +118,7 @@ static int SQLITE_TCLAPI btree_close(
 **
 ** Start a new transaction
 */
-static int SQLITE_TCLAPI btree_begin_transaction(
+int SQLITE_TCLAPI btree_begin_transaction(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -147,7 +147,7 @@ static int SQLITE_TCLAPI btree_begin_transaction(
 **
 ** Returns pager statistics
 */
-static int SQLITE_TCLAPI btree_pager_stats(
+int SQLITE_TCLAPI btree_pager_stats(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -197,7 +197,7 @@ static int SQLITE_TCLAPI btree_pager_stats(
 **
 ** Create a new cursor.  Return the ID for the cursor.
 */
-static int SQLITE_TCLAPI btree_cursor(
+int SQLITE_TCLAPI btree_cursor(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -246,7 +246,7 @@ static int SQLITE_TCLAPI btree_cursor(
 **
 ** Close a cursor opened using btree_cursor.
 */
-static int SQLITE_TCLAPI btree_close_cursor(
+int SQLITE_TCLAPI btree_close_cursor(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -288,7 +288,7 @@ static int SQLITE_TCLAPI btree_close_cursor(
 ** or 1 if the cursor was already on the last entry in the table or if
 ** the table is empty.
 */
-static int SQLITE_TCLAPI btree_next(
+int SQLITE_TCLAPI btree_next(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -327,7 +327,7 @@ static int SQLITE_TCLAPI btree_next(
 ** Move the cursor to the first entry in the table.  Return 0 if the
 ** cursor was left point to something and 1 if the table is empty.
 */
-static int SQLITE_TCLAPI btree_first(
+int SQLITE_TCLAPI btree_first(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -362,7 +362,7 @@ static int SQLITE_TCLAPI btree_first(
 ** Return TRUE if the given cursor is not pointing at a valid entry.
 ** Return FALSE if the cursor does point to a valid entry.
 */
-static int SQLITE_TCLAPI btree_eof(
+int SQLITE_TCLAPI btree_eof(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -391,7 +391,7 @@ static int SQLITE_TCLAPI btree_eof(
 **
 ** Return the number of bytes of payload
 */
-static int SQLITE_TCLAPI btree_payload_size(
+int SQLITE_TCLAPI btree_payload_size(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -429,7 +429,7 @@ static int SQLITE_TCLAPI btree_payload_size(
 ** This command returns nothing if it works.  It returns an error message
 ** if something goes wrong.
 */
-static int SQLITE_TCLAPI btree_varint_test(
+int SQLITE_TCLAPI btree_varint_test(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -513,7 +513,7 @@ static int SQLITE_TCLAPI btree_varint_test(
 ** sqlite3 db test.db
 ** set bt [btree_from_db db]
 */
-static int SQLITE_TCLAPI btree_from_db(
+int SQLITE_TCLAPI btree_from_db(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -553,7 +553,7 @@ static int SQLITE_TCLAPI btree_from_db(
 **
 ** Return true if the B-Tree is currently stored entirely in memory.
 */
-static int SQLITE_TCLAPI btree_ismemdb(
+int SQLITE_TCLAPI btree_ismemdb(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -584,7 +584,7 @@ static int SQLITE_TCLAPI btree_ismemdb(
 **
 ** Set the size of the cache used by btree $ID.
 */
-static int SQLITE_TCLAPI btree_set_cache_size(
+int SQLITE_TCLAPI btree_set_cache_size(
   void *NotUsed,
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int argc,              /* Number of arguments */
@@ -614,7 +614,7 @@ static int SQLITE_TCLAPI btree_set_cache_size(
 **
 ** Set the size of the cache used by btree $ID.
 */
-static int SQLITE_TCLAPI btree_insert(
+int SQLITE_TCLAPI btree_insert(
   ClientData clientData,
   Tcl_Interp *interp,
   int objc,

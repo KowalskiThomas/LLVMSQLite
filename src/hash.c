@@ -52,7 +52,7 @@ void sqlite3HashClear(Hash *pH){
 /*
 ** The hashing function.
 */
-static unsigned int strHash(const char *z){
+unsigned int strHash(const char *z){
   unsigned int h = 0;
   unsigned char c;
   while( (c = (unsigned char)*z++)!=0 ){     /*OPTIMIZATION-IF-TRUE*/
@@ -69,7 +69,7 @@ static unsigned int strHash(const char *z){
 /* Link pNew element into the hash table pH.  If pEntry!=0 then also
 ** insert pNew into the pEntry hash bucket.
 */
-static void insertElement(
+void insertElement(
   Hash *pH,              /* The complete hash table */
   struct _ht *pEntry,    /* The entry into which pNew is inserted */
   HashElem *pNew         /* The element to be inserted */
@@ -103,7 +103,7 @@ static void insertElement(
 ** if the new size is the same as the prior size.
 ** Return TRUE if the resize occurs and false if not.
 */
-static int rehash(Hash *pH, unsigned int new_size){
+int rehash(Hash *pH, unsigned int new_size){
   struct _ht *new_ht;            /* The new hash table */
   HashElem *elem, *next_elem;    /* For looping over existing elements */
 
@@ -144,7 +144,7 @@ static int rehash(Hash *pH, unsigned int new_size){
 ** a pointer to a static null element with HashElem.data==0 is returned.
 ** If pH is not NULL, then the hash for this key is written to *pH.
 */
-static HashElem *findElementWithHash(
+HashElem *findElementWithHash(
   const Hash *pH,     /* The pH to be searched */
   const char *pKey,   /* The key we are searching for */
   unsigned int *pHash /* Write the hash value here */
@@ -179,7 +179,7 @@ static HashElem *findElementWithHash(
 /* Remove a single entry from the hash table given a pointer to that
 ** element and a hash on the element's key.
 */
-static void removeElementGivenHash(
+void removeElementGivenHash(
   Hash *pH,         /* The pH containing "elem" */
   HashElem* elem,   /* The element to be removed from the pH */
   unsigned int h    /* Hash value for the element */

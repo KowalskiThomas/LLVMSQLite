@@ -46,14 +46,14 @@ struct Circle {
 /*
 ** Destructor function for Circle objects allocated by circle_geom().
 */
-static void circle_del(void *p){
+void circle_del(void *p){
   sqlite3_free(p);
 }
 
 /*
 ** Implementation of "circle" r-tree geometry callback.
 */
-static int circle_geom(
+int circle_geom(
   sqlite3_rtree_geometry *p,
   int nCoord, 
   sqlite3_rtree_dbl *aCoord,
@@ -165,7 +165,7 @@ static int circle_geom(
 **          Qcircle(X,Y,Radius,eType)        -- All values are doubles
 **          Qcircle('x:X y:Y r:R e:ETYPE')   -- Single string parameter
 */
-static int circle_query_func(sqlite3_rtree_query_info *p){
+int circle_query_func(sqlite3_rtree_query_info *p){
   int i;                          /* Iterator variable */
   Circle *pCircle;                /* Structure defining circular region */
   double xmin, xmax;              /* X dimensions of box being tested */
@@ -326,7 +326,7 @@ static int circle_query_func(sqlite3_rtree_query_info *p){
 **
 ** It returns all entries whose bounding boxes overlap with $x0,$x1,$y0,$y1.
 */
-static int bfs_query_func(sqlite3_rtree_query_info *p){
+int bfs_query_func(sqlite3_rtree_query_info *p){
   double x0,x1,y0,y1;        /* Dimensions of box being tested */
   double bx0,bx1,by0,by1;    /* Boundary of the query function */
 
@@ -373,7 +373,7 @@ struct Cube {
   double depth;
 };
 
-static void cube_context_free(void *p){
+void cube_context_free(void *p){
   sqlite3_free(p);
 }
 
@@ -382,7 +382,7 @@ static void cube_context_free(void *p){
 ** always ((void *)&gHere). This is just to facilitate testing, it is not
 ** actually used for anything.
 */
-static int gHere = 42;
+int gHere = 42;
 
 /*
 ** Implementation of a simple r-tree geom callback to test for intersection
@@ -393,7 +393,7 @@ static int gHere = 42;
 **
 ** The width, height and depth parameters must all be greater than zero.
 */
-static int cube_geom(
+int cube_geom(
   sqlite3_rtree_geometry *p,
   int nCoord,
   sqlite3_rtree_dbl *aCoord,
@@ -440,7 +440,7 @@ static int cube_geom(
 }
 #endif /* SQLITE_ENABLE_RTREE */
 
-static int SQLITE_TCLAPI register_cube_geom(
+int SQLITE_TCLAPI register_cube_geom(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -468,7 +468,7 @@ static int SQLITE_TCLAPI register_cube_geom(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI register_circle_geom(
+int SQLITE_TCLAPI register_circle_geom(
   void * clientData,
   Tcl_Interp *interp,
   int objc,

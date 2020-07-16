@@ -25,11 +25,11 @@
 ** incrAggFunctionDepth(pExpr,n) is the main routine.  incrAggDepth(..)
 ** is a helper function - a callback for the tree walker.
 */
-static int incrAggDepth(Walker *pWalker, Expr *pExpr){
+int incrAggDepth(Walker *pWalker, Expr *pExpr){
   if( pExpr->op==TK_AGG_FUNCTION ) pExpr->op2 += pWalker->u.n;
   return WRC_Continue;
 }
-static void incrAggFunctionDepth(Expr *pExpr, int N){
+void incrAggFunctionDepth(Expr *pExpr, int N){
   if( N>0 ){
     Walker w;
     memset(&w, 0, sizeof(w));
@@ -58,7 +58,7 @@ static void incrAggFunctionDepth(Expr *pExpr, int N){
 ** of the original expression.  The Expr.op2 field of TK_AGG_FUNCTION
 ** structures must be increased by the nSubquery amount.
 */
-static void resolveAlias(
+void resolveAlias(
   Parse *pParse,         /* Parsing context */
   ExprList *pEList,      /* A result set */
   int iCol,              /* A column in the result set.  0..pEList->nExpr-1 */
@@ -115,7 +115,7 @@ static void resolveAlias(
 ** Return FALSE if the USING clause is NULL or if it does not contain
 ** zCol.
 */
-static int nameInUsingClause(IdList *pUsing, const char *zCol){
+int nameInUsingClause(IdList *pUsing, const char *zCol){
   if( pUsing ){
     int k;
     for(k=0; k<pUsing->nId; k++){
@@ -161,7 +161,7 @@ int sqlite3MatchEName(
 /*
 ** Return TRUE if the double-quoted string  mis-feature should be supported.
 */
-static int areDoubleQuotedStringsEnabled(sqlite3 *db, NameContext *pTopNC){
+int areDoubleQuotedStringsEnabled(sqlite3 *db, NameContext *pTopNC){
   if( db->init.busy ) return 1;  /* Always support for legacy schemas */
   if( pTopNC->ncFlags & NC_IsDDL ){
     /* Currently parsing a DDL statement */
@@ -202,7 +202,7 @@ static int areDoubleQuotedStringsEnabled(sqlite3 *db, NameContext *pTopNC){
 ** If the name cannot be resolved unambiguously, leave an error message
 ** in pParse and return WRC_Abort.  Return WRC_Prune on success.
 */
-static int lookupName(
+int lookupName(
   Parse *pParse,       /* The parsing context */
   const char *zDb,     /* Name of the database containing table, or NULL */
   const char *zTab,    /* Name of table containing column, or NULL */
@@ -663,7 +663,7 @@ Expr *sqlite3CreateColumnExpr(sqlite3 *db, SrcList *pSrc, int iSrc, int iCol){
 ** (because errors are rare), the conditional is moved outside of the
 ** function call using a macro.
 */
-static void notValidImpl(
+void notValidImpl(
    Parse *pParse,       /* Leave error message here */
    NameContext *pNC,    /* The name context */
    const char *zMsg,    /* Type of error */
@@ -689,7 +689,7 @@ static void notValidImpl(
 ** Return 1024 times this value.  Or return -1 if p is not a floating point
 ** value between 1.0 and 0.0.
 */
-static int exprProbability(Expr *p){
+int exprProbability(Expr *p){
   double r = -1.0;
   if( p->op!=TK_FLOAT ) return -1;
   sqlite3AtoF(p->u.zToken, &r, sqlite3Strlen30(p->u.zToken), SQLITE_UTF8);
@@ -709,7 +709,7 @@ static int exprProbability(Expr *p){
 ** function names.  The operator for aggregate functions is changed
 ** to TK_AGG_FUNCTION.
 */
-static int resolveExprStep(Walker *pWalker, Expr *pExpr){
+int resolveExprStep(Walker *pWalker, Expr *pExpr){
   NameContext *pNC;
   Parse *pParse;
 
@@ -1112,7 +1112,7 @@ static int resolveExprStep(Walker *pWalker, Expr *pExpr){
 **
 ** pEList has been resolved.  pE has not.
 */
-static int resolveAsName(
+int resolveAsName(
   Parse *pParse,     /* Parsing context for error messages */
   ExprList *pEList,  /* List of expressions to scan */
   Expr *pE           /* Expression we are trying to match */
@@ -1152,7 +1152,7 @@ static int resolveAsName(
 **
 ** If there is no match, return 0.  Return -1 if an error occurs.
 */
-static int resolveOrderByTermToExprList(
+int resolveOrderByTermToExprList(
   Parse *pParse,     /* Parsing context for error messages */
   Select *pSelect,   /* The SELECT statement with the ORDER BY clause */
   Expr *pE           /* The specific ORDER BY term */
@@ -1199,7 +1199,7 @@ static int resolveOrderByTermToExprList(
 /*
 ** Generate an ORDER BY or GROUP BY term out-of-range error.
 */
-static void resolveOutOfRangeError(
+void resolveOutOfRangeError(
   Parse *pParse,         /* The error context into which to write the error */
   const char *zType,     /* "ORDER" or "GROUP" */
   int i,                 /* The index (1-based) of the term out of range */
@@ -1225,7 +1225,7 @@ static void resolveOutOfRangeError(
 **
 ** Return the number of errors seen.
 */
-static int resolveCompoundOrderBy(
+int resolveCompoundOrderBy(
   Parse *pParse,        /* Parsing context.  Leave error messages here */
   Select *pSelect       /* The SELECT statement containing the ORDER BY */
 ){
@@ -1377,7 +1377,7 @@ int sqlite3ResolveOrderGroupBy(
 /*
 ** Walker callback for windowRemoveExprFromSelect().
 */
-static int resolveRemoveWindowsCb(Walker *pWalker, Expr *pExpr){
+int resolveRemoveWindowsCb(Walker *pWalker, Expr *pExpr){
   UNUSED_PARAMETER(pWalker);
   if( ExprHasProperty(pExpr, EP_WinFunc) ){
     Window *pWin = pExpr->y.pWin;
@@ -1390,7 +1390,7 @@ static int resolveRemoveWindowsCb(Walker *pWalker, Expr *pExpr){
 ** Remove any Window objects owned by the expression pExpr from the
 ** Select.pWin list of Select object pSelect.
 */
-static void windowRemoveExprFromSelect(Select *pSelect, Expr *pExpr){
+void windowRemoveExprFromSelect(Select *pSelect, Expr *pExpr){
   if( pSelect->pWin ){
     Walker sWalker;
     memset(&sWalker, 0, sizeof(Walker));
@@ -1421,7 +1421,7 @@ static void windowRemoveExprFromSelect(Select *pSelect, Expr *pExpr){
 ** an appropriate error message might be left in pParse.  (OOM errors
 ** excepted.)
 */
-static int resolveOrderGroupBy(
+int resolveOrderGroupBy(
   NameContext *pNC,     /* The name context of the SELECT statement */
   Select *pSelect,      /* The SELECT statement holding pOrderBy */
   ExprList *pOrderBy,   /* An ORDER BY or GROUP BY clause to resolve */
@@ -1483,7 +1483,7 @@ static int resolveOrderGroupBy(
 /*
 ** Resolve names in the SELECT statement p and all of its descendants.
 */
-static int resolveSelectStep(Walker *pWalker, Select *p){
+int resolveSelectStep(Walker *pWalker, Select *p){
   NameContext *pOuterNC;  /* Context that contains this SELECT */
   NameContext sNC;        /* Name context of this SELECT */
   int isCompound;         /* True if p is a compound select */

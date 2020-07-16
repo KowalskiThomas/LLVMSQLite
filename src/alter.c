@@ -28,7 +28,7 @@
 **
 ** Or, if zName is not a system table, zero is returned.
 */
-static int isAlterableTable(Parse *pParse, Table *pTab){
+int isAlterableTable(Parse *pParse, Table *pTab){
   if( 0==sqlite3StrNICmp(pTab->zName, "sqlite_", 7) 
 #ifndef SQLITE_OMIT_VIRTUALTABLE
    || ( (pTab->tabFlags & TF_Shadow)!=0
@@ -49,7 +49,7 @@ static int isAlterableTable(Parse *pParse, Table *pTab){
 ** statement to ensure that the operation has not rendered any schema
 ** objects unusable.
 */
-static void renameTestSchema(Parse *pParse, const char *zDb, int bTemp){
+void renameTestSchema(Parse *pParse, const char *zDb, int bTemp){
   sqlite3NestedParse(pParse, 
       "SELECT 1 "
       "FROM \"%w\".%s "
@@ -76,7 +76,7 @@ static void renameTestSchema(Parse *pParse, const char *zDb, int bTemp){
 ** Generate code to reload the schema for database iDb. And, if iDb!=1, for
 ** the temp database as well.
 */
-static void renameReloadSchema(Parse *pParse, int iDb){
+void renameReloadSchema(Parse *pParse, int iDb){
   Vdbe *v = pParse->pVdbe;
   if( v ){
     sqlite3ChangeCookie(pParse, iDb);
@@ -490,7 +490,7 @@ exit_begin_add_column:
 ** Or, if pTab is not a view or virtual table, zero is returned.
 */
 #if !defined(SQLITE_OMIT_VIEW) || !defined(SQLITE_OMIT_VIRTUALTABLE)
-static int isRealTable(Parse *pParse, Table *pTab){
+int isRealTable(Parse *pParse, Table *pTab){
   const char *zType = 0;
 #ifndef SQLITE_OMIT_VIEW
   if( pTab->pSelect ){
@@ -665,7 +665,7 @@ struct RenameCtx {
 ** Technically, as x no longer points into a valid object or to the byte
 ** following a valid object, it may not be used in comparison operations.
 */
-static void renameTokenCheckAll(Parse *pParse, void *pPtr){
+void renameTokenCheckAll(Parse *pParse, void *pPtr){
   if( pParse->nErr==0 && pParse->db->mallocFailed==0 ){
     RenameToken *p;
     u8 i = 0;
@@ -729,7 +729,7 @@ void sqlite3RenameTokenRemap(Parse *pParse, void *pTo, void *pFrom){
 /*
 ** Walker callback used by sqlite3RenameExprUnmap().
 */
-static int renameUnmapExprCb(Walker *pWalker, Expr *pExpr){
+int renameUnmapExprCb(Walker *pWalker, Expr *pExpr){
   Parse *pParse = pWalker->pParse;
   sqlite3RenameTokenRemap(pParse, 0, (void*)pExpr);
   return WRC_Continue;
@@ -739,7 +739,7 @@ static int renameUnmapExprCb(Walker *pWalker, Expr *pExpr){
 ** Iterate through the Select objects that are part of WITH clauses attached
 ** to select statement pSelect.
 */
-static void renameWalkWith(Walker *pWalker, Select *pSelect){
+void renameWalkWith(Walker *pWalker, Select *pSelect){
   With *pWith = pSelect->pWith;
   if( pWith ){
     int i;
@@ -758,7 +758,7 @@ static void renameWalkWith(Walker *pWalker, Select *pSelect){
 /*
 ** Walker callback used by sqlite3RenameExprUnmap().
 */
-static int renameUnmapSelectCb(Walker *pWalker, Select *p){
+int renameUnmapSelectCb(Walker *pWalker, Select *p){
   Parse *pParse = pWalker->pParse;
   int i;
   if( pParse->nErr ) return WRC_Abort;
@@ -821,7 +821,7 @@ void sqlite3RenameExprlistUnmap(Parse *pParse, ExprList *pEList){
 /*
 ** Free the list of RenameToken objects given in the second argument
 */
-static void renameTokenFree(sqlite3 *db, RenameToken *pToken){
+void renameTokenFree(sqlite3 *db, RenameToken *pToken){
   RenameToken *pNext;
   RenameToken *p;
   for(p=pToken; p; p=pNext){
@@ -836,7 +836,7 @@ static void renameTokenFree(sqlite3 *db, RenameToken *pToken){
 ** from the Parse object and add it to the list maintained by the
 ** RenameCtx object passed as the second argument.
 */
-static void renameTokenFind(Parse *pParse, struct RenameCtx *pCtx, void *pPtr){
+void renameTokenFind(Parse *pParse, struct RenameCtx *pCtx, void *pPtr){
   RenameToken **pp;
   assert( pPtr!=0 );
   for(pp=&pParse->pRename; (*pp); pp=&(*pp)->pNext){
@@ -856,7 +856,7 @@ static void renameTokenFind(Parse *pParse, struct RenameCtx *pCtx, void *pPtr){
 ** because without a dummy callback, sqlite3WalkExpr() and similar do not
 ** descend into sub-select statements.
 */
-static int renameColumnSelectCb(Walker *pWalker, Select *p){
+int renameColumnSelectCb(Walker *pWalker, Select *p){
   if( p->selFlags & SF_View ) return WRC_Prune;
   renameWalkWith(pWalker, p);
   return WRC_Continue;
@@ -871,7 +871,7 @@ static int renameColumnSelectCb(Walker *pWalker, Select *p){
 ** RenameToken object to the list of RenameToken objects being
 ** constructed in RenameCtx object at pWalker->u.pRename.
 */
-static int renameColumnExprCb(Walker *pWalker, Expr *pExpr){
+int renameColumnExprCb(Walker *pWalker, Expr *pExpr){
   RenameCtx *p = pWalker->u.pRename;
   if( pExpr->op==TK_TRIGGER 
    && pExpr->iColumn==p->iCol 
@@ -896,7 +896,7 @@ static int renameColumnExprCb(Walker *pWalker, Expr *pExpr){
 ** return all column name tokens in the order that they are encountered
 ** in the SQL statement.
 */
-static RenameToken *renameColumnTokenNext(RenameCtx *pCtx){
+RenameToken *renameColumnTokenNext(RenameCtx *pCtx){
   RenameToken *pBest = pCtx->pList;
   RenameToken *pToken;
   RenameToken **pp;
@@ -917,7 +917,7 @@ static RenameToken *renameColumnTokenNext(RenameCtx *pCtx){
 ** sub-routine is currently stored in pParse->zErrMsg. This function
 ** adds context to the error message and then stores it in pCtx.
 */
-static void renameColumnParseError(
+void renameColumnParseError(
   sqlite3_context *pCtx, 
   int bPost,
   sqlite3_value *pType,
@@ -942,7 +942,7 @@ static void renameColumnParseError(
 ** corresponding rename-token from Parse object pParse and add it
 ** to the RenameCtx pCtx.
 */
-static void renameColumnElistNames(
+void renameColumnElistNames(
   Parse *pParse, 
   RenameCtx *pCtx, 
   ExprList *pEList, 
@@ -967,7 +967,7 @@ static void renameColumnElistNames(
 ** that matches the string in zOld, extract the corresponding rename-token 
 ** from Parse object pParse and add it to the RenameCtx pCtx.
 */
-static void renameColumnIdlistNames(
+void renameColumnIdlistNames(
   Parse *pParse, 
   RenameCtx *pCtx, 
   IdList *pIdList, 
@@ -988,7 +988,7 @@ static void renameColumnIdlistNames(
 ** Parse the SQL statement zSql using Parse object (*p). The Parse object
 ** is initialized by this function before it is used.
 */
-static int renameParseSql(
+int renameParseSql(
   Parse *p,                       /* Memory to use for Parse object */
   const char *zDb,                /* Name of schema SQL belongs to */
   sqlite3 *db,                    /* Database handle */
@@ -1043,7 +1043,7 @@ static int renameParseSql(
 ** Or, if an error occurs (i.e. an OOM condition), an error is left in
 ** pCtx and an SQLite error code returned.
 */
-static int renameEditSql(
+int renameEditSql(
   sqlite3_context *pCtx,          /* Return result here */
   RenameCtx *pRename,             /* Rename context */
   const char *zSql,               /* SQL statement to edit */
@@ -1125,7 +1125,7 @@ static int renameEditSql(
 ** successful. Otherwise, return an SQLite error code and leave an error
 ** message in the Parse object.
 */
-static int renameResolveTrigger(Parse *pParse, const char *zDb){
+int renameResolveTrigger(Parse *pParse, const char *zDb){
   sqlite3 *db = pParse->db;
   Trigger *pNew = pParse->pNewTrigger;
   TriggerStep *pStep;
@@ -1203,7 +1203,7 @@ static int renameResolveTrigger(Parse *pParse, const char *zDb){
 ** Invoke sqlite3WalkExpr() or sqlite3WalkSelect() on all Select or Expr
 ** objects that are part of the trigger passed as the second argument.
 */
-static void renameWalkTrigger(Walker *pWalker, Trigger *pTrigger){
+void renameWalkTrigger(Walker *pWalker, Trigger *pTrigger){
   TriggerStep *pStep;
 
   /* Find tokens to edit in WHEN clause */
@@ -1228,7 +1228,7 @@ static void renameWalkTrigger(Walker *pWalker, Trigger *pTrigger){
 ** Free the contents of Parse object (*pParse). Do not free the memory
 ** occupied by the Parse object itself.
 */
-static void renameParseCleanup(Parse *pParse){
+void renameParseCleanup(Parse *pParse){
   sqlite3 *db = pParse->db;
   Index *pIdx;
   if( pParse->pVdbe ){
@@ -1268,7 +1268,7 @@ static void renameParseCleanup(Parse *pParse){
 ** It is only accessible to SQL created using sqlite3NestedParse().  It is
 ** not reachable from ordinary SQL passed into sqlite3_prepare().
 */
-static void renameColumnFunc(
+void renameColumnFunc(
   sqlite3_context *context,
   int NotUsed,
   sqlite3_value **argv
@@ -1429,7 +1429,7 @@ renameColumnFunc_done:
 /*
 ** Walker expression callback used by "RENAME TABLE". 
 */
-static int renameTableExprCb(Walker *pWalker, Expr *pExpr){
+int renameTableExprCb(Walker *pWalker, Expr *pExpr){
   RenameCtx *p = pWalker->u.pRename;
   if( pExpr->op==TK_COLUMN && p->pTab==pExpr->y.pTab ){
     renameTokenFind(pWalker->pParse, p, (void*)&pExpr->y.pTab);
@@ -1440,7 +1440,7 @@ static int renameTableExprCb(Walker *pWalker, Expr *pExpr){
 /*
 ** Walker select callback used by "RENAME TABLE". 
 */
-static int renameTableSelectCb(Walker *pWalker, Select *pSelect){
+int renameTableSelectCb(Walker *pWalker, Select *pSelect){
   int i;
   RenameCtx *p = pWalker->u.pRename;
   SrcList *pSrc = pSelect->pSrc;
@@ -1480,7 +1480,7 @@ static int renameTableSelectCb(Walker *pWalker, Select *pSelect){
 ** sqlite_rename_table('main', 'CREATE TABLE t1(a REFERENCES t2)','t2','t3',0)
 **       -> 'CREATE TABLE t1(a REFERENCES t3)'
 */
-static void renameTableFunc(
+void renameTableFunc(
   sqlite3_context *context,
   int NotUsed,
   sqlite3_value **argv
@@ -1637,7 +1637,7 @@ static void renameTableFunc(
 **   * the SQL argument creates a trigger, and
 **   * the table that the trigger is attached to is in database zDb.
 */
-static void renameTableTest(
+void renameTableTest(
   sqlite3_context *context,
   int NotUsed,
   sqlite3_value **argv

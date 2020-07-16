@@ -22,7 +22,7 @@
 ** Walk all expressions linked into the list of Window objects passed
 ** as the second argument.
 */
-static int walkWindowList(Walker *pWalker, Window *pList){
+int walkWindowList(Walker *pWalker, Window *pList){
   Window *pWin;
   for(pWin=pList; pWin; pWin=pWin->pNextWin){
     int rc;
@@ -65,7 +65,7 @@ static int walkWindowList(Walker *pWalker, Window *pList){
 ** The return value from this routine is WRC_Abort to abandon the tree walk
 ** and WRC_Continue to continue.
 */
-static SQLITE_NOINLINE int walkExpr(Walker *pWalker, Expr *pExpr){
+SQLITE_NOINLINE int walkExpr(Walker *pWalker, Expr *pExpr){
   int rc;
   testcase( ExprHasProperty(pExpr, EP_TokenOnly) );
   testcase( ExprHasProperty(pExpr, EP_Reduced) );

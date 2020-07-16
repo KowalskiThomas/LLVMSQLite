@@ -29,7 +29,7 @@
 ** The execSqlF() routine does the same thing, except it accepts
 ** a format string as its third argument
 */
-static int execSql(sqlite3 *db, char **pzErrMsg, const char *zSql){
+int execSql(sqlite3 *db, char **pzErrMsg, const char *zSql){
   sqlite3_stmt *pStmt;
   int rc;
 
@@ -59,7 +59,7 @@ static int execSql(sqlite3 *db, char **pzErrMsg, const char *zSql){
   (void)sqlite3_finalize(pStmt);
   return rc;
 }
-static int execSqlF(sqlite3 *db, char **pzErrMsg, const char *zSql, ...){
+int execSqlF(sqlite3 *db, char **pzErrMsg, const char *zSql, ...){
   char *z;
   va_list ap;
   int rc;

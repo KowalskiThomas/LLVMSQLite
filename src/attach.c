@@ -32,7 +32,7 @@
 **
 ** will fail because neither abc or def can be resolved.
 */
-static int resolveAttachExpr(NameContext *pName, Expr *pExpr)
+int resolveAttachExpr(NameContext *pName, Expr *pExpr)
 {
   int rc = SQLITE_OK;
   if( pExpr ){
@@ -60,7 +60,7 @@ static int resolveAttachExpr(NameContext *pName, Expr *pExpr)
 ** new database, close the database on db->init.iDb and reopen it as an
 ** empty MemDB.
 */
-static void attachFunc(
+void attachFunc(
   sqlite3_context *context,
   int NotUsed,
   sqlite3_value **argv
@@ -254,7 +254,7 @@ attach_error:
 **
 **     SELECT sqlite_detach(x)
 */
-static void detachFunc(
+void detachFunc(
   sqlite3_context *context,
   int NotUsed,
   sqlite3_value **argv
@@ -314,7 +314,7 @@ detach_error:
 ** This procedure generates VDBE code for a single invocation of either the
 ** sqlite_detach() or sqlite_attach() SQL user functions.
 */
-static void codeAttach(
+void codeAttach(
   Parse *pParse,       /* The parser context */
   int type,            /* Either SQLITE_ATTACH or SQLITE_DETACH */
   FuncDef const *pFunc,/* FuncDef wrapper for detachFunc() or attachFunc() */

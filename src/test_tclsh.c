@@ -35,7 +35,7 @@
 #endif
 
 /* Forward declaration */
-static int SQLITE_TCLAPI load_testfixture_extensions(
+int SQLITE_TCLAPI load_testfixture_extensions(
   ClientData cd,
   Tcl_Interp *interp,
   int objc,
@@ -182,7 +182,7 @@ const char *sqlite3TestInit(Tcl_Interp *interp){
 
 /* tclcmd:   load_testfixture_extensions
 */
-static int SQLITE_TCLAPI load_testfixture_extensions(
+int SQLITE_TCLAPI load_testfixture_extensions(
   ClientData cd,
   Tcl_Interp *interp,
   int objc,

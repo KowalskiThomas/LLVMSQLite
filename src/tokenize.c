@@ -56,7 +56,7 @@
 #define CC_ILLEGAL   27    /* Illegal character */
 #define CC_NUL       28    /* 0x00 */
 
-static const unsigned char aiClass[] = {
+const unsigned char aiClass[] = {
 #ifdef SQLITE_ASCII
 /*         x0  x1  x2  x3  x4  x5  x6  x7  x8  x9  xa  xb  xc  xd  xe  xf */
 /* 0x */   28, 27, 27, 27, 27, 27, 27, 27, 27,  7,  7, 27,  7,  7, 27, 27,
@@ -192,7 +192,7 @@ int sqlite3IsIdChar(u8 c){ return IdChar(c); }
 ** Return the id of the next token in string (*pz). Before returning, set
 ** (*pz) to point to the byte following the parsed token.
 */
-static int getToken(const unsigned char **pz){
+int getToken(const unsigned char **pz){
   const unsigned char *z = *pz;
   int t;                          /* Token type to return */
   do {
@@ -241,7 +241,7 @@ static int getToken(const unsigned char **pz){
 **   * the previous token was TK_RP, and
 **   * the next token is TK_LP.
 */
-static int analyzeWindowKeyword(const unsigned char *z){
+int analyzeWindowKeyword(const unsigned char *z){
   int t;
   t = getToken(&z);
   if( t!=TK_ID ) return TK_ID;
@@ -249,14 +249,14 @@ static int analyzeWindowKeyword(const unsigned char *z){
   if( t!=TK_AS ) return TK_ID;
   return TK_WINDOW;
 }
-static int analyzeOverKeyword(const unsigned char *z, int lastToken){
+int analyzeOverKeyword(const unsigned char *z, int lastToken){
   if( lastToken==TK_RP ){
     int t = getToken(&z);
     if( t==TK_LP || t==TK_ID ) return TK_OVER;
   }
   return TK_ID;
 }
-static int analyzeFilterKeyword(const unsigned char *z, int lastToken){
+int analyzeFilterKeyword(const unsigned char *z, int lastToken){
   if( lastToken==TK_RP && getToken(&z)==TK_LP ){
     return TK_FILTER;
   }
@@ -734,7 +734,7 @@ int sqlite3RunParser(Parse *pParse, const char *zSql, char **pzErrMsg){
 ** Insert a single space character into pStr if the current string
 ** ends with an identifier
 */
-static void addSpaceSeparator(sqlite3_str *pStr){
+void addSpaceSeparator(sqlite3_str *pStr){
   if( pStr->nChar && sqlite3IsIdChar(pStr->zText[pStr->nChar-1]) ){
     sqlite3_str_append(pStr, " ", 1);
   }

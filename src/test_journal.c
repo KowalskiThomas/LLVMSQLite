@@ -132,37 +132,37 @@ struct jt_file {
 /*
 ** Method declarations for jt_file.
 */
-static int jtClose(sqlite3_file*);
-static int jtRead(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
-static int jtWrite(sqlite3_file*,const void*,int iAmt, sqlite3_int64 iOfst);
-static int jtTruncate(sqlite3_file*, sqlite3_int64 size);
-static int jtSync(sqlite3_file*, int flags);
-static int jtFileSize(sqlite3_file*, sqlite3_int64 *pSize);
-static int jtLock(sqlite3_file*, int);
-static int jtUnlock(sqlite3_file*, int);
-static int jtCheckReservedLock(sqlite3_file*, int *);
-static int jtFileControl(sqlite3_file*, int op, void *pArg);
-static int jtSectorSize(sqlite3_file*);
-static int jtDeviceCharacteristics(sqlite3_file*);
+int jtClose(sqlite3_file*);
+int jtRead(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
+int jtWrite(sqlite3_file*,const void*,int iAmt, sqlite3_int64 iOfst);
+int jtTruncate(sqlite3_file*, sqlite3_int64 size);
+int jtSync(sqlite3_file*, int flags);
+int jtFileSize(sqlite3_file*, sqlite3_int64 *pSize);
+int jtLock(sqlite3_file*, int);
+int jtUnlock(sqlite3_file*, int);
+int jtCheckReservedLock(sqlite3_file*, int *);
+int jtFileControl(sqlite3_file*, int op, void *pArg);
+int jtSectorSize(sqlite3_file*);
+int jtDeviceCharacteristics(sqlite3_file*);
 
 /*
 ** Method declarations for jt_vfs.
 */
-static int jtOpen(sqlite3_vfs*, const char *, sqlite3_file*, int , int *);
-static int jtDelete(sqlite3_vfs*, const char *zName, int syncDir);
-static int jtAccess(sqlite3_vfs*, const char *zName, int flags, int *);
-static int jtFullPathname(sqlite3_vfs*, const char *zName, int, char *zOut);
-static void *jtDlOpen(sqlite3_vfs*, const char *zFilename);
-static void jtDlError(sqlite3_vfs*, int nByte, char *zErrMsg);
-static void (*jtDlSym(sqlite3_vfs*,void*, const char *zSymbol))(void);
-static void jtDlClose(sqlite3_vfs*, void*);
-static int jtRandomness(sqlite3_vfs*, int nByte, char *zOut);
-static int jtSleep(sqlite3_vfs*, int microseconds);
-static int jtCurrentTime(sqlite3_vfs*, double*);
-static int jtCurrentTimeInt64(sqlite3_vfs*, sqlite3_int64*);
-static int jtGetLastError(sqlite3_vfs*, int, char*);
+int jtOpen(sqlite3_vfs*, const char *, sqlite3_file*, int , int *);
+int jtDelete(sqlite3_vfs*, const char *zName, int syncDir);
+int jtAccess(sqlite3_vfs*, const char *zName, int flags, int *);
+int jtFullPathname(sqlite3_vfs*, const char *zName, int, char *zOut);
+void *jtDlOpen(sqlite3_vfs*, const char *zFilename);
+void jtDlError(sqlite3_vfs*, int nByte, char *zErrMsg);
+void (*jtDlSym(sqlite3_vfs*,void*, const char *zSymbol))(void);
+void jtDlClose(sqlite3_vfs*, void*);
+int jtRandomness(sqlite3_vfs*, int nByte, char *zOut);
+int jtSleep(sqlite3_vfs*, int microseconds);
+int jtCurrentTime(sqlite3_vfs*, double*);
+int jtCurrentTimeInt64(sqlite3_vfs*, sqlite3_int64*);
+int jtGetLastError(sqlite3_vfs*, int, char*);
 
-static sqlite3_vfs jt_vfs = {
+sqlite3_vfs jt_vfs = {
   2,                             /* iVersion */
   sizeof(jt_file),               /* szOsFile */
   JT_MAX_PATHNAME,               /* mxPathname */
@@ -184,7 +184,7 @@ static sqlite3_vfs jt_vfs = {
   jtCurrentTimeInt64             /* xCurrentTimeInt64 */
 };
 
-static sqlite3_io_methods jt_io_methods = {
+sqlite3_io_methods jt_io_methods = {
   1,                             /* iVersion */
   jtClose,                       /* xClose */
   jtRead,                        /* xRead */
@@ -204,28 +204,28 @@ struct JtGlobal {
   sqlite3_vfs *pVfs;             /* Parent VFS */
   jt_file *pList;                /* List of all open files */
 };
-static struct JtGlobal g = {0, 0};
+struct JtGlobal g = {0, 0};
 
 /*
 ** Functions to obtain and relinquish a mutex to protect g.pList. The
 ** STATIC_PRNG mutex is reused, purely for the sake of convenience.
 */
-static void enterJtMutex(void){
+void enterJtMutex(void){
   sqlite3_mutex_enter(sqlite3_mutex_alloc(SQLITE_MUTEX_STATIC_PRNG));
 }
-static void leaveJtMutex(void){
+void leaveJtMutex(void){
   sqlite3_mutex_leave(sqlite3_mutex_alloc(SQLITE_MUTEX_STATIC_PRNG));
 }
 
 extern int sqlite3_io_error_pending;
 extern int sqlite3_io_error_hit;
-static void stop_ioerr_simulation(int *piSave, int *piSave2){
+void stop_ioerr_simulation(int *piSave, int *piSave2){
   *piSave = sqlite3_io_error_pending;
   *piSave2 = sqlite3_io_error_hit;
   sqlite3_io_error_pending = -1;
   sqlite3_io_error_hit = 0;
 }
-static void start_ioerr_simulation(int iSave, int iSave2){
+void start_ioerr_simulation(int iSave, int iSave2){
   sqlite3_io_error_pending = iSave;
   sqlite3_io_error_hit = iSave2;
 }
@@ -235,7 +235,7 @@ static void start_ioerr_simulation(int iSave, int iSave2){
 ** open on a main database file. If it is, and a transaction is currently
 ** opened on the file, then discard all transaction related data.
 */
-static void closeTransaction(jt_file *p){
+void closeTransaction(jt_file *p){
   sqlite3BitvecDestroy(p->pWritable);
   sqlite3_free(p->aCksum);
   p->pWritable = 0;
@@ -246,7 +246,7 @@ static void closeTransaction(jt_file *p){
 /*
 ** Close an jt-file.
 */
-static int jtClose(sqlite3_file *pFile){
+int jtClose(sqlite3_file *pFile){
   jt_file **pp;
   jt_file *p = (jt_file *)pFile;
 
@@ -264,7 +264,7 @@ static int jtClose(sqlite3_file *pFile){
 /*
 ** Read data from an jt-file.
 */
-static int jtRead(
+int jtRead(
   sqlite3_file *pFile, 
   void *zBuf, 
   int iAmt, 
@@ -289,7 +289,7 @@ static int jtRead(
 **   c) There is currently a reserved lock on the file. This 
 **      condition is waived if the noLock argument is non-zero.
 **/
-static jt_file *locateDatabaseHandle(const char *zJournal, int noLock){
+jt_file *locateDatabaseHandle(const char *zJournal, int noLock){
   jt_file *pMain = 0;
   enterJtMutex();
   for(pMain=g.pList; pMain; pMain=pMain->pNext){
@@ -311,7 +311,7 @@ static jt_file *locateDatabaseHandle(const char *zJournal, int noLock){
 ** unsigned 32-bit integer stored in big-endian format. Decode the 
 ** integer and return its value.
 */
-static u32 decodeUint32(const unsigned char *z){
+u32 decodeUint32(const unsigned char *z){
   return (z[0]<<24) + (z[1]<<16) + (z[2]<<8) + z[3];
 }
 
@@ -319,7 +319,7 @@ static u32 decodeUint32(const unsigned char *z){
 ** Calculate a checksum from the buffer of length n bytes pointed to
 ** by parameter z.
 */
-static u32 genCksum(const unsigned char *z, int n){
+u32 genCksum(const unsigned char *z, int n){
   int i;
   u32 cksum = 0;
   for(i=0; i<n; i++){
@@ -337,7 +337,7 @@ static u32 genCksum(const unsigned char *z, int n){
 ** SQLITE_OK is returned if the journal-header is successfully 
 ** decoded. Otherwise, SQLITE_ERROR.
 */
-static int decodeJournalHdr(
+int decodeJournalHdr(
   const unsigned char *zBuf,         /* Input: 28 byte journal header */
   u32 *pnRec,                        /* Out: Number of journalled records */
   u32 *pnPage,                       /* Out: Original database page count */
@@ -357,7 +357,7 @@ static int decodeJournalHdr(
 ** This function is called when a new transaction is opened, just after
 ** the first journal-header is written to the journal file.
 */
-static int openTransaction(jt_file *pMain, jt_file *pJournal){
+int openTransaction(jt_file *pMain, jt_file *pJournal){
   unsigned char *aData;
   sqlite3_file *p = pMain->pReal;
   int rc = SQLITE_OK;
@@ -430,7 +430,7 @@ static int openTransaction(jt_file *pMain, jt_file *pJournal){
 ** This function reads the journal file and adds the page number for each
 ** page in the journal to the Bitvec object passed as the second argument.
 */
-static int readJournalFile(jt_file *p, jt_file *pMain){
+int readJournalFile(jt_file *p, jt_file *pMain){
   int rc = SQLITE_OK;
   unsigned char zBuf[28];
   sqlite3_file *pReal = p->pReal;
@@ -509,7 +509,7 @@ finish_rjf:
 /*
 ** Write data to an jt-file.
 */
-static int jtWrite(
+int jtWrite(
   sqlite3_file *pFile, 
   const void *zBuf, 
   int iAmt, 
@@ -577,7 +577,7 @@ static int jtWrite(
 /*
 ** Truncate an jt-file.
 */
-static int jtTruncate(sqlite3_file *pFile, sqlite_int64 size){
+int jtTruncate(sqlite3_file *pFile, sqlite_int64 size){
   jt_file *p = (jt_file *)pFile;
   if( p->flags&SQLITE_OPEN_MAIN_JOURNAL && size==0 ){
     /* Truncating a journal file. This is the end of a transaction. */
@@ -597,7 +597,7 @@ static int jtTruncate(sqlite3_file *pFile, sqlite_int64 size){
 /*
 ** Sync an jt-file.
 */
-static int jtSync(sqlite3_file *pFile, int flags){
+int jtSync(sqlite3_file *pFile, int flags){
   jt_file *p = (jt_file *)pFile;
 
   if( p->flags&SQLITE_OPEN_MAIN_JOURNAL ){
@@ -627,7 +627,7 @@ static int jtSync(sqlite3_file *pFile, int flags){
 /*
 ** Return the current file-size of an jt-file.
 */
-static int jtFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
+int jtFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
   jt_file *p = (jt_file *)pFile;
   return sqlite3OsFileSize(p->pReal, pSize);
 }
@@ -635,7 +635,7 @@ static int jtFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
 /*
 ** Lock an jt-file.
 */
-static int jtLock(sqlite3_file *pFile, int eLock){
+int jtLock(sqlite3_file *pFile, int eLock){
   int rc;
   jt_file *p = (jt_file *)pFile;
   rc = sqlite3OsLock(p->pReal, eLock);
@@ -648,7 +648,7 @@ static int jtLock(sqlite3_file *pFile, int eLock){
 /*
 ** Unlock an jt-file.
 */
-static int jtUnlock(sqlite3_file *pFile, int eLock){
+int jtUnlock(sqlite3_file *pFile, int eLock){
   int rc;
   jt_file *p = (jt_file *)pFile;
   rc = sqlite3OsUnlock(p->pReal, eLock);
@@ -661,7 +661,7 @@ static int jtUnlock(sqlite3_file *pFile, int eLock){
 /*
 ** Check if another file-handle holds a RESERVED lock on an jt-file.
 */
-static int jtCheckReservedLock(sqlite3_file *pFile, int *pResOut){
+int jtCheckReservedLock(sqlite3_file *pFile, int *pResOut){
   jt_file *p = (jt_file *)pFile;
   return sqlite3OsCheckReservedLock(p->pReal, pResOut);
 }
@@ -669,7 +669,7 @@ static int jtCheckReservedLock(sqlite3_file *pFile, int *pResOut){
 /*
 ** File control method. For custom operations on an jt-file.
 */
-static int jtFileControl(sqlite3_file *pFile, int op, void *pArg){
+int jtFileControl(sqlite3_file *pFile, int op, void *pArg){
   jt_file *p = (jt_file *)pFile;
   return p->pReal->pMethods->xFileControl(p->pReal, op, pArg);
 }
@@ -677,7 +677,7 @@ static int jtFileControl(sqlite3_file *pFile, int op, void *pArg){
 /*
 ** Return the sector-size in bytes for an jt-file.
 */
-static int jtSectorSize(sqlite3_file *pFile){
+int jtSectorSize(sqlite3_file *pFile){
   jt_file *p = (jt_file *)pFile;
   return sqlite3OsSectorSize(p->pReal);
 }
@@ -685,7 +685,7 @@ static int jtSectorSize(sqlite3_file *pFile){
 /*
 ** Return the device characteristic flags supported by an jt-file.
 */
-static int jtDeviceCharacteristics(sqlite3_file *pFile){
+int jtDeviceCharacteristics(sqlite3_file *pFile){
   jt_file *p = (jt_file *)pFile;
   return sqlite3OsDeviceCharacteristics(p->pReal);
 }
@@ -693,7 +693,7 @@ static int jtDeviceCharacteristics(sqlite3_file *pFile){
 /*
 ** Open an jt file handle.
 */
-static int jtOpen(
+int jtOpen(
   sqlite3_vfs *pVfs,
   const char *zName,
   sqlite3_file *pFile,
@@ -730,7 +730,7 @@ static int jtOpen(
 ** ensure the file-system modifications are synced to disk before
 ** returning.
 */
-static int jtDelete(sqlite3_vfs *pVfs, const char *zPath, int dirSync){
+int jtDelete(sqlite3_vfs *pVfs, const char *zPath, int dirSync){
   int nPath = (int)strlen(zPath);
   if( nPath>8 && 0==strcmp("-journal", &zPath[nPath-8]) ){
     /* Deleting a journal file. The end of a transaction. */
@@ -747,7 +747,7 @@ static int jtDelete(sqlite3_vfs *pVfs, const char *zPath, int dirSync){
 ** Test for access permissions. Return true if the requested permission
 ** is available, or false otherwise.
 */
-static int jtAccess(
+int jtAccess(
   sqlite3_vfs *pVfs, 
   const char *zPath, 
   int flags, 
@@ -761,7 +761,7 @@ static int jtAccess(
 ** to the pathname in zPath. zOut is guaranteed to point to a buffer
 ** of at least (JT_MAX_PATHNAME+1) bytes.
 */
-static int jtFullPathname(
+int jtFullPathname(
   sqlite3_vfs *pVfs, 
   const char *zPath, 
   int nOut, 
@@ -773,7 +773,7 @@ static int jtFullPathname(
 /*
 ** Open the dynamic library located at zPath and return a handle.
 */
-static void *jtDlOpen(sqlite3_vfs *pVfs, const char *zPath){
+void *jtDlOpen(sqlite3_vfs *pVfs, const char *zPath){
   return g.pVfs->xDlOpen(g.pVfs, zPath);
 }
 
@@ -782,21 +782,21 @@ static void *jtDlOpen(sqlite3_vfs *pVfs, const char *zPath){
 ** utf-8 string describing the most recent error encountered associated 
 ** with dynamic libraries.
 */
-static void jtDlError(sqlite3_vfs *pVfs, int nByte, char *zErrMsg){
+void jtDlError(sqlite3_vfs *pVfs, int nByte, char *zErrMsg){
   g.pVfs->xDlError(g.pVfs, nByte, zErrMsg);
 }
 
 /*
 ** Return a pointer to the symbol zSymbol in the dynamic library pHandle.
 */
-static void (*jtDlSym(sqlite3_vfs *pVfs, void *p, const char *zSym))(void){
+void (*jtDlSym(sqlite3_vfs *pVfs, void *p, const char *zSym))(void){
   return g.pVfs->xDlSym(g.pVfs, p, zSym);
 }
 
 /*
 ** Close the dynamic library handle pHandle.
 */
-static void jtDlClose(sqlite3_vfs *pVfs, void *pHandle){
+void jtDlClose(sqlite3_vfs *pVfs, void *pHandle){
   g.pVfs->xDlClose(g.pVfs, pHandle);
 }
 
@@ -804,7 +804,7 @@ static void jtDlClose(sqlite3_vfs *pVfs, void *pHandle){
 ** Populate the buffer pointed to by zBufOut with nByte bytes of 
 ** random data.
 */
-static int jtRandomness(sqlite3_vfs *pVfs, int nByte, char *zBufOut){
+int jtRandomness(sqlite3_vfs *pVfs, int nByte, char *zBufOut){
   return sqlite3OsRandomness(g.pVfs, nByte, zBufOut);
 }
 
@@ -812,24 +812,24 @@ static int jtRandomness(sqlite3_vfs *pVfs, int nByte, char *zBufOut){
 ** Sleep for nMicro microseconds. Return the number of microseconds 
 ** actually slept.
 */
-static int jtSleep(sqlite3_vfs *pVfs, int nMicro){
+int jtSleep(sqlite3_vfs *pVfs, int nMicro){
   return sqlite3OsSleep(g.pVfs, nMicro);
 }
 
 /*
 ** Return the current time as a Julian Day number in *pTimeOut.
 */
-static int jtCurrentTime(sqlite3_vfs *pVfs, double *pTimeOut){
+int jtCurrentTime(sqlite3_vfs *pVfs, double *pTimeOut){
   return g.pVfs->xCurrentTime(g.pVfs, pTimeOut);
 }
 /*
 ** Return the current time as a Julian Day number in *pTimeOut.
 */
-static int jtCurrentTimeInt64(sqlite3_vfs *pVfs, sqlite3_int64 *pTimeOut){
+int jtCurrentTimeInt64(sqlite3_vfs *pVfs, sqlite3_int64 *pTimeOut){
   return g.pVfs->xCurrentTimeInt64(g.pVfs, pTimeOut);
 }
 
-static int jtGetLastError(sqlite3_vfs *pVfs, int n, char *z){
+int jtGetLastError(sqlite3_vfs *pVfs, int n, char *z){
   return g.pVfs->xGetLastError(g.pVfs, n, z);
 }
 

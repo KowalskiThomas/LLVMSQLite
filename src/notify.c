@@ -37,7 +37,7 @@
 ** is not NULL. This variable may only accessed while the STATIC_MASTER
 ** mutex is held.
 */
-static sqlite3 *SQLITE_WSD sqlite3BlockedList = 0;
+sqlite3 *SQLITE_WSD sqlite3BlockedList = 0;
 
 #ifndef NDEBUG
 /*
@@ -54,7 +54,7 @@ static sqlite3 *SQLITE_WSD sqlite3BlockedList = 0;
 **      blocked connections list have pUnlockConnection or pBlockingConnection
 **      set to db. This is used when closing connection db.
 */
-static void checkListProperties(sqlite3 *db){
+void checkListProperties(sqlite3 *db){
   sqlite3 *p;
   for(p=sqlite3BlockedList; p; p=p->pNextBlocked){
     int seen = 0;
@@ -80,7 +80,7 @@ static void checkListProperties(sqlite3 *db){
 ** Remove connection db from the blocked connections list. If connection
 ** db is not currently a part of the list, this function is a no-op.
 */
-static void removeFromBlockedList(sqlite3 *db){
+void removeFromBlockedList(sqlite3 *db){
   sqlite3 **pp;
   assertMutexHeld();
   for(pp=&sqlite3BlockedList; *pp; pp = &(*pp)->pNextBlocked){
@@ -95,7 +95,7 @@ static void removeFromBlockedList(sqlite3 *db){
 ** Add connection db to the blocked connections list. It is assumed
 ** that it is not already a part of the list.
 */
-static void addToBlockedList(sqlite3 *db){
+void addToBlockedList(sqlite3 *db){
   sqlite3 **pp;
   assertMutexHeld();
   for(
@@ -110,7 +110,7 @@ static void addToBlockedList(sqlite3 *db){
 /*
 ** Obtain the STATIC_MASTER mutex.
 */
-static void enterMutex(void){
+void enterMutex(void){
   sqlite3_mutex_enter(sqlite3MutexAlloc(SQLITE_MUTEX_STATIC_MASTER));
   checkListProperties(0);
 }
@@ -118,7 +118,7 @@ static void enterMutex(void){
 /*
 ** Release the STATIC_MASTER mutex.
 */
-static void leaveMutex(void){
+void leaveMutex(void){
   assertMutexHeld();
   checkListProperties(0);
   sqlite3_mutex_leave(sqlite3MutexAlloc(SQLITE_MUTEX_STATIC_MASTER));

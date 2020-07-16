@@ -63,7 +63,7 @@ struct DbpageTable {
 /*
 ** Connect to or create a dbpagevfs virtual table.
 */
-static int dbpageConnect(
+int dbpageConnect(
   sqlite3 *db,
   void *pAux,
   int argc, const char *const*argv,
@@ -94,7 +94,7 @@ static int dbpageConnect(
 /*
 ** Disconnect from or destroy a dbpagevfs virtual table.
 */
-static int dbpageDisconnect(sqlite3_vtab *pVtab){
+int dbpageDisconnect(sqlite3_vtab *pVtab){
   sqlite3_free(pVtab);
   return SQLITE_OK;
 }
@@ -107,7 +107,7 @@ static int dbpageDisconnect(sqlite3_vtab *pVtab){
 **     2     schema=?1, full table scan
 **     3     schema=?1, pgno=?2
 */
-static int dbpageBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
+int dbpageBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
   int i;
   int iPlan = 0;
 
@@ -162,7 +162,7 @@ static int dbpageBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
 /*
 ** Open a new dbpagevfs cursor.
 */
-static int dbpageOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
+int dbpageOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   DbpageCursor *pCsr;
 
   pCsr = (DbpageCursor *)sqlite3_malloc64(sizeof(DbpageCursor));
@@ -181,7 +181,7 @@ static int dbpageOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
 /*
 ** Close a dbpagevfs cursor.
 */
-static int dbpageClose(sqlite3_vtab_cursor *pCursor){
+int dbpageClose(sqlite3_vtab_cursor *pCursor){
   DbpageCursor *pCsr = (DbpageCursor *)pCursor;
   if( pCsr->pPage1 ) sqlite3PagerUnrefPageOne(pCsr->pPage1);
   sqlite3_free(pCsr);
@@ -191,14 +191,14 @@ static int dbpageClose(sqlite3_vtab_cursor *pCursor){
 /*
 ** Move a dbpagevfs cursor to the next entry in the file.
 */
-static int dbpageNext(sqlite3_vtab_cursor *pCursor){
+int dbpageNext(sqlite3_vtab_cursor *pCursor){
   int rc = SQLITE_OK;
   DbpageCursor *pCsr = (DbpageCursor *)pCursor;
   pCsr->pgno++;
   return rc;
 }
 
-static int dbpageEof(sqlite3_vtab_cursor *pCursor){
+int dbpageEof(sqlite3_vtab_cursor *pCursor){
   DbpageCursor *pCsr = (DbpageCursor *)pCursor;
   return pCsr->pgno > pCsr->mxPgno;
 }
@@ -213,7 +213,7 @@ static int dbpageEof(sqlite3_vtab_cursor *pCursor){
 **
 ** idxStr is not used
 */
-static int dbpageFilter(
+int dbpageFilter(
   sqlite3_vtab_cursor *pCursor, 
   int idxNum, const char *idxStr,
   int argc, sqlite3_value **argv
@@ -259,7 +259,7 @@ static int dbpageFilter(
   return rc;
 }
 
-static int dbpageColumn(
+int dbpageColumn(
   sqlite3_vtab_cursor *pCursor, 
   sqlite3_context *ctx, 
   int i
@@ -290,13 +290,13 @@ static int dbpageColumn(
   return SQLITE_OK;
 }
 
-static int dbpageRowid(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid){
+int dbpageRowid(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid){
   DbpageCursor *pCsr = (DbpageCursor *)pCursor;
   *pRowid = pCsr->pgno;
   return SQLITE_OK;
 }
 
-static int dbpageUpdate(
+int dbpageUpdate(
   sqlite3_vtab *pVtab,
   int argc,
   sqlite3_value **argv,
@@ -367,7 +367,7 @@ update_fail:
 ** written by the sqlite_dbpage virtual table, start a write transaction
 ** on them all.
 */
-static int dbpageBegin(sqlite3_vtab *pVtab){
+int dbpageBegin(sqlite3_vtab *pVtab){
   DbpageTable *pTab = (DbpageTable *)pVtab;
   sqlite3 *db = pTab->db;
   int i;

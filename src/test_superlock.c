@@ -49,7 +49,7 @@ typedef struct Superlock Superlock;
 ** SuperlockBusy structure. Invoke the busy-handler function encapsulated
 ** by the structure and return the result.
 */
-static int superlockBusyHandler(void *pCtx, int UNUSED){
+int superlockBusyHandler(void *pCtx, int UNUSED){
   SuperlockBusy *pBusy = (SuperlockBusy *)pCtx;
   if( pBusy->xBusy==0 ) return 0;
   return pBusy->xBusy(pBusy->pBusyArg, pBusy->nBusy++);
@@ -64,7 +64,7 @@ static int superlockBusyHandler(void *pCtx, int UNUSED){
 ** If an error occurs, return an SQLite error code. The value of *pbWal
 ** is undefined in this case.
 */
-static int superlockIsWal(Superlock *pLock){
+int superlockIsWal(Superlock *pLock){
   int rc;                         /* Return Code */
   sqlite3_stmt *pStmt;            /* Compiled PRAGMA journal_mode statement */
 
@@ -88,7 +88,7 @@ static int superlockIsWal(Superlock *pLock){
 ** the busy-handler until either it is obtained or the busy-handler
 ** callback returns 0.
 */
-static int superlockShmLock(
+int superlockShmLock(
   sqlite3_file *fd,               /* Database file handle */
   int idx,                        /* Offset of shm-lock to obtain */
   int nByte,                      /* Number of consective bytes to lock */
@@ -106,7 +106,7 @@ static int superlockShmLock(
 ** Obtain the extra locks on the database file required for WAL databases.
 ** Invoke the supplied busy-handler as required.
 */
-static int superlockWalLock(
+int superlockWalLock(
   sqlite3 *db,                    /* Database handle open on WAL database */
   SuperlockBusy *pBusy            /* Busy handler wrapper object */
 ){
@@ -271,11 +271,11 @@ struct InterpAndScript {
 };
 typedef struct InterpAndScript InterpAndScript;
 
-static void SQLITE_TCLAPI superunlock_del(ClientData cd){
+void SQLITE_TCLAPI superunlock_del(ClientData cd){
   sqlite3demo_superunlock((void *)cd);
 }
 
-static int SQLITE_TCLAPI superunlock_cmd(
+int SQLITE_TCLAPI superunlock_cmd(
   ClientData cd,
   Tcl_Interp *interp,
   int objc,
@@ -289,7 +289,7 @@ static int SQLITE_TCLAPI superunlock_cmd(
   return TCL_OK;
 }
 
-static int superlock_busy(void *pCtx, int nBusy){
+int superlock_busy(void *pCtx, int nBusy){
   InterpAndScript *p = (InterpAndScript *)pCtx;
   Tcl_Obj *pEval;                 /* Script to evaluate */
   int iVal = 0;                   /* Value to return */
@@ -307,7 +307,7 @@ static int superlock_busy(void *pCtx, int nBusy){
 /*
 ** Tclcmd: sqlite3demo_superlock CMDNAME PATH VFS BUSY-HANDLER-SCRIPT
 */
-static int SQLITE_TCLAPI superlock_cmd(
+int SQLITE_TCLAPI superlock_cmd(
   ClientData cd,
   Tcl_Interp *interp,
   int objc,

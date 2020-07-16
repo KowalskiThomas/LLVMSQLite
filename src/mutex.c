@@ -21,7 +21,7 @@
 ** and uninitialized so that we can assert() if there is an attempt to
 ** allocate a mutex while the system is uninitialized.
 */
-static SQLITE_WSD int mutexIsInit = 0;
+SQLITE_WSD int mutexIsInit = 0;
 #endif /* SQLITE_DEBUG && !defined(SQLITE_MUTEX_OMIT) */
 
 
@@ -63,13 +63,13 @@ struct CheckMutex {
 ** Pointer to real mutex methods object used by the CheckMutex
 ** implementation. Set by checkMutexInit(). 
 */
-static SQLITE_WSD const sqlite3_mutex_methods *pGlobalMutexMethods;
+SQLITE_WSD const sqlite3_mutex_methods *pGlobalMutexMethods;
 
 #ifdef SQLITE_DEBUG
-static int checkMutexHeld(sqlite3_mutex *p){
+int checkMutexHeld(sqlite3_mutex *p){
   return pGlobalMutexMethods->xMutexHeld(((CheckMutex*)p)->mutex);
 }
-static int checkMutexNotheld(sqlite3_mutex *p){
+int checkMutexNotheld(sqlite3_mutex *p){
   return pGlobalMutexMethods->xMutexNotheld(((CheckMutex*)p)->mutex);
 }
 #endif
@@ -77,11 +77,11 @@ static int checkMutexNotheld(sqlite3_mutex *p){
 /*
 ** Initialize and deinitialize the mutex subsystem.
 */
-static int checkMutexInit(void){ 
+int checkMutexInit(void){ 
   pGlobalMutexMethods = sqlite3DefaultMutex();
   return SQLITE_OK; 
 }
-static int checkMutexEnd(void){ 
+int checkMutexEnd(void){ 
   pGlobalMutexMethods = 0;
   return SQLITE_OK; 
 }
@@ -89,7 +89,7 @@ static int checkMutexEnd(void){
 /*
 ** Allocate a mutex.
 */
-static sqlite3_mutex *checkMutexAlloc(int iType){
+sqlite3_mutex *checkMutexAlloc(int iType){
   static CheckMutex staticMutexes[] = {
     {2, 0}, {3, 0}, {4, 0}, {5, 0},
     {6, 0}, {7, 0}, {8, 0}, {9, 0},
@@ -128,7 +128,7 @@ static sqlite3_mutex *checkMutexAlloc(int iType){
 /*
 ** Free a mutex.
 */
-static void checkMutexFree(sqlite3_mutex *p){
+void checkMutexFree(sqlite3_mutex *p){
   assert( SQLITE_MUTEX_RECURSIVE<2 );
   assert( SQLITE_MUTEX_FAST<2 );
   assert( SQLITE_MUTEX_WARNONCONTENTION<2 );
@@ -151,7 +151,7 @@ static void checkMutexFree(sqlite3_mutex *p){
 /*
 ** Enter the mutex.
 */
-static void checkMutexEnter(sqlite3_mutex *p){
+void checkMutexEnter(sqlite3_mutex *p){
   CheckMutex *pCheck = (CheckMutex*)p;
   if( pCheck->iType==SQLITE_MUTEX_WARNONCONTENTION ){
     if( SQLITE_OK==pGlobalMutexMethods->xMutexTry(pCheck->mutex) ){
@@ -167,7 +167,7 @@ static void checkMutexEnter(sqlite3_mutex *p){
 /*
 ** Enter the mutex (do not block).
 */
-static int checkMutexTry(sqlite3_mutex *p){
+int checkMutexTry(sqlite3_mutex *p){
   CheckMutex *pCheck = (CheckMutex*)p;
   return pGlobalMutexMethods->xMutexTry(pCheck->mutex);
 }
@@ -175,7 +175,7 @@ static int checkMutexTry(sqlite3_mutex *p){
 /*
 ** Leave the mutex.
 */
-static void checkMutexLeave(sqlite3_mutex *p){
+void checkMutexLeave(sqlite3_mutex *p){
   CheckMutex *pCheck = (CheckMutex*)p;
   pGlobalMutexMethods->xMutexLeave(pCheck->mutex);
 }

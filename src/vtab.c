@@ -84,7 +84,7 @@ Module *sqlite3VtabCreateModule(
 ** This function implements the sqlite3_create_module() and
 ** sqlite3_create_module_v2() interfaces.
 */
-static int createModule(
+int createModule(
   sqlite3 *db,                    /* Database in which module is registered */
   const char *zName,              /* Name assigned to this module */
   const sqlite3_module *pModule,  /* The definition of the module */
@@ -225,7 +225,7 @@ void sqlite3VtabUnlock(VTable *pVTab){
 ** Except, if argument db is not NULL, then the entry associated with
 ** connection db is left in the p->pVTable list.
 */
-static VTable *vtabDisconnectAll(sqlite3 *db, Table *p){
+VTable *vtabDisconnectAll(sqlite3 *db, Table *p){
   VTable *pRet = 0;
   VTable *pVTable = p->pVTable;
   p->pVTable = 0;
@@ -351,7 +351,7 @@ void sqlite3VtabClear(sqlite3 *db, Table *p){
 ** string will be freed automatically when the table is
 ** deleted.
 */
-static void addModuleArgument(Parse *pParse, Table *pTable, char *zArg){
+void addModuleArgument(Parse *pParse, Table *pTable, char *zArg){
   sqlite3_int64 nBytes = sizeof(char *)*(2+pTable->nModuleArg);
   char **azModuleArg;
   sqlite3 *db = pParse->db;
@@ -422,7 +422,7 @@ void sqlite3VtabBeginParse(
 ** in pParse->zArg[] and appends it to the list of arguments on the
 ** virtual table currently under construction in pParse->pTable.
 */
-static void addArgumentToVtab(Parse *pParse){
+void addArgumentToVtab(Parse *pParse){
   if( pParse->sArg.z && pParse->pNewTable ){
     const char *z = (const char*)pParse->sArg.z;
     int n = pParse->sArg.n;
@@ -547,7 +547,7 @@ void sqlite3VtabArgExtend(Parse *pParse, Token *p){
 ** pointer to the function to invoke is passed as the fourth parameter
 ** to this procedure.
 */
-static int vtabCallConstructor(
+int vtabCallConstructor(
   sqlite3 *db, 
   Table *pTab,
   Module *pMod,
@@ -714,7 +714,7 @@ int sqlite3VtabCallConnect(Parse *pParse, Table *pTab){
 ** Grow the db->aVTrans[] array so that there is room for at least one
 ** more v-table. Return SQLITE_NOMEM if a malloc fails, or SQLITE_OK otherwise.
 */
-static int growVTrans(sqlite3 *db){
+int growVTrans(sqlite3 *db){
   const int ARRAY_INCR = 5;
 
   /* Grow the sqlite3.aVTrans array if required */
@@ -737,7 +737,7 @@ static int growVTrans(sqlite3 *db){
 ** Add the virtual table pVTab to the array sqlite3.aVTrans[]. Space should
 ** have already been reserved using growVTrans().
 */
-static void addToVTrans(sqlite3 *db, VTable *pVTab){
+void addToVTrans(sqlite3 *db, VTable *pVTab){
   /* Add pVtab to the end of sqlite3.aVTrans */
   db->aVTrans[db->nVTrans++] = pVTab;
   sqlite3VtabLock(pVTab);
@@ -918,7 +918,7 @@ int sqlite3VtabCallDestroy(sqlite3 *db, int iDb, const char *zTab){
 **
 ** The array is cleared after invoking the callbacks. 
 */
-static void callFinaliser(sqlite3 *db, int offset){
+void callFinaliser(sqlite3 *db, int offset){
   int i;
   if( db->aVTrans ){
     VTable **aVTrans = db->aVTrans;

@@ -23,9 +23,9 @@
 
 #ifdef SQLITE_VDBE_COVERAGE
 
-static u8 aBranchArray[200000];
+u8 aBranchArray[200000];
 
-static void test_vdbe_branch(
+void test_vdbe_branch(
   void *pCtx, 
   unsigned int iSrc, 
   unsigned char iBranch, 
@@ -36,7 +36,7 @@ static void test_vdbe_branch(
   }
 }
 
-static void appendToList(
+void appendToList(
   Tcl_Obj *pList, 
   int iLine, 
   int iPath, 
@@ -52,7 +52,7 @@ static void appendToList(
 }
 
 
-static int SQLITE_TCLAPI test_vdbe_coverage(
+int SQLITE_TCLAPI test_vdbe_coverage(
   ClientData cd,
   Tcl_Interp *interp,
   int objc,

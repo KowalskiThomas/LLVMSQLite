@@ -45,38 +45,38 @@ struct MemFile {
 /*
 ** Methods for MemFile
 */
-static int memdbClose(sqlite3_file*);
-static int memdbRead(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
-static int memdbWrite(sqlite3_file*,const void*,int iAmt, sqlite3_int64 iOfst);
-static int memdbTruncate(sqlite3_file*, sqlite3_int64 size);
-static int memdbSync(sqlite3_file*, int flags);
-static int memdbFileSize(sqlite3_file*, sqlite3_int64 *pSize);
-static int memdbLock(sqlite3_file*, int);
+int memdbClose(sqlite3_file*);
+int memdbRead(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
+int memdbWrite(sqlite3_file*,const void*,int iAmt, sqlite3_int64 iOfst);
+int memdbTruncate(sqlite3_file*, sqlite3_int64 size);
+int memdbSync(sqlite3_file*, int flags);
+int memdbFileSize(sqlite3_file*, sqlite3_int64 *pSize);
+int memdbLock(sqlite3_file*, int);
 /* static int memdbCheckReservedLock(sqlite3_file*, int *pResOut);// not used */
-static int memdbFileControl(sqlite3_file*, int op, void *pArg);
+int memdbFileControl(sqlite3_file*, int op, void *pArg);
 /* static int memdbSectorSize(sqlite3_file*); // not used */
-static int memdbDeviceCharacteristics(sqlite3_file*);
-static int memdbFetch(sqlite3_file*, sqlite3_int64 iOfst, int iAmt, void **pp);
-static int memdbUnfetch(sqlite3_file*, sqlite3_int64 iOfst, void *p);
+int memdbDeviceCharacteristics(sqlite3_file*);
+int memdbFetch(sqlite3_file*, sqlite3_int64 iOfst, int iAmt, void **pp);
+int memdbUnfetch(sqlite3_file*, sqlite3_int64 iOfst, void *p);
 
 /*
 ** Methods for MemVfs
 */
-static int memdbOpen(sqlite3_vfs*, const char *, sqlite3_file*, int , int *);
+int memdbOpen(sqlite3_vfs*, const char *, sqlite3_file*, int , int *);
 /* static int memdbDelete(sqlite3_vfs*, const char *zName, int syncDir); */
-static int memdbAccess(sqlite3_vfs*, const char *zName, int flags, int *);
-static int memdbFullPathname(sqlite3_vfs*, const char *zName, int, char *zOut);
-static void *memdbDlOpen(sqlite3_vfs*, const char *zFilename);
-static void memdbDlError(sqlite3_vfs*, int nByte, char *zErrMsg);
-static void (*memdbDlSym(sqlite3_vfs *pVfs, void *p, const char*zSym))(void);
-static void memdbDlClose(sqlite3_vfs*, void*);
-static int memdbRandomness(sqlite3_vfs*, int nByte, char *zOut);
-static int memdbSleep(sqlite3_vfs*, int microseconds);
+int memdbAccess(sqlite3_vfs*, const char *zName, int flags, int *);
+int memdbFullPathname(sqlite3_vfs*, const char *zName, int, char *zOut);
+void *memdbDlOpen(sqlite3_vfs*, const char *zFilename);
+void memdbDlError(sqlite3_vfs*, int nByte, char *zErrMsg);
+void (*memdbDlSym(sqlite3_vfs *pVfs, void *p, const char*zSym))(void);
+void memdbDlClose(sqlite3_vfs*, void*);
+int memdbRandomness(sqlite3_vfs*, int nByte, char *zOut);
+int memdbSleep(sqlite3_vfs*, int microseconds);
 /* static int memdbCurrentTime(sqlite3_vfs*, double*); */
-static int memdbGetLastError(sqlite3_vfs*, int, char *);
-static int memdbCurrentTimeInt64(sqlite3_vfs*, sqlite3_int64*);
+int memdbGetLastError(sqlite3_vfs*, int, char *);
+int memdbCurrentTimeInt64(sqlite3_vfs*, sqlite3_int64*);
 
-static sqlite3_vfs memdb_vfs = {
+sqlite3_vfs memdb_vfs = {
   2,                           /* iVersion */
   0,                           /* szOsFile (set when registered) */
   1024,                        /* mxPathname */
@@ -98,7 +98,7 @@ static sqlite3_vfs memdb_vfs = {
   memdbCurrentTimeInt64        /* xCurrentTimeInt64 */
 };
 
-static const sqlite3_io_methods memdb_io_methods = {
+const sqlite3_io_methods memdb_io_methods = {
   3,                              /* iVersion */
   memdbClose,                      /* xClose */
   memdbRead,                       /* xRead */
@@ -128,7 +128,7 @@ static const sqlite3_io_methods memdb_io_methods = {
 ** The pData pointer is owned by the application, so there is nothing
 ** to free.
 */
-static int memdbClose(sqlite3_file *pFile){
+int memdbClose(sqlite3_file *pFile){
   MemFile *p = (MemFile *)pFile;
   if( p->mFlags & SQLITE_DESERIALIZE_FREEONCLOSE ) sqlite3_free(p->aData);
   return SQLITE_OK;
@@ -137,7 +137,7 @@ static int memdbClose(sqlite3_file *pFile){
 /*
 ** Read data from an memdb-file.
 */
-static int memdbRead(
+int memdbRead(
   sqlite3_file *pFile, 
   void *zBuf, 
   int iAmt, 
@@ -156,7 +156,7 @@ static int memdbRead(
 /*
 ** Try to enlarge the memory allocation to hold at least sz bytes
 */
-static int memdbEnlarge(MemFile *p, sqlite3_int64 newSz){
+int memdbEnlarge(MemFile *p, sqlite3_int64 newSz){
   unsigned char *pNew;
   if( (p->mFlags & SQLITE_DESERIALIZE_RESIZEABLE)==0 || p->nMmap>0 ){
     return SQLITE_FULL;
@@ -176,7 +176,7 @@ static int memdbEnlarge(MemFile *p, sqlite3_int64 newSz){
 /*
 ** Write data to an memdb-file.
 */
-static int memdbWrite(
+int memdbWrite(
   sqlite3_file *pFile,
   const void *z,
   int iAmt,
@@ -205,7 +205,7 @@ static int memdbWrite(
 ** support WAL mode) the truncate() method is only used to reduce
 ** the size of a file, never to increase the size.
 */
-static int memdbTruncate(sqlite3_file *pFile, sqlite_int64 size){
+int memdbTruncate(sqlite3_file *pFile, sqlite_int64 size){
   MemFile *p = (MemFile *)pFile;
   if( NEVER(size>p->sz) ) return SQLITE_FULL;
   p->sz = size; 
@@ -215,14 +215,14 @@ static int memdbTruncate(sqlite3_file *pFile, sqlite_int64 size){
 /*
 ** Sync an memdb-file.
 */
-static int memdbSync(sqlite3_file *pFile, int flags){
+int memdbSync(sqlite3_file *pFile, int flags){
   return SQLITE_OK;
 }
 
 /*
 ** Return the current file-size of an memdb-file.
 */
-static int memdbFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
+int memdbFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
   MemFile *p = (MemFile *)pFile;
   *pSize = p->sz;
   return SQLITE_OK;
@@ -231,7 +231,7 @@ static int memdbFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
 /*
 ** Lock an memdb-file.
 */
-static int memdbLock(sqlite3_file *pFile, int eLock){
+int memdbLock(sqlite3_file *pFile, int eLock){
   MemFile *p = (MemFile *)pFile;
   if( eLock>SQLITE_LOCK_SHARED 
    && (p->mFlags & SQLITE_DESERIALIZE_READONLY)!=0
@@ -246,7 +246,7 @@ static int memdbLock(sqlite3_file *pFile, int eLock){
 /*
 ** Check if another file-handle holds a RESERVED lock on an memdb-file.
 */
-static int memdbCheckReservedLock(sqlite3_file *pFile, int *pResOut){
+int memdbCheckReservedLock(sqlite3_file *pFile, int *pResOut){
   *pResOut = 0;
   return SQLITE_OK;
 }
@@ -255,7 +255,7 @@ static int memdbCheckReservedLock(sqlite3_file *pFile, int *pResOut){
 /*
 ** File control method. For custom operations on an memdb-file.
 */
-static int memdbFileControl(sqlite3_file *pFile, int op, void *pArg){
+int memdbFileControl(sqlite3_file *pFile, int op, void *pArg){
   MemFile *p = (MemFile *)pFile;
   int rc = SQLITE_NOTFOUND;
   if( op==SQLITE_FCNTL_VFSNAME ){
@@ -282,7 +282,7 @@ static int memdbFileControl(sqlite3_file *pFile, int op, void *pArg){
 /*
 ** Return the sector-size in bytes for an memdb-file.
 */
-static int memdbSectorSize(sqlite3_file *pFile){
+int memdbSectorSize(sqlite3_file *pFile){
   return 1024;
 }
 #endif
@@ -290,7 +290,7 @@ static int memdbSectorSize(sqlite3_file *pFile){
 /*
 ** Return the device characteristic flags supported by an memdb-file.
 */
-static int memdbDeviceCharacteristics(sqlite3_file *pFile){
+int memdbDeviceCharacteristics(sqlite3_file *pFile){
   return SQLITE_IOCAP_ATOMIC | 
          SQLITE_IOCAP_POWERSAFE_OVERWRITE |
          SQLITE_IOCAP_SAFE_APPEND |
@@ -298,7 +298,7 @@ static int memdbDeviceCharacteristics(sqlite3_file *pFile){
 }
 
 /* Fetch a page of a memory-mapped file */
-static int memdbFetch(
+int memdbFetch(
   sqlite3_file *pFile,
   sqlite3_int64 iOfst,
   int iAmt,
@@ -315,7 +315,7 @@ static int memdbFetch(
 }
 
 /* Release a memory-mapped page */
-static int memdbUnfetch(sqlite3_file *pFile, sqlite3_int64 iOfst, void *pPage){
+int memdbUnfetch(sqlite3_file *pFile, sqlite3_int64 iOfst, void *pPage){
   MemFile *p = (MemFile *)pFile;
   p->nMmap--;
   return SQLITE_OK;
@@ -324,7 +324,7 @@ static int memdbUnfetch(sqlite3_file *pFile, sqlite3_int64 iOfst, void *pPage){
 /*
 ** Open an mem file handle.
 */
-static int memdbOpen(
+int memdbOpen(
   sqlite3_vfs *pVfs,
   const char *zName,
   sqlite3_file *pFile,
@@ -351,7 +351,7 @@ static int memdbOpen(
 ** ensure the file-system modifications are synced to disk before
 ** returning.
 */
-static int memdbDelete(sqlite3_vfs *pVfs, const char *zPath, int dirSync){
+int memdbDelete(sqlite3_vfs *pVfs, const char *zPath, int dirSync){
   return SQLITE_IOERR_DELETE;
 }
 #endif
@@ -362,7 +362,7 @@ static int memdbDelete(sqlite3_vfs *pVfs, const char *zPath, int dirSync){
 **
 ** With memdb, no files ever exist on disk.  So always return false.
 */
-static int memdbAccess(
+int memdbAccess(
   sqlite3_vfs *pVfs, 
   const char *zPath, 
   int flags, 
@@ -377,7 +377,7 @@ static int memdbAccess(
 ** to the pathname in zPath. zOut is guaranteed to point to a buffer
 ** of at least (INST_MAX_PATHNAME+1) bytes.
 */
-static int memdbFullPathname(
+int memdbFullPathname(
   sqlite3_vfs *pVfs, 
   const char *zPath, 
   int nOut, 
@@ -390,7 +390,7 @@ static int memdbFullPathname(
 /*
 ** Open the dynamic library located at zPath and return a handle.
 */
-static void *memdbDlOpen(sqlite3_vfs *pVfs, const char *zPath){
+void *memdbDlOpen(sqlite3_vfs *pVfs, const char *zPath){
   return ORIGVFS(pVfs)->xDlOpen(ORIGVFS(pVfs), zPath);
 }
 
@@ -399,21 +399,21 @@ static void *memdbDlOpen(sqlite3_vfs *pVfs, const char *zPath){
 ** utf-8 string describing the most recent error encountered associated 
 ** with dynamic libraries.
 */
-static void memdbDlError(sqlite3_vfs *pVfs, int nByte, char *zErrMsg){
+void memdbDlError(sqlite3_vfs *pVfs, int nByte, char *zErrMsg){
   ORIGVFS(pVfs)->xDlError(ORIGVFS(pVfs), nByte, zErrMsg);
 }
 
 /*
 ** Return a pointer to the symbol zSymbol in the dynamic library pHandle.
 */
-static void (*memdbDlSym(sqlite3_vfs *pVfs, void *p, const char *zSym))(void){
+void (*memdbDlSym(sqlite3_vfs *pVfs, void *p, const char *zSym))(void){
   return ORIGVFS(pVfs)->xDlSym(ORIGVFS(pVfs), p, zSym);
 }
 
 /*
 ** Close the dynamic library handle pHandle.
 */
-static void memdbDlClose(sqlite3_vfs *pVfs, void *pHandle){
+void memdbDlClose(sqlite3_vfs *pVfs, void *pHandle){
   ORIGVFS(pVfs)->xDlClose(ORIGVFS(pVfs), pHandle);
 }
 
@@ -421,7 +421,7 @@ static void memdbDlClose(sqlite3_vfs *pVfs, void *pHandle){
 ** Populate the buffer pointed to by zBufOut with nByte bytes of 
 ** random data.
 */
-static int memdbRandomness(sqlite3_vfs *pVfs, int nByte, char *zBufOut){
+int memdbRandomness(sqlite3_vfs *pVfs, int nByte, char *zBufOut){
   return ORIGVFS(pVfs)->xRandomness(ORIGVFS(pVfs), nByte, zBufOut);
 }
 
@@ -429,7 +429,7 @@ static int memdbRandomness(sqlite3_vfs *pVfs, int nByte, char *zBufOut){
 ** Sleep for nMicro microseconds. Return the number of microseconds 
 ** actually slept.
 */
-static int memdbSleep(sqlite3_vfs *pVfs, int nMicro){
+int memdbSleep(sqlite3_vfs *pVfs, int nMicro){
   return ORIGVFS(pVfs)->xSleep(ORIGVFS(pVfs), nMicro);
 }
 
@@ -437,15 +437,15 @@ static int memdbSleep(sqlite3_vfs *pVfs, int nMicro){
 /*
 ** Return the current time as a Julian Day number in *pTimeOut.
 */
-static int memdbCurrentTime(sqlite3_vfs *pVfs, double *pTimeOut){
+int memdbCurrentTime(sqlite3_vfs *pVfs, double *pTimeOut){
   return ORIGVFS(pVfs)->xCurrentTime(ORIGVFS(pVfs), pTimeOut);
 }
 #endif
 
-static int memdbGetLastError(sqlite3_vfs *pVfs, int a, char *b){
+int memdbGetLastError(sqlite3_vfs *pVfs, int a, char *b){
   return ORIGVFS(pVfs)->xGetLastError(ORIGVFS(pVfs), a, b);
 }
-static int memdbCurrentTimeInt64(sqlite3_vfs *pVfs, sqlite3_int64 *p){
+int memdbCurrentTimeInt64(sqlite3_vfs *pVfs, sqlite3_int64 *p){
   return ORIGVFS(pVfs)->xCurrentTimeInt64(ORIGVFS(pVfs), p);
 }
 
@@ -453,7 +453,7 @@ static int memdbCurrentTimeInt64(sqlite3_vfs *pVfs, sqlite3_int64 *p){
 ** Translate a database connection pointer and schema name into a
 ** MemFile pointer.
 */
-static MemFile *memdbFromDbSchema(sqlite3 *db, const char *zSchema){
+MemFile *memdbFromDbSchema(sqlite3 *db, const char *zSchema){
   MemFile *p = 0;
   int rc = sqlite3_file_control(db, zSchema, SQLITE_FCNTL_FILE_POINTER, &p);
   if( rc ) return 0;

@@ -65,7 +65,7 @@ typedef struct MD5Context MD5Context;
 /*
  * Note: this code is harmless on little-endian machines.
  */
-static void byteReverse (unsigned char *buf, unsigned longs){
+void byteReverse (unsigned char *buf, unsigned longs){
         uint32 t;
         do {
                 t = (uint32)((unsigned)buf[3]<<8 | buf[2]) << 16 |
@@ -91,7 +91,7 @@ static void byteReverse (unsigned char *buf, unsigned longs){
  * reflect the addition of 16 longwords of new data.  MD5Update blocks
  * the data and converts bytes into longwords for this routine.
  */
-static void MD5Transform(uint32 buf[4], const uint32 in[16]){
+void MD5Transform(uint32 buf[4], const uint32 in[16]){
         register uint32 a, b, c, d;
 
         a = buf[0];
@@ -177,7 +177,7 @@ static void MD5Transform(uint32 buf[4], const uint32 in[16]){
  * Start MD5 accumulation.  Set bit count to 0 and buffer to mysterious
  * initialization constants.
  */
-static void MD5Init(MD5Context *ctx){
+void MD5Init(MD5Context *ctx){
         ctx->isInit = 1;
         ctx->buf[0] = 0x67452301;
         ctx->buf[1] = 0xefcdab89;
@@ -240,7 +240,7 @@ void MD5Update(MD5Context *ctx, const unsigned char *buf, unsigned int len){
  * Final wrapup - pad to 64-byte boundary with the bit pattern
  * 1 0* (64-bit count of bits processed, MSB-first)
  */
-static void MD5Final(unsigned char digest[16], MD5Context *ctx){
+void MD5Final(unsigned char digest[16], MD5Context *ctx){
         unsigned count;
         unsigned char *p;
 
@@ -281,7 +281,7 @@ static void MD5Final(unsigned char digest[16], MD5Context *ctx){
 /*
 ** Convert a 128-bit MD5 digest into a 32-digit base-16 number.
 */
-static void MD5DigestToBase16(unsigned char *digest, char *zBuf){
+void MD5DigestToBase16(unsigned char *digest, char *zBuf){
   static char const zEncode[] = "0123456789abcdef";
   int i, j;
 
@@ -299,7 +299,7 @@ static void MD5DigestToBase16(unsigned char *digest, char *zBuf){
 ** each representing 16 bits of the digest and separated from each
 ** other by a "-" character.
 */
-static void MD5DigestToBase10x8(unsigned char digest[16], char zDigest[50]){
+void MD5DigestToBase10x8(unsigned char digest[16], char zDigest[50]){
   int i, j;
   unsigned int x;
   for(i=j=0; i<16; i+=2){
@@ -315,7 +315,7 @@ static void MD5DigestToBase10x8(unsigned char digest[16], char zDigest[50]){
 ** A TCL command for md5.  The argument is the text to be hashed.  The
 ** Result is the hash in base64.
 */
-static int SQLITE_TCLAPI md5_cmd(
+int SQLITE_TCLAPI md5_cmd(
   void*cd,
   Tcl_Interp *interp,
   int argc,
@@ -344,7 +344,7 @@ static int SQLITE_TCLAPI md5_cmd(
 ** A TCL command to take the md5 hash of a file.  The argument is the
 ** name of the file.
 */
-static int SQLITE_TCLAPI md5file_cmd(
+int SQLITE_TCLAPI md5file_cmd(
   void*cd,
   Tcl_Interp *interp,
   int argc,
@@ -413,7 +413,7 @@ int Md5_Init(Tcl_Interp *interp){
 ** During testing, the special md5sum() aggregate function is available.
 ** inside SQLite.  The following routines implement that function.
 */
-static void md5step(sqlite3_context *context, int argc, sqlite3_value **argv){
+void md5step(sqlite3_context *context, int argc, sqlite3_value **argv){
   MD5Context *p;
   int i;
   if( argc<1 ) return;
@@ -429,7 +429,7 @@ static void md5step(sqlite3_context *context, int argc, sqlite3_value **argv){
     }
   }
 }
-static void md5finalize(sqlite3_context *context){
+void md5finalize(sqlite3_context *context){
   MD5Context *p;
   unsigned char digest[16];
   char zBuf[33];

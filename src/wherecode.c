@@ -25,7 +25,7 @@
 /*
 ** Return the name of the i-th column of the pIdx index.
 */
-static const char *explainIndexColumnName(Index *pIdx, int i){
+const char *explainIndexColumnName(Index *pIdx, int i){
   i = pIdx->aiColumn[i];
   if( i==XN_EXPR ) return "<expr>";
   if( i==XN_ROWID ) return "rowid";
@@ -40,7 +40,7 @@ static const char *explainIndexColumnName(Index *pIdx, int i){
 ** Terms are separated by AND so add the "AND" text for second and subsequent
 ** terms only.
 */
-static void explainAppendTerm(
+void explainAppendTerm(
   StrAccum *pStr,             /* The text expression being built */
   Index *pIdx,                /* Index to read column names from */
   int nTerm,                  /* Number of terms */
@@ -84,7 +84,7 @@ static void explainAppendTerm(
 **
 **   "a=? AND b>?"
 */
-static void explainIndexRange(StrAccum *pStr, WhereLoop *pLoop){
+void explainIndexRange(StrAccum *pStr, WhereLoop *pLoop){
   Index *pIndex = pLoop->u.btree.pIndex;
   u16 nEq = pLoop->u.btree.nEq;
   u16 nSkip = pLoop->nSkip;
@@ -293,7 +293,7 @@ void sqlite3WhereAddScanStatus(
 ** a conditional such that is only evaluated on the second pass of a
 ** LIKE-optimization loop, when scanning BLOBs instead of strings.
 */
-static void disableTerm(WhereLevel *pLevel, WhereTerm *pTerm){
+void disableTerm(WhereLevel *pLevel, WhereTerm *pTerm){
   int nLoop = 0;
   assert( pTerm!=0 );
   while( (pTerm->wtFlags & TERM_CODED)==0
@@ -325,7 +325,7 @@ static void disableTerm(WhereLevel *pLevel, WhereTerm *pTerm){
 ** This routine makes its own copy of zAff so that the caller is free
 ** to modify zAff after this routine returns.
 */
-static void codeApplyAffinity(Parse *pParse, int base, int n, char *zAff){
+void codeApplyAffinity(Parse *pParse, int base, int n, char *zAff){
   Vdbe *v = pParse->pVdbe;
   if( zAff==0 ){
     assert( pParse->db->mallocFailed );
@@ -362,7 +362,7 @@ static void codeApplyAffinity(Parse *pParse, int base, int n, char *zAff){
 **   * the comparison will be performed with no affinity, or
 **   * the affinity change in zAff is guaranteed not to change the value.
 */
-static void updateRangeAffinityStr(
+void updateRangeAffinityStr(
   Expr *pRight,                   /* RHS of comparison */
   int n,                          /* Number of vector elements in comparison */
   char *zAff                      /* Affinity string to modify */
@@ -408,7 +408,7 @@ static void updateRangeAffinityStr(
 ** only used for indexing, to improve performance.  The original unaltered
 ** IN expression must also be run on each output row for correctness.
 */
-static Expr *removeUnindexableInClauseTerms(
+Expr *removeUnindexableInClauseTerms(
   Parse *pParse,        /* The parsing context */
   int iEq,              /* Look at loop terms starting here */
   WhereLoop *pLoop,     /* The current loop */
@@ -490,7 +490,7 @@ static Expr *removeUnindexableInClauseTerms(
 ** straight-line code.  For constraints of the form X IN (...)
 ** this routine sets up a loop that will iterate over all values of X.
 */
-static int codeEqualityTerm(
+int codeEqualityTerm(
   Parse *pParse,      /* The parsing context */
   WhereTerm *pTerm,   /* The term of the WHERE clause to be coded */
   WhereLevel *pLevel, /* The level of the FROM clause we are working on */
@@ -661,7 +661,7 @@ static int codeEqualityTerm(
 ** a key to search the index. Hence the first byte in the returned affinity
 ** string in this example would be set to SQLITE_AFF_BLOB.
 */
-static int codeAllEqualityTerms(
+int codeAllEqualityTerms(
   Parse *pParse,        /* Parsing context */
   WhereLevel *pLevel,   /* Which nested loop of the FROM we are coding */
   int bRev,             /* Reverse the order of IN operators */
@@ -781,7 +781,7 @@ static int codeAllEqualityTerms(
 ** only the one pass through the string space is required, so this routine
 ** becomes a no-op.
 */
-static void whereLikeOptimizationStringFixup(
+void whereLikeOptimizationStringFixup(
   Vdbe *v,                /* prepared statement under construction */
   WhereLevel *pLevel,     /* The loop that contains the LIKE operator */
   WhereTerm *pTerm        /* The upper or lower bound just coded */
@@ -819,7 +819,7 @@ struct CCurHint {
 ** the table CCurHint.iTabCur, verify that the same column can be
 ** accessed through the index.  If it cannot, then set pWalker->eCode to 1.
 */
-static int codeCursorHintCheckExpr(Walker *pWalker, Expr *pExpr){
+int codeCursorHintCheckExpr(Walker *pWalker, Expr *pExpr){
   struct CCurHint *pHint = pWalker->u.pCCurHint;
   assert( pHint->pIdx!=0 );
   if( pExpr->op==TK_COLUMN
@@ -846,7 +846,7 @@ static int codeCursorHintCheckExpr(Walker *pWalker, Expr *pExpr){
 **   coalesce(col, 1)
 **   CASE WHEN col THEN 0 ELSE 1 END
 */
-static int codeCursorHintIsOrFunction(Walker *pWalker, Expr *pExpr){
+int codeCursorHintIsOrFunction(Walker *pWalker, Expr *pExpr){
   if( pExpr->op==TK_IS 
    || pExpr->op==TK_ISNULL || pExpr->op==TK_ISNOT 
    || pExpr->op==TK_NOTNULL || pExpr->op==TK_CASE 
@@ -881,7 +881,7 @@ static int codeCursorHintIsOrFunction(Walker *pWalker, Expr *pExpr){
 ** know because CCurHint.pIdx!=0) then transform the TK_COLUMN into
 ** an access of the index rather than the original table.
 */
-static int codeCursorHintFixExpr(Walker *pWalker, Expr *pExpr){
+int codeCursorHintFixExpr(Walker *pWalker, Expr *pExpr){
   int rc = WRC_Continue;
   struct CCurHint *pHint = pWalker->u.pCCurHint;
   if( pExpr->op==TK_COLUMN ){
@@ -911,7 +911,7 @@ static int codeCursorHintFixExpr(Walker *pWalker, Expr *pExpr){
 /*
 ** Insert an OP_CursorHint instruction if it is appropriate to do so.
 */
-static void codeCursorHint(
+void codeCursorHint(
   struct SrcList_item *pTabItem,  /* FROM clause item */
   WhereInfo *pWInfo,    /* The where clause */
   WhereLevel *pLevel,   /* Which loop to provide hints for */
@@ -1033,7 +1033,7 @@ static void codeCursorHint(
 ** index, then the corresponding array entry is set to (i+1). If the column
 ** does not appear in the index at all, the array entry is set to 0.
 */
-static void codeDeferredSeek(
+void codeDeferredSeek(
   WhereInfo *pWInfo,              /* Where clause context */
   Index *pIdx,                    /* Index scan is using */
   int iCur,                       /* Cursor for IPK b-tree */
@@ -1077,7 +1077,7 @@ static void codeDeferredSeek(
 ** this case, generate code to evaluate the expression and leave the
 ** result in register iReg.
 */
-static void codeExprOrVector(Parse *pParse, Expr *p, int iReg, int nReg){
+void codeExprOrVector(Parse *pParse, Expr *p, int iReg, int nReg){
   assert( nReg>0 );
   if( p && sqlite3ExprIsVector(p) ){
 #ifndef SQLITE_OMIT_SUBQUERY
@@ -1120,7 +1120,7 @@ typedef struct IdxExprTrans {
 /*
 ** Preserve pExpr on the WhereETrans list of the WhereInfo.
 */
-static void preserveExpr(IdxExprTrans *pTrans, Expr *pExpr){
+void preserveExpr(IdxExprTrans *pTrans, Expr *pExpr){
   WhereExprMod *pNew;
   pNew = sqlite3DbMallocRaw(pTrans->db, sizeof(*pNew));
   if( pNew==0 ) return;
@@ -1136,7 +1136,7 @@ static void preserveExpr(IdxExprTrans *pTrans, Expr *pExpr){
 ** If pExpr matches, then transform it into a reference to the index column
 ** that contains the value of pExpr.
 */
-static int whereIndexExprTransNode(Walker *p, Expr *pExpr){
+int whereIndexExprTransNode(Walker *p, Expr *pExpr){
   IdxExprTrans *pX = p->u.pIdxTrans;
   if( sqlite3ExprCompare(0, pExpr, pX->pIdxExpr, pX->iTabCur)==0 ){
     preserveExpr(pX, pExpr);
@@ -1158,7 +1158,7 @@ static int whereIndexExprTransNode(Walker *p, Expr *pExpr){
 /* A walker node callback that translates a column reference to a table
 ** into a corresponding column reference of an index.
 */
-static int whereIndexExprTransColumn(Walker *p, Expr *pExpr){
+int whereIndexExprTransColumn(Walker *p, Expr *pExpr){
   if( pExpr->op==TK_COLUMN ){
     IdxExprTrans *pX = p->u.pIdxTrans;
     if( pExpr->iTable==pX->iTabCur && pExpr->iColumn==pX->iTabCol ){
@@ -1183,7 +1183,7 @@ static int whereIndexExprTransColumn(Walker *p, Expr *pExpr){
 ** the table into references to the corresponding (stored) column of the
 ** index.
 */
-static void whereIndexExprTrans(
+void whereIndexExprTrans(
   Index *pIdx,      /* The Index */
   int iTabCur,      /* Cursor of the table that is being indexed */
   int iIdxCur,      /* Cursor of the index itself */
@@ -1246,7 +1246,7 @@ static void whereIndexExprTrans(
 ** true because pTruth is true, then mark those WHERE clause terms as
 ** coded.
 */
-static void whereApplyPartialIndexConstraints(
+void whereApplyPartialIndexConstraints(
   Expr *pTruth,
   int iTabCur,
   WhereClause *pWC

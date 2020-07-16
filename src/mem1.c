@@ -60,7 +60,7 @@
 #ifdef SQLITE_MIGHT_BE_SINGLE_CORE
 #include <libkern/OSAtomic.h>
 #endif /* SQLITE_MIGHT_BE_SINGLE_CORE */
-static malloc_zone_t* _sqliteZone_;
+malloc_zone_t* _sqliteZone_;
 #define SQLITE_MALLOC(x) malloc_zone_malloc(_sqliteZone_, (x))
 #define SQLITE_FREE(x) malloc_zone_free(_sqliteZone_, (x));
 #define SQLITE_REALLOC(x,y) malloc_zone_realloc(_sqliteZone_, (x), (y))
@@ -125,7 +125,7 @@ static malloc_zone_t* _sqliteZone_;
 ** cases of nByte<=0 will be intercepted and dealt with by higher level
 ** routines.
 */
-static void *sqlite3MemMalloc(int nByte){
+void *sqlite3MemMalloc(int nByte){
 #ifdef SQLITE_MALLOCSIZE
   void *p;
   testcase( ROUND8(nByte)==nByte );
@@ -159,7 +159,7 @@ static void *sqlite3MemMalloc(int nByte){
 ** cases where pPrior==0 will have been intecepted and dealt with
 ** by higher-level routines.
 */
-static void sqlite3MemFree(void *pPrior){
+void sqlite3MemFree(void *pPrior){
 #ifdef SQLITE_MALLOCSIZE
   SQLITE_FREE(pPrior);
 #else
@@ -174,7 +174,7 @@ static void sqlite3MemFree(void *pPrior){
 ** Report the allocated size of a prior return from xMalloc()
 ** or xRealloc().
 */
-static int sqlite3MemSize(void *pPrior){
+int sqlite3MemSize(void *pPrior){
 #ifdef SQLITE_MALLOCSIZE
   assert( pPrior!=0 );
   return (int)SQLITE_MALLOCSIZE(pPrior);
@@ -197,7 +197,7 @@ static int sqlite3MemSize(void *pPrior){
 ** cases where nByte<=0 will have been intercepted by higher-level
 ** routines and redirected to xFree.
 */
-static void *sqlite3MemRealloc(void *pPrior, int nByte){
+void *sqlite3MemRealloc(void *pPrior, int nByte){
 #ifdef SQLITE_MALLOCSIZE
   void *p = SQLITE_REALLOC(pPrior, nByte);
   if( p==0 ){
@@ -229,14 +229,14 @@ static void *sqlite3MemRealloc(void *pPrior, int nByte){
 /*
 ** Round up a request size to the next valid allocation size.
 */
-static int sqlite3MemRoundup(int n){
+int sqlite3MemRoundup(int n){
   return ROUND8(n);
 }
 
 /*
 ** Initialize this module.
 */
-static int sqlite3MemInit(void *NotUsed){
+int sqlite3MemInit(void *NotUsed){
 #if defined(__APPLE__) && !defined(SQLITE_WITHOUT_ZONEMALLOC)
   int cpuCount;
   size_t len;
@@ -263,7 +263,7 @@ static int sqlite3MemInit(void *NotUsed){
 /*
 ** Deinitialize this module.
 */
-static void sqlite3MemShutdown(void *NotUsed){
+void sqlite3MemShutdown(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
   return;
 }

@@ -24,7 +24,7 @@
 ** Add a new subitem to the tree.  The moreToFollow flag indicates that this
 ** is not the last item in the tree.
 */
-static TreeView *sqlite3TreeViewPush(TreeView *p, u8 moreToFollow){
+TreeView *sqlite3TreeViewPush(TreeView *p, u8 moreToFollow){
   if( p==0 ){
     p = sqlite3_malloc64( sizeof(*p) );
     if( p==0 ) return 0;
@@ -40,7 +40,7 @@ static TreeView *sqlite3TreeViewPush(TreeView *p, u8 moreToFollow){
 /*
 ** Finished with one layer of the tree
 */
-static void sqlite3TreeViewPop(TreeView *p){
+void sqlite3TreeViewPop(TreeView *p){
   if( p==0 ) return;
   p->iLevel--;
   if( p->iLevel<0 ) sqlite3_free(p);
@@ -50,7 +50,7 @@ static void sqlite3TreeViewPop(TreeView *p){
 ** Generate a single line of output for the tree, with a prefix that contains
 ** all the appropriate tree lines
 */
-static void sqlite3TreeViewLine(TreeView *p, const char *zFormat, ...){
+void sqlite3TreeViewLine(TreeView *p, const char *zFormat, ...){
   va_list ap;
   int i;
   StrAccum acc;
@@ -77,7 +77,7 @@ static void sqlite3TreeViewLine(TreeView *p, const char *zFormat, ...){
 /*
 ** Shorthand for starting a new tree item that consists of a single label
 */
-static void sqlite3TreeViewItem(TreeView *p, const char *zLabel,u8 moreFollows){
+void sqlite3TreeViewItem(TreeView *p, const char *zLabel,u8 moreFollows){
   p = sqlite3TreeViewPush(p, moreFollows);
   sqlite3TreeViewLine(p, "%s", zLabel);
 }

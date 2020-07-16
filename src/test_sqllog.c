@@ -83,7 +83,7 @@
 
 #include <sys/types.h>
 #include <unistd.h>
-static int getProcessId(void){
+int getProcessId(void){
 #if SQLITE_OS_WIN
   return (int)_getpid();
 #else
@@ -117,7 +117,7 @@ struct SLConn {
 
 /* This object is a singleton that keeps track of all data loggers.
 */
-static struct SLGlobal {
+struct SLGlobal {
   /* Protected by MUTEX_STATIC_MASTER */
   sqlite3_mutex *mutex;           /* Recursive mutex */
   int nConn;                      /* Size of aConn[] array */
@@ -137,7 +137,7 @@ static struct SLGlobal {
 /*
 ** Return true if c is an ASCII whitespace character.
 */
-static int sqllog_isspace(char c){
+int sqllog_isspace(char c){
   return (c==' ' || c=='\t' || c=='\n' || c=='\v' || c=='\f' || c=='\r');
 }
 
@@ -148,7 +148,7 @@ static int sqllog_isspace(char c){
 ** the token. This is used to check if the SQL command is an "ATTACH" or 
 ** not.
 */
-static void sqllogTokenize(const char *z, const char **pz, int *pn){
+void sqllogTokenize(const char *z, const char **pz, int *pn){
   const char *p = z;
   int n;
 
@@ -172,7 +172,7 @@ static void sqllogTokenize(const char *z, const char **pz, int *pn){
 ** If a non-NULL value is returned, then the caller must arrange to 
 ** eventually free it using sqlite3_free().
 */
-static char *sqllogFindFile(const char *zFile){
+char *sqllogFindFile(const char *zFile){
   char *zRet = 0;
   FILE *fd = 0;
 
@@ -222,7 +222,7 @@ static char *sqllogFindFile(const char *zFile){
   return zRet;
 }
 
-static int sqllogFindAttached(
+int sqllogFindAttached(
   sqlite3 *db,                    /* Database connection */
   const char *zSearch,            /* Name to search for (or NULL) */
   char *zName,                    /* OUT: Name of attached database */
@@ -288,7 +288,7 @@ static int sqllogFindAttached(
 **
 ** The SLGlobal.mutex mutex is always held when this function is called.
 */
-static void sqllogCopydb(struct SLConn *p, const char *zSearch, int bLog){
+void sqllogCopydb(struct SLConn *p, const char *zSearch, int bLog){
   char zName[SQLLOG_NAMESZ];      /* Attached database name */
   char zFile[SQLLOG_NAMESZ];      /* Database file name */
   char *zFree;
@@ -364,7 +364,7 @@ static void sqllogCopydb(struct SLConn *p, const char *zSearch, int bLog){
 **
 ** The SLGlobal.mutex mutex is always held when this function is called.
 */
-static void sqllogOpenlog(struct SLConn *p){
+void sqllogOpenlog(struct SLConn *p){
   /* If the log file has not yet been opened, open it now. */
   if( p->fd==0 ){
     char *zLog;
@@ -401,7 +401,7 @@ static void sqllogOpenlog(struct SLConn *p){
 ** execution of an SQL statement. Parameter p is the connection the statement
 ** was executed by and parameter zSql is the text of the statement itself.
 */
-static void testSqllogStmt(struct SLConn *p, const char *zSql){
+void testSqllogStmt(struct SLConn *p, const char *zSql){
   const char *zFirst;             /* Pointer to first token in zSql */
   int nFirst;                     /* Size of token zFirst in bytes */
 
@@ -423,7 +423,7 @@ static void testSqllogStmt(struct SLConn *p, const char *zSql){
 ** If an error occurs, sqlite3_log() is invoked to report it to the user
 ** and zero returned.
 */
-static int sqllogTraceDb(sqlite3 *db){
+int sqllogTraceDb(sqlite3 *db){
   int bRet = 1;
   if( sqllogglobal.bConditional ){
     char zFile[SQLLOG_NAMESZ];      /* Attached database name */
@@ -465,7 +465,7 @@ static int sqllogTraceDb(sqlite3 *db){
 ** particular implementation, pCtx is always a pointer to the 
 ** sqllogglobal global variable define above.
 */
-static void testSqllog(void *pCtx, sqlite3 *db, const char *zSql, int eType){
+void testSqllog(void *pCtx, sqlite3 *db, const char *zSql, int eType){
   struct SLConn *p = 0;
   sqlite3_mutex *master = sqlite3_mutex_alloc(SQLITE_MUTEX_STATIC_MASTER);
 

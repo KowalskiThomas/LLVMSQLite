@@ -128,49 +128,49 @@ struct tmp_file {
 /*
 ** Method declarations for fs_file.
 */
-static int fsClose(sqlite3_file*);
-static int fsRead(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
-static int fsWrite(sqlite3_file*, const void*, int iAmt, sqlite3_int64 iOfst);
-static int fsTruncate(sqlite3_file*, sqlite3_int64 size);
-static int fsSync(sqlite3_file*, int flags);
-static int fsFileSize(sqlite3_file*, sqlite3_int64 *pSize);
-static int fsLock(sqlite3_file*, int);
-static int fsUnlock(sqlite3_file*, int);
-static int fsCheckReservedLock(sqlite3_file*, int *pResOut);
-static int fsFileControl(sqlite3_file*, int op, void *pArg);
-static int fsSectorSize(sqlite3_file*);
-static int fsDeviceCharacteristics(sqlite3_file*);
+int fsClose(sqlite3_file*);
+int fsRead(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
+int fsWrite(sqlite3_file*, const void*, int iAmt, sqlite3_int64 iOfst);
+int fsTruncate(sqlite3_file*, sqlite3_int64 size);
+int fsSync(sqlite3_file*, int flags);
+int fsFileSize(sqlite3_file*, sqlite3_int64 *pSize);
+int fsLock(sqlite3_file*, int);
+int fsUnlock(sqlite3_file*, int);
+int fsCheckReservedLock(sqlite3_file*, int *pResOut);
+int fsFileControl(sqlite3_file*, int op, void *pArg);
+int fsSectorSize(sqlite3_file*);
+int fsDeviceCharacteristics(sqlite3_file*);
 
 /*
 ** Method declarations for tmp_file.
 */
-static int tmpClose(sqlite3_file*);
-static int tmpRead(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
-static int tmpWrite(sqlite3_file*, const void*, int iAmt, sqlite3_int64 iOfst);
-static int tmpTruncate(sqlite3_file*, sqlite3_int64 size);
-static int tmpSync(sqlite3_file*, int flags);
-static int tmpFileSize(sqlite3_file*, sqlite3_int64 *pSize);
-static int tmpLock(sqlite3_file*, int);
-static int tmpUnlock(sqlite3_file*, int);
-static int tmpCheckReservedLock(sqlite3_file*, int *pResOut);
-static int tmpFileControl(sqlite3_file*, int op, void *pArg);
-static int tmpSectorSize(sqlite3_file*);
-static int tmpDeviceCharacteristics(sqlite3_file*);
+int tmpClose(sqlite3_file*);
+int tmpRead(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
+int tmpWrite(sqlite3_file*, const void*, int iAmt, sqlite3_int64 iOfst);
+int tmpTruncate(sqlite3_file*, sqlite3_int64 size);
+int tmpSync(sqlite3_file*, int flags);
+int tmpFileSize(sqlite3_file*, sqlite3_int64 *pSize);
+int tmpLock(sqlite3_file*, int);
+int tmpUnlock(sqlite3_file*, int);
+int tmpCheckReservedLock(sqlite3_file*, int *pResOut);
+int tmpFileControl(sqlite3_file*, int op, void *pArg);
+int tmpSectorSize(sqlite3_file*);
+int tmpDeviceCharacteristics(sqlite3_file*);
 
 /*
 ** Method declarations for fs_vfs.
 */
-static int fsOpen(sqlite3_vfs*, const char *, sqlite3_file*, int , int *);
-static int fsDelete(sqlite3_vfs*, const char *zName, int syncDir);
-static int fsAccess(sqlite3_vfs*, const char *zName, int flags, int *);
-static int fsFullPathname(sqlite3_vfs*, const char *zName, int nOut,char *zOut);
-static void *fsDlOpen(sqlite3_vfs*, const char *zFilename);
-static void fsDlError(sqlite3_vfs*, int nByte, char *zErrMsg);
-static void (*fsDlSym(sqlite3_vfs*,void*, const char *zSymbol))(void);
-static void fsDlClose(sqlite3_vfs*, void*);
-static int fsRandomness(sqlite3_vfs*, int nByte, char *zOut);
-static int fsSleep(sqlite3_vfs*, int microseconds);
-static int fsCurrentTime(sqlite3_vfs*, double*);
+int fsOpen(sqlite3_vfs*, const char *, sqlite3_file*, int , int *);
+int fsDelete(sqlite3_vfs*, const char *zName, int syncDir);
+int fsAccess(sqlite3_vfs*, const char *zName, int flags, int *);
+int fsFullPathname(sqlite3_vfs*, const char *zName, int nOut,char *zOut);
+void *fsDlOpen(sqlite3_vfs*, const char *zFilename);
+void fsDlError(sqlite3_vfs*, int nByte, char *zErrMsg);
+void (*fsDlSym(sqlite3_vfs*,void*, const char *zSymbol))(void);
+void fsDlClose(sqlite3_vfs*, void*);
+int fsRandomness(sqlite3_vfs*, int nByte, char *zOut);
+int fsSleep(sqlite3_vfs*, int microseconds);
+int fsCurrentTime(sqlite3_vfs*, double*);
 
 
 typedef struct fs_vfs_t fs_vfs_t;
@@ -180,7 +180,7 @@ struct fs_vfs_t {
   sqlite3_vfs *pParent;
 };
 
-static fs_vfs_t fs_vfs = {
+fs_vfs_t fs_vfs = {
   {
     1,                                          /* iVersion */
     0,                                          /* szOsFile */
@@ -205,7 +205,7 @@ static fs_vfs_t fs_vfs = {
   0                                             /* pParent */
 };
 
-static sqlite3_io_methods fs_io_methods = {
+sqlite3_io_methods fs_io_methods = {
   1,                            /* iVersion */
   fsClose,                      /* xClose */
   fsRead,                       /* xRead */
@@ -226,7 +226,7 @@ static sqlite3_io_methods fs_io_methods = {
 };
 
 
-static sqlite3_io_methods tmp_io_methods = {
+sqlite3_io_methods tmp_io_methods = {
   1,                            /* iVersion */
   tmpClose,                     /* xClose */
   tmpRead,                      /* xRead */
@@ -254,7 +254,7 @@ static sqlite3_io_methods tmp_io_methods = {
 /*
 ** Close a tmp-file.
 */
-static int tmpClose(sqlite3_file *pFile){
+int tmpClose(sqlite3_file *pFile){
   tmp_file *pTmp = (tmp_file *)pFile;
   sqlite3_free(pTmp->zAlloc);
   return SQLITE_OK;
@@ -263,7 +263,7 @@ static int tmpClose(sqlite3_file *pFile){
 /*
 ** Read data from a tmp-file.
 */
-static int tmpRead(
+int tmpRead(
   sqlite3_file *pFile, 
   void *zBuf, 
   int iAmt, 
@@ -280,7 +280,7 @@ static int tmpRead(
 /*
 ** Write data to a tmp-file.
 */
-static int tmpWrite(
+int tmpWrite(
   sqlite3_file *pFile, 
   const void *zBuf, 
   int iAmt, 
@@ -304,7 +304,7 @@ static int tmpWrite(
 /*
 ** Truncate a tmp-file.
 */
-static int tmpTruncate(sqlite3_file *pFile, sqlite_int64 size){
+int tmpTruncate(sqlite3_file *pFile, sqlite_int64 size){
   tmp_file *pTmp = (tmp_file *)pFile;
   pTmp->nSize = (int)MIN(pTmp->nSize, size);
   return SQLITE_OK;
@@ -313,14 +313,14 @@ static int tmpTruncate(sqlite3_file *pFile, sqlite_int64 size){
 /*
 ** Sync a tmp-file.
 */
-static int tmpSync(sqlite3_file *pFile, int flags){
+int tmpSync(sqlite3_file *pFile, int flags){
   return SQLITE_OK;
 }
 
 /*
 ** Return the current file-size of a tmp-file.
 */
-static int tmpFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
+int tmpFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
   tmp_file *pTmp = (tmp_file *)pFile;
   *pSize = pTmp->nSize;
   return SQLITE_OK;
@@ -329,21 +329,21 @@ static int tmpFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
 /*
 ** Lock a tmp-file.
 */
-static int tmpLock(sqlite3_file *pFile, int eLock){
+int tmpLock(sqlite3_file *pFile, int eLock){
   return SQLITE_OK;
 }
 
 /*
 ** Unlock a tmp-file.
 */
-static int tmpUnlock(sqlite3_file *pFile, int eLock){
+int tmpUnlock(sqlite3_file *pFile, int eLock){
   return SQLITE_OK;
 }
 
 /*
 ** Check if another file-handle holds a RESERVED lock on a tmp-file.
 */
-static int tmpCheckReservedLock(sqlite3_file *pFile, int *pResOut){
+int tmpCheckReservedLock(sqlite3_file *pFile, int *pResOut){
   *pResOut = 0;
   return SQLITE_OK;
 }
@@ -351,28 +351,28 @@ static int tmpCheckReservedLock(sqlite3_file *pFile, int *pResOut){
 /*
 ** File control method. For custom operations on a tmp-file.
 */
-static int tmpFileControl(sqlite3_file *pFile, int op, void *pArg){
+int tmpFileControl(sqlite3_file *pFile, int op, void *pArg){
   return SQLITE_OK;
 }
 
 /*
 ** Return the sector-size in bytes for a tmp-file.
 */
-static int tmpSectorSize(sqlite3_file *pFile){
+int tmpSectorSize(sqlite3_file *pFile){
   return 0;
 }
 
 /*
 ** Return the device characteristic flags supported by a tmp-file.
 */
-static int tmpDeviceCharacteristics(sqlite3_file *pFile){
+int tmpDeviceCharacteristics(sqlite3_file *pFile){
   return 0;
 }
 
 /*
 ** Close an fs-file.
 */
-static int fsClose(sqlite3_file *pFile){
+int fsClose(sqlite3_file *pFile){
   int rc = SQLITE_OK;
   fs_file *p = (fs_file *)pFile;
   fs_real_file *pReal = p->pReal;
@@ -397,7 +397,7 @@ static int fsClose(sqlite3_file *pFile){
 /*
 ** Read data from an fs-file.
 */
-static int fsRead(
+int fsRead(
   sqlite3_file *pFile, 
   void *zBuf, 
   int iAmt, 
@@ -436,7 +436,7 @@ static int fsRead(
 /*
 ** Write data to an fs-file.
 */
-static int fsWrite(
+int fsWrite(
   sqlite3_file *pFile, 
   const void *zBuf, 
   int iAmt, 
@@ -485,7 +485,7 @@ static int fsWrite(
 /*
 ** Truncate an fs-file.
 */
-static int fsTruncate(sqlite3_file *pFile, sqlite_int64 size){
+int fsTruncate(sqlite3_file *pFile, sqlite_int64 size){
   fs_file *p = (fs_file *)pFile;
   fs_real_file *pReal = p->pReal;
   if( p->eType==DATABASE_FILE ){
@@ -499,7 +499,7 @@ static int fsTruncate(sqlite3_file *pFile, sqlite_int64 size){
 /*
 ** Sync an fs-file.
 */
-static int fsSync(sqlite3_file *pFile, int flags){
+int fsSync(sqlite3_file *pFile, int flags){
   fs_file *p = (fs_file *)pFile;
   fs_real_file *pReal = p->pReal;
   sqlite3_file *pRealFile = pReal->pFile;
@@ -523,7 +523,7 @@ static int fsSync(sqlite3_file *pFile, int flags){
 /*
 ** Return the current file-size of an fs-file.
 */
-static int fsFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
+int fsFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
   fs_file *p = (fs_file *)pFile;
   fs_real_file *pReal = p->pReal;
   if( p->eType==DATABASE_FILE ){
@@ -537,21 +537,21 @@ static int fsFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
 /*
 ** Lock an fs-file.
 */
-static int fsLock(sqlite3_file *pFile, int eLock){
+int fsLock(sqlite3_file *pFile, int eLock){
   return SQLITE_OK;
 }
 
 /*
 ** Unlock an fs-file.
 */
-static int fsUnlock(sqlite3_file *pFile, int eLock){
+int fsUnlock(sqlite3_file *pFile, int eLock){
   return SQLITE_OK;
 }
 
 /*
 ** Check if another file-handle holds a RESERVED lock on an fs-file.
 */
-static int fsCheckReservedLock(sqlite3_file *pFile, int *pResOut){
+int fsCheckReservedLock(sqlite3_file *pFile, int *pResOut){
   *pResOut = 0;
   return SQLITE_OK;
 }
@@ -559,7 +559,7 @@ static int fsCheckReservedLock(sqlite3_file *pFile, int *pResOut){
 /*
 ** File control method. For custom operations on an fs-file.
 */
-static int fsFileControl(sqlite3_file *pFile, int op, void *pArg){
+int fsFileControl(sqlite3_file *pFile, int op, void *pArg){
   if( op==SQLITE_FCNTL_PRAGMA ) return SQLITE_NOTFOUND;
   return SQLITE_OK;
 }
@@ -567,21 +567,21 @@ static int fsFileControl(sqlite3_file *pFile, int op, void *pArg){
 /*
 ** Return the sector-size in bytes for an fs-file.
 */
-static int fsSectorSize(sqlite3_file *pFile){
+int fsSectorSize(sqlite3_file *pFile){
   return BLOCKSIZE;
 }
 
 /*
 ** Return the device characteristic flags supported by an fs-file.
 */
-static int fsDeviceCharacteristics(sqlite3_file *pFile){
+int fsDeviceCharacteristics(sqlite3_file *pFile){
   return 0;
 }
 
 /*
 ** Open an fs file handle.
 */
-static int fsOpen(
+int fsOpen(
   sqlite3_vfs *pVfs,
   const char *zName,
   sqlite3_file *pFile,
@@ -683,7 +683,7 @@ open_out:
 ** ensure the file-system modifications are synced to disk before
 ** returning.
 */
-static int fsDelete(sqlite3_vfs *pVfs, const char *zPath, int dirSync){
+int fsDelete(sqlite3_vfs *pVfs, const char *zPath, int dirSync){
   int rc = SQLITE_OK;
   fs_vfs_t *pFsVfs = (fs_vfs_t *)pVfs;
   fs_real_file *pReal;
@@ -709,7 +709,7 @@ static int fsDelete(sqlite3_vfs *pVfs, const char *zPath, int dirSync){
 ** Test for access permissions. Return true if the requested permission
 ** is available, or false otherwise.
 */
-static int fsAccess(
+int fsAccess(
   sqlite3_vfs *pVfs, 
   const char *zPath, 
   int flags, 
@@ -743,7 +743,7 @@ static int fsAccess(
 ** to the pathname in zPath. zOut is guaranteed to point to a buffer
 ** of at least (FS_MAX_PATHNAME+1) bytes.
 */
-static int fsFullPathname(
+int fsFullPathname(
   sqlite3_vfs *pVfs,            /* Pointer to vfs object */
   const char *zPath,            /* Possibly relative input path */
   int nOut,                     /* Size of output buffer in bytes */
@@ -756,7 +756,7 @@ static int fsFullPathname(
 /*
 ** Open the dynamic library located at zPath and return a handle.
 */
-static void *fsDlOpen(sqlite3_vfs *pVfs, const char *zPath){
+void *fsDlOpen(sqlite3_vfs *pVfs, const char *zPath){
   sqlite3_vfs *pParent = ((fs_vfs_t *)pVfs)->pParent;
   return pParent->xDlOpen(pParent, zPath);
 }
@@ -766,7 +766,7 @@ static void *fsDlOpen(sqlite3_vfs *pVfs, const char *zPath){
 ** utf-8 string describing the most recent error encountered associated 
 ** with dynamic libraries.
 */
-static void fsDlError(sqlite3_vfs *pVfs, int nByte, char *zErrMsg){
+void fsDlError(sqlite3_vfs *pVfs, int nByte, char *zErrMsg){
   sqlite3_vfs *pParent = ((fs_vfs_t *)pVfs)->pParent;
   pParent->xDlError(pParent, nByte, zErrMsg);
 }
@@ -774,7 +774,7 @@ static void fsDlError(sqlite3_vfs *pVfs, int nByte, char *zErrMsg){
 /*
 ** Return a pointer to the symbol zSymbol in the dynamic library pHandle.
 */
-static void (*fsDlSym(sqlite3_vfs *pVfs, void *pH, const char *zSym))(void){
+void (*fsDlSym(sqlite3_vfs *pVfs, void *pH, const char *zSym))(void){
   sqlite3_vfs *pParent = ((fs_vfs_t *)pVfs)->pParent;
   return pParent->xDlSym(pParent, pH, zSym);
 }
@@ -782,7 +782,7 @@ static void (*fsDlSym(sqlite3_vfs *pVfs, void *pH, const char *zSym))(void){
 /*
 ** Close the dynamic library handle pHandle.
 */
-static void fsDlClose(sqlite3_vfs *pVfs, void *pHandle){
+void fsDlClose(sqlite3_vfs *pVfs, void *pHandle){
   sqlite3_vfs *pParent = ((fs_vfs_t *)pVfs)->pParent;
   pParent->xDlClose(pParent, pHandle);
 }
@@ -791,7 +791,7 @@ static void fsDlClose(sqlite3_vfs *pVfs, void *pHandle){
 ** Populate the buffer pointed to by zBufOut with nByte bytes of 
 ** random data.
 */
-static int fsRandomness(sqlite3_vfs *pVfs, int nByte, char *zBufOut){
+int fsRandomness(sqlite3_vfs *pVfs, int nByte, char *zBufOut){
   sqlite3_vfs *pParent = ((fs_vfs_t *)pVfs)->pParent;
   return pParent->xRandomness(pParent, nByte, zBufOut);
 }
@@ -800,7 +800,7 @@ static int fsRandomness(sqlite3_vfs *pVfs, int nByte, char *zBufOut){
 ** Sleep for nMicro microseconds. Return the number of microseconds 
 ** actually slept.
 */
-static int fsSleep(sqlite3_vfs *pVfs, int nMicro){
+int fsSleep(sqlite3_vfs *pVfs, int nMicro){
   sqlite3_vfs *pParent = ((fs_vfs_t *)pVfs)->pParent;
   return pParent->xSleep(pParent, nMicro);
 }
@@ -808,7 +808,7 @@ static int fsSleep(sqlite3_vfs *pVfs, int nMicro){
 /*
 ** Return the current time as a Julian Day number in *pTimeOut.
 */
-static int fsCurrentTime(sqlite3_vfs *pVfs, double *pTimeOut){
+int fsCurrentTime(sqlite3_vfs *pVfs, double *pTimeOut){
   sqlite3_vfs *pParent = ((fs_vfs_t *)pVfs)->pParent;
   return pParent->xCurrentTime(pParent, pTimeOut);
 }

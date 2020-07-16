@@ -36,7 +36,7 @@ int sqlite3_expired(sqlite3_stmt *pStmt){
 ** an error and return true if it has been finalized (or is otherwise
 ** invalid).  Return false if it is ok.
 */
-static int vdbeSafety(Vdbe *p){
+int vdbeSafety(Vdbe *p){
   if( p->db==0 ){
     sqlite3_log(SQLITE_MISUSE, "API called with finalized prepared statement");
     return 1;
@@ -44,7 +44,7 @@ static int vdbeSafety(Vdbe *p){
     return 0;
   }
 }
-static int vdbeSafetyNotNull(Vdbe *p){
+int vdbeSafetyNotNull(Vdbe *p){
   if( p==0 ){
     sqlite3_log(SQLITE_MISUSE, "API called with NULL prepared statement");
     return 1;
@@ -58,7 +58,7 @@ static int vdbeSafetyNotNull(Vdbe *p){
 ** Invoke the profile callback.  This routine is only called if we already
 ** know that the profile callback is defined and needs to be invoked.
 */
-static SQLITE_NOINLINE void invokeProfileCallback(sqlite3 *db, Vdbe *p){
+SQLITE_NOINLINE void invokeProfileCallback(sqlite3 *db, Vdbe *p){
   sqlite3_int64 iNow;
   sqlite3_int64 iElapse;
   assert( p->startTime>0 );
@@ -368,7 +368,7 @@ void sqlite3_value_free(sqlite3_value *pOld){
 ** The invokeValueDestructor(P,X) routine invokes destructor function X()
 ** on value P is not going to be used and need to be destroyed.
 */
-static void setResultStrOrError(
+void setResultStrOrError(
   sqlite3_context *pCtx,  /* Function context */
   const char *z,          /* String pointer */
   int n,                  /* Bytes in string, or negative */
@@ -379,7 +379,7 @@ static void setResultStrOrError(
     sqlite3_result_error_toobig(pCtx);
   }
 }
-static int invokeValueDestructor(
+int invokeValueDestructor(
   const void *p,             /* Value to destroy */
   void (*xDel)(void*),       /* The destructor */
   sqlite3_context *pCtx      /* Set a SQLITE_TOOBIG error if no NULL */
@@ -582,7 +582,7 @@ void sqlite3ResultIntReal(sqlite3_context *pCtx){
 ** This function is called after a transaction has been committed. It 
 ** invokes callbacks registered with sqlite3_wal_hook() as required.
 */
-static int doWalCallbacks(sqlite3 *db){
+int doWalCallbacks(sqlite3 *db){
   int rc = SQLITE_OK;
 #ifndef SQLITE_OMIT_WAL
   int i;
@@ -612,7 +612,7 @@ static int doWalCallbacks(sqlite3 *db){
 ** schema change has occurred.  That detail is handled by the
 ** outer sqlite3_step() wrapper procedure.
 */
-static int sqlite3Step(Vdbe *p){
+int sqlite3Step(Vdbe *p){
   sqlite3 *db;
   int rc;
 
@@ -862,7 +862,7 @@ sqlite3_int64 sqlite3StmtCurrentTime(sqlite3_context *p){
 ** Create a new aggregate context for p and return a pointer to
 ** its pMem->z element.
 */
-static SQLITE_NOINLINE void *createAggContext(sqlite3_context *p, int nByte){
+SQLITE_NOINLINE void *createAggContext(sqlite3_context *p, int nByte){
   Mem *pMem = p->pMem;
   assert( (pMem->flags & MEM_Agg)==0 );
   if( nByte<=0 ){
@@ -1013,7 +1013,7 @@ int sqlite3_data_count(sqlite3_stmt *pStmt){
 /*
 ** Return a pointer to static memory containing an SQL NULL value.
 */
-static const Mem *columnNullValue(void){
+const Mem *columnNullValue(void){
   /* Even though the Mem structure contains an element
   ** of type i64, on certain architectures (x86) with certain compiler
   ** switches (-Os), gcc may align this Mem object on a 4-byte boundary
@@ -1053,7 +1053,7 @@ static const Mem *columnNullValue(void){
 ** If iCol is not valid, return a pointer to a Mem which has a value
 ** of NULL.
 */
-static Mem *columnMem(sqlite3_stmt *pStmt, int i){
+Mem *columnMem(sqlite3_stmt *pStmt, int i){
   Vdbe *pVm;
   Mem *pOut;
 
@@ -1088,7 +1088,7 @@ static Mem *columnMem(sqlite3_stmt *pStmt, int i){
 **     sqlite3_column_bytes16()
 **     sqiite3_column_blob()
 */
-static void columnMallocFailure(sqlite3_stmt *pStmt)
+void columnMallocFailure(sqlite3_stmt *pStmt)
 {
   /* If malloc() failed during an encoding conversion within an
   ** sqlite3_column_XXX API, then set the return code of the statement to
@@ -1186,7 +1186,7 @@ int sqlite3_column_type(sqlite3_stmt *pStmt, int i){
 ** If the result is not a simple column reference (if it is an expression
 ** or a constant) then useTypes 2, 3, and 4 return NULL.
 */
-static const void *columnName(
+const void *columnName(
   sqlite3_stmt *pStmt,     /* The statement */
   int N,                   /* Which column to get the name for */
   int useUtf16,            /* True to return the name as UTF16 */
@@ -1328,7 +1328,7 @@ const void *sqlite3_column_origin_name16(sqlite3_stmt *pStmt, int N){
 ** The error code stored in database p->db is overwritten with the return
 ** value in any case.
 */
-static int vdbeUnbind(Vdbe *p, int i){
+int vdbeUnbind(Vdbe *p, int i){
   Mem *pVar;
   if( vdbeSafetyNotNull(p) ){
     return SQLITE_MISUSE_BKPT;
@@ -1371,7 +1371,7 @@ static int vdbeUnbind(Vdbe *p, int i){
 /*
 ** Bind a text or BLOB value.
 */
-static int bindText(
+int bindText(
   sqlite3_stmt *pStmt,   /* The statement to bind against */
   int i,                 /* Index of the parameter to bind */
   const void *zData,     /* Pointer to the data to be bound */
@@ -1800,7 +1800,7 @@ const char *sqlite3_normalized_sql(sqlite3_stmt *pStmt){
 ** record in nKey/pKey. Return a pointer to the new UnpackedRecord structure
 ** if successful, or a NULL pointer if an OOM error is encountered.
 */
-static UnpackedRecord *vdbeUnpackRecord(
+UnpackedRecord *vdbeUnpackRecord(
   KeyInfo *pKeyInfo, 
   int nKey, 
   const void *pKey

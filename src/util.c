@@ -98,7 +98,7 @@ char *sqlite3ColumnType(Column *pCol, char *zDflt){
 ** a separate routine to avoid unnecessary register saves on entry to
 ** sqlite3Error().
 */
-static SQLITE_NOINLINE void  sqlite3ErrorFinish(sqlite3 *db, int err_code){
+SQLITE_NOINLINE void  sqlite3ErrorFinish(sqlite3 *db, int err_code){
   if( db->pErr ) sqlite3ValueSetNull(db->pErr);
   sqlite3SystemError(db, err_code);
 }
@@ -323,7 +323,7 @@ int sqlite3_strnicmp(const char *zLeft, const char *zRight, int N){
 **
 ** This routine only works for values of E between 1 and 341.
 */
-static LONGDOUBLE_TYPE sqlite3Pow10(int E){
+LONGDOUBLE_TYPE sqlite3Pow10(int E){
 #if defined(_MSC_VER)
   static const LONGDOUBLE_TYPE x[] = {
     1.0e+001L,
@@ -602,7 +602,7 @@ do_atof_calc:
 **
 ** will return -8.
 */
-static int compare2pow63(const char *zNum, int incr){
+int compare2pow63(const char *zNum, int incr){
   int c = 0;
   int i;
                     /* 012345678901234567 */
@@ -861,7 +861,7 @@ int sqlite3Atoi(const char *z){
 ** bit clear.  Except, if we get to the 9th byte, it stores the full
 ** 8 bits and is the last byte.
 */
-static int SQLITE_NOINLINE putVarint64(unsigned char *p, u64 v){
+int SQLITE_NOINLINE putVarint64(unsigned char *p, u64 v){
   int i, j, n;
   u8 buf[10];
   if( v & (((u64)0xff000000)<<32) ){
@@ -1290,7 +1290,7 @@ void *sqlite3HexToBlob(sqlite3 *db, const char *z, int n){
 ** not have been used.  The "type" of connection pointer is given as the
 ** argument.  The zType is a word like "NULL" or "closed" or "invalid".
 */
-static void logBadConnection(const char *zType){
+void logBadConnection(const char *zType){
   sqlite3_log(SQLITE_MISUSE, 
      "API call with %s database connection pointer",
      zType

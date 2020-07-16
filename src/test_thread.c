@@ -55,11 +55,11 @@ struct EvalEvent {
   Tcl_Interp *interp;      /* The interpreter to execute it in. */
 };
 
-static Tcl_ObjCmdProc sqlthread_proc;
-static Tcl_ObjCmdProc clock_seconds_proc;
+Tcl_ObjCmdProc sqlthread_proc;
+Tcl_ObjCmdProc clock_seconds_proc;
 #if SQLITE_OS_UNIX && defined(SQLITE_ENABLE_UNLOCK_NOTIFY)
-static Tcl_ObjCmdProc blocking_step_proc;
-static Tcl_ObjCmdProc blocking_prepare_v2_proc;
+Tcl_ObjCmdProc blocking_step_proc;
+Tcl_ObjCmdProc blocking_prepare_v2_proc;
 #endif
 int Sqlitetest1_Init(Tcl_Interp *);
 int Sqlite3_Init(Tcl_Interp *);
@@ -76,7 +76,7 @@ extern int sqlite3TestErrCode(Tcl_Interp *, sqlite3 *, int);
 /*
 ** Handler for events of type EvalEvent.
 */
-static int SQLITE_TCLAPI tclScriptEvent(Tcl_Event *evPtr, int flags){
+int SQLITE_TCLAPI tclScriptEvent(Tcl_Event *evPtr, int flags){
   int rc;
   EvalEvent *p = (EvalEvent *)evPtr;
   rc = Tcl_Eval(p->interp, p->zScript);
@@ -91,7 +91,7 @@ static int SQLITE_TCLAPI tclScriptEvent(Tcl_Event *evPtr, int flags){
 ** Register an EvalEvent to evaluate the script pScript in the
 ** parent interpreter/thread of SqlThread p.
 */
-static void postToParent(SqlThread *p, Tcl_Obj *pScript){
+void postToParent(SqlThread *p, Tcl_Obj *pScript){
   EvalEvent *pEvent;
   char *zMsg;
   int nMsg;
@@ -111,7 +111,7 @@ static void postToParent(SqlThread *p, Tcl_Obj *pScript){
 /*
 ** The main function for threads created with [sqlthread spawn].
 */
-static Tcl_ThreadCreateType tclScriptThread(ClientData pSqlThread){
+Tcl_ThreadCreateType tclScriptThread(ClientData pSqlThread){
   Tcl_Interp *interp;
   Tcl_Obj *pRes;
   Tcl_Obj *pList;
@@ -171,7 +171,7 @@ static Tcl_ThreadCreateType tclScriptThread(ClientData pSqlThread){
 **
 **     The caller can wait for the script to terminate using [vwait VARNAME].
 */
-static int SQLITE_TCLAPI sqlthread_spawn(
+int SQLITE_TCLAPI sqlthread_spawn(
   ClientData clientData,
   Tcl_Interp *interp,
   int objc,
@@ -224,7 +224,7 @@ static int SQLITE_TCLAPI sqlthread_spawn(
 **
 **     NOTE: At the moment, this doesn't work. FIXME.
 */
-static int SQLITE_TCLAPI sqlthread_parent(
+int SQLITE_TCLAPI sqlthread_parent(
   ClientData clientData,
   Tcl_Interp *interp,
   int objc,
@@ -256,7 +256,7 @@ static int SQLITE_TCLAPI sqlthread_parent(
   return TCL_OK;
 }
 
-static int xBusy(void *pArg, int nBusy){
+int xBusy(void *pArg, int nBusy){
   UNUSED_PARAMETER(pArg);
   UNUSED_PARAMETER(nBusy);
   sqlite3_sleep(50);
@@ -269,7 +269,7 @@ static int xBusy(void *pArg, int nBusy){
 **     Open a database handle and return the string representation of
 **     the pointer value.
 */
-static int SQLITE_TCLAPI sqlthread_open(
+int SQLITE_TCLAPI sqlthread_open(
   ClientData clientData,
   Tcl_Interp *interp,
   int objc,
@@ -303,7 +303,7 @@ static int SQLITE_TCLAPI sqlthread_open(
 **     Return the current thread-id (Tcl_GetCurrentThread()) cast to
 **     an integer.
 */
-static int SQLITE_TCLAPI sqlthread_id(
+int SQLITE_TCLAPI sqlthread_id(
   ClientData clientData,
   Tcl_Interp *interp,
   int objc,
@@ -321,7 +321,7 @@ static int SQLITE_TCLAPI sqlthread_id(
 /*
 ** Dispatch routine for the sub-commands of [sqlthread].
 */
-static int SQLITE_TCLAPI sqlthread_proc(
+int SQLITE_TCLAPI sqlthread_proc(
   ClientData clientData,
   Tcl_Interp *interp,
   int objc,
@@ -369,7 +369,7 @@ static int SQLITE_TCLAPI sqlthread_proc(
 ** implemented as a script in Tcl 8.5, it is not usually available to
 ** testfixture.
 */ 
-static int SQLITE_TCLAPI clock_seconds_proc(
+int SQLITE_TCLAPI clock_seconds_proc(
   ClientData clientData,
   Tcl_Interp *interp,
   int objc,
@@ -417,7 +417,7 @@ struct UnlockNotification {
 /*
 ** This function is an unlock-notify callback registered with SQLite.
 */
-static void unlock_notify_cb(void **apArg, int nArg){
+void unlock_notify_cb(void **apArg, int nArg){
   int i;
   for(i=0; i<nArg; i++){
     UnlockNotification *p = (UnlockNotification *)apArg[i];
@@ -442,7 +442,7 @@ static void unlock_notify_cb(void **apArg, int nArg){
 ** this case the caller should not retry the operation and should roll 
 ** back the current transaction (if any).
 */
-static int wait_for_unlock_notify(sqlite3 *db){
+int wait_for_unlock_notify(sqlite3 *db){
   int rc;
   UnlockNotification un;
 
@@ -531,7 +531,7 @@ int sqlite3_blocking_prepare_v2(
 **
 ** Advance the statement to the next row.
 */
-static int SQLITE_TCLAPI blocking_step_proc(
+int SQLITE_TCLAPI blocking_step_proc(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -557,7 +557,7 @@ static int SQLITE_TCLAPI blocking_step_proc(
 ** Usage: sqlite3_blocking_prepare_v2 DB sql bytes ?tailvar?
 ** Usage: sqlite3_nonblocking_prepare_v2 DB sql bytes ?tailvar?
 */
-static int SQLITE_TCLAPI blocking_prepare_v2_proc(
+int SQLITE_TCLAPI blocking_prepare_v2_proc(
   void * clientData,
   Tcl_Interp *interp,
   int objc,

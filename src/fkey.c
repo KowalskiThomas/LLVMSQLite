@@ -315,7 +315,7 @@ int sqlite3FkLocateIndex(
 ** These operations are identified in the comment at the top of this file 
 ** (fkey.c) as "I.1" and "D.1".
 */
-static void fkLookupParent(
+void fkLookupParent(
   Parse *pParse,        /* Parse context */
   int iDb,              /* Index of database housing pTab */
   Table *pTab,          /* Parent table of FK pFKey */
@@ -468,7 +468,7 @@ static void fkLookupParent(
 ** for pTab.  regBase itself holds the rowid.  regBase+1 holds the first
 ** column.  regBase+2 holds the second column, and so forth.
 */
-static Expr *exprTableRegister(
+Expr *exprTableRegister(
   Parse *pParse,     /* Parsing and code generating context */
   Table *pTab,       /* The table whose content is at r[regBase]... */
   int regBase,       /* Contents of table pTab */
@@ -500,7 +500,7 @@ static Expr *exprTableRegister(
 ** Return an Expr object that refers to column iCol of table pTab which
 ** has cursor iCur.
 */
-static Expr *exprTableColumn(
+Expr *exprTableColumn(
   sqlite3 *db,      /* The database connection */
   Table *pTab,      /* The table whose column is desired */
   int iCursor,      /* The open cursor on the table */
@@ -547,7 +547,7 @@ static Expr *exprTableColumn(
 ** These operations are identified in the comment at the top of this file 
 ** (fkey.c) as "I.2" and "D.2".
 */
-static void fkScanChildren(
+void fkScanChildren(
   Parse *pParse,                  /* Parse context */
   SrcList *pSrc,                  /* The child table to be scanned */
   Table *pTab,                    /* The parent table */
@@ -688,7 +688,7 @@ FKey *sqlite3FkReferences(Table *pTab){
 ** The Trigger structure or any of its sub-components may be allocated from
 ** the lookaside buffer belonging to database handle dbMem.
 */
-static void fkTriggerDelete(sqlite3 *dbMem, Trigger *p){
+void fkTriggerDelete(sqlite3 *dbMem, Trigger *p){
   if( p ){
     TriggerStep *pStep = p->step_list;
     sqlite3ExprDelete(dbMem, pStep->pWhere);
@@ -779,7 +779,7 @@ void sqlite3FkDropTable(Parse *pParse, SrcList *pName, Table *pTab){
 ** This function returns true if any of the columns that are part of the
 ** child key for FK constraint *p are modified.
 */
-static int fkChildIsModified(
+int fkChildIsModified(
   Table *pTab,                    /* Table being updated */
   FKey *p,                        /* Foreign key for which pTab is the child */
   int *aChange,                   /* Array indicating modified columns */
@@ -806,7 +806,7 @@ static int fkChildIsModified(
 ** This function returns true if any of the columns that are part of the
 ** parent key for FK constraint *p are modified.
 */
-static int fkParentIsModified(
+int fkParentIsModified(
   Table *pTab, 
   FKey *p, 
   int *aChange, 
@@ -835,7 +835,7 @@ static int fkParentIsModified(
 ** used to code a trigger that is really a "SET NULL" action belonging
 ** to trigger pFKey.
 */
-static int isSetNullAction(Parse *pParse, FKey *pFKey){
+int isSetNullAction(Parse *pParse, FKey *pFKey){
   Parse *pTop = sqlite3ParseToplevel(pParse);
   if( pTop->pTriggerPrg ){
     Trigger *p = pTop->pTriggerPrg->pTrigger;
@@ -1185,7 +1185,7 @@ int sqlite3FkRequired(
 ** is eventually freed along with the rest of the foreign key object by 
 ** sqlite3FkDelete().
 */
-static Trigger *fkActionTrigger(
+Trigger *fkActionTrigger(
   Parse *pParse,                  /* Parse context */
   Table *pTab,                    /* Table being updated or deleted from */
   FKey *pFKey,                    /* Foreign key to get action for */

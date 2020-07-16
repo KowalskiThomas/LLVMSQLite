@@ -24,7 +24,7 @@
 ** set BtShared.db to the database handle associated with p and the
 ** p->locked boolean to true.
 */
-static void lockBtreeMutex(Btree *p){
+void lockBtreeMutex(Btree *p){
   assert( p->locked==0 );
   assert( sqlite3_mutex_notheld(p->pBt->mutex) );
   assert( sqlite3_mutex_held(p->db->mutex) );
@@ -38,7 +38,7 @@ static void lockBtreeMutex(Btree *p){
 ** Release the BtShared mutex associated with B-Tree handle p and
 ** clear the p->locked boolean.
 */
-static void SQLITE_NOINLINE unlockBtreeMutex(Btree *p){
+void SQLITE_NOINLINE unlockBtreeMutex(Btree *p){
   BtShared *pBt = p->pBt;
   assert( p->locked==1 );
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -50,7 +50,7 @@ static void SQLITE_NOINLINE unlockBtreeMutex(Btree *p){
 }
 
 /* Forward reference */
-static void SQLITE_NOINLINE btreeLockCarefully(Btree *p);
+void SQLITE_NOINLINE btreeLockCarefully(Btree *p);
 
 /*
 ** Enter a mutex on the given BTree object.
@@ -102,7 +102,7 @@ void sqlite3BtreeEnter(Btree *p){
 ** and thus help the sqlite3BtreeLock() routine to run much faster
 ** in the common case.
 */
-static void SQLITE_NOINLINE btreeLockCarefully(Btree *p){
+void SQLITE_NOINLINE btreeLockCarefully(Btree *p){
   Btree *pLater;
 
   /* In most cases, we should be able to acquire the lock we
@@ -183,7 +183,7 @@ int sqlite3BtreeHoldsMutex(Btree *p){
 ** two or more btrees in common both try to lock all their btrees
 ** at the same instant.
 */
-static void SQLITE_NOINLINE btreeEnterAll(sqlite3 *db){
+void SQLITE_NOINLINE btreeEnterAll(sqlite3 *db){
   int i;
   int skipOk = 1;
   Btree *p;
@@ -200,7 +200,7 @@ static void SQLITE_NOINLINE btreeEnterAll(sqlite3 *db){
 void sqlite3BtreeEnterAll(sqlite3 *db){
   if( db->noSharedCache==0 ) btreeEnterAll(db);
 }
-static void SQLITE_NOINLINE btreeLeaveAll(sqlite3 *db){
+void SQLITE_NOINLINE btreeLeaveAll(sqlite3 *db){
   int i;
   Btree *p;
   assert( sqlite3_mutex_held(db->mutex) );

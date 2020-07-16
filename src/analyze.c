@@ -163,7 +163,7 @@
 ** the sqlite_statN tables associated with the named table are deleted.
 ** If zWhere==0, then code is generated to delete all stat table entries.
 */
-static void openStatTable(
+void openStatTable(
   Parse *pParse,          /* Parsing context */
   int iDb,                /* The database we are looking in */
   int iStatCur,           /* Open the sqlite_stat1 table on this cursor */
@@ -295,7 +295,7 @@ struct StatAccum {
 /* Reclaim memory used by a StatSample
 */
 #ifdef SQLITE_ENABLE_STAT4
-static void sampleClear(sqlite3 *db, StatSample *p){
+void sampleClear(sqlite3 *db, StatSample *p){
   assert( db!=0 );
   if( p->nRowid ){
     sqlite3DbFree(db, p->u.aRowid);
@@ -307,7 +307,7 @@ static void sampleClear(sqlite3 *db, StatSample *p){
 /* Initialize the BLOB value of a ROWID
 */
 #ifdef SQLITE_ENABLE_STAT4
-static void sampleSetRowid(sqlite3 *db, StatSample *p, int n, const u8 *pData){
+void sampleSetRowid(sqlite3 *db, StatSample *p, int n, const u8 *pData){
   assert( db!=0 );
   if( p->nRowid ) sqlite3DbFree(db, p->u.aRowid);
   p->u.aRowid = sqlite3DbMallocRawNN(db, n);
@@ -323,7 +323,7 @@ static void sampleSetRowid(sqlite3 *db, StatSample *p, int n, const u8 *pData){
 /* Initialize the INTEGER value of a ROWID.
 */
 #ifdef SQLITE_ENABLE_STAT4
-static void sampleSetRowidInt64(sqlite3 *db, StatSample *p, i64 iRowid){
+void sampleSetRowidInt64(sqlite3 *db, StatSample *p, i64 iRowid){
   assert( db!=0 );
   if( p->nRowid ) sqlite3DbFree(db, p->u.aRowid);
   p->nRowid = 0;
@@ -336,7 +336,7 @@ static void sampleSetRowidInt64(sqlite3 *db, StatSample *p, i64 iRowid){
 ** Copy the contents of object (*pFrom) into (*pTo).
 */
 #ifdef SQLITE_ENABLE_STAT4
-static void sampleCopy(StatAccum *p, StatSample *pTo, StatSample *pFrom){
+void sampleCopy(StatAccum *p, StatSample *pTo, StatSample *pFrom){
   pTo->isPSample = pFrom->isPSample;
   pTo->iCol = pFrom->iCol;
   pTo->iHash = pFrom->iHash;
@@ -354,7 +354,7 @@ static void sampleCopy(StatAccum *p, StatSample *pTo, StatSample *pFrom){
 /*
 ** Reclaim all memory of a StatAccum structure.
 */
-static void statAccumDestructor(void *pOld){
+void statAccumDestructor(void *pOld){
   StatAccum *p = (StatAccum*)pOld;
 #ifdef SQLITE_ENABLE_STAT4
   int i;
@@ -388,7 +388,7 @@ static void statAccumDestructor(void *pOld){
 ** return value is BLOB, but it is really just a pointer to the StatAccum
 ** object.
 */
-static void statInit(
+void statInit(
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
@@ -470,7 +470,7 @@ static void statInit(
   ** value. */
   sqlite3_result_blob(context, p, sizeof(*p), statAccumDestructor);
 }
-static const FuncDef statInitFuncdef = {
+const FuncDef statInitFuncdef = {
   2+IsStat4,       /* nArg */
   SQLITE_UTF8,     /* funcFlags */
   0,               /* pUserData */
@@ -494,7 +494,7 @@ static const FuncDef statInitFuncdef = {
 ** This function assumes that for each argument sample, the contents of
 ** the anEq[] array from pSample->anEq[pSample->iCol+1] onwards are valid. 
 */
-static int sampleIsBetterPost(
+int sampleIsBetterPost(
   StatAccum *pAccum, 
   StatSample *pNew, 
   StatSample *pOld
@@ -518,7 +518,7 @@ static int sampleIsBetterPost(
 ** This function assumes that for each argument sample, the contents of
 ** the anEq[] array from pSample->anEq[pSample->iCol] onwards are valid. 
 */
-static int sampleIsBetter(
+int sampleIsBetter(
   StatAccum *pAccum, 
   StatSample *pNew, 
   StatSample *pOld
@@ -541,7 +541,7 @@ static int sampleIsBetter(
 ** Copy the contents of sample *pNew into the p->a[] array. If necessary,
 ** remove the least desirable sample from p->a[] to make room.
 */
-static void sampleInsert(StatAccum *p, StatSample *pNew, int nEqZero){
+void sampleInsert(StatAccum *p, StatSample *pNew, int nEqZero){
   StatSample *pSample = 0;
   int i;
 
@@ -633,7 +633,7 @@ find_new_min:
 ** index. The value of anEq[iChng] and subsequent anEq[] elements are
 ** correct at this point.
 */
-static void samplePushPrevious(StatAccum *p, int iChng){
+void samplePushPrevious(StatAccum *p, int iChng){
   int i;
 
   /* Check if any samples from the aBest[] array should be pushed
@@ -682,7 +682,7 @@ static void samplePushPrevious(StatAccum *p, int iChng){
 **
 ** The R parameter is only used for STAT4
 */
-static void statPush(
+void statPush(
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
@@ -753,7 +753,7 @@ static void statPush(
   }
 #endif
 }
-static const FuncDef statPushFuncdef = {
+const FuncDef statPushFuncdef = {
   2+IsStat4,       /* nArg */
   SQLITE_UTF8,     /* funcFlags */
   0,               /* pUserData */
@@ -790,7 +790,7 @@ static const FuncDef statPushFuncdef = {
 ** a one-parameter function, stat_get(P), that always returns the
 ** stat1 table entry information.
 */
-static void statGet(
+void statGet(
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
@@ -903,7 +903,7 @@ static void statGet(
   UNUSED_PARAMETER( argc );
 #endif
 }
-static const FuncDef statGetFuncdef = {
+const FuncDef statGetFuncdef = {
   1+IsStat4,       /* nArg */
   SQLITE_UTF8,     /* funcFlags */
   0,               /* pUserData */
@@ -915,7 +915,7 @@ static const FuncDef statGetFuncdef = {
   {0}
 };
 
-static void callStatGet(Parse *pParse, int regStat4, int iParam, int regOut){
+void callStatGet(Parse *pParse, int regStat4, int iParam, int regOut){
 #ifdef SQLITE_ENABLE_STAT4
   sqlite3VdbeAddOp2(pParse->pVdbe, OP_Integer, iParam, regStat4+1);
 #elif SQLITE_DEBUG
@@ -932,7 +932,7 @@ static void callStatGet(Parse *pParse, int regStat4, int iParam, int regOut){
 ** Generate code to do an analysis of all indices associated with
 ** a single table.
 */
-static void analyzeOneTable(
+void analyzeOneTable(
   Parse *pParse,   /* Parser context */
   Table *pTab,     /* Table whose indices are to be analyzed */
   Index *pOnlyIdx, /* If not NULL, only analyze this one index */
@@ -1270,7 +1270,7 @@ static void analyzeOneTable(
 ** Generate code that will cause the most recent index analysis to
 ** be loaded into internal hash tables where is can be used.
 */
-static void loadAnalysis(Parse *pParse, int iDb){
+void loadAnalysis(Parse *pParse, int iDb){
   Vdbe *v = sqlite3GetVdbe(pParse);
   if( v ){
     sqlite3VdbeAddOp1(v, OP_LoadAnalysis, iDb);
@@ -1280,7 +1280,7 @@ static void loadAnalysis(Parse *pParse, int iDb){
 /*
 ** Generate code that will do an analysis of an entire database
 */
-static void analyzeDatabase(Parse *pParse, int iDb){
+void analyzeDatabase(Parse *pParse, int iDb){
   sqlite3 *db = pParse->db;
   Schema *pSchema = db->aDb[iDb].pSchema;    /* Schema of database iDb */
   HashElem *k;
@@ -1307,7 +1307,7 @@ static void analyzeDatabase(Parse *pParse, int iDb){
 ** a database.  If pOnlyIdx is not NULL then it is a single index
 ** in pTab that should be analyzed.
 */
-static void analyzeTable(Parse *pParse, Table *pTab, Index *pOnlyIdx){
+void analyzeTable(Parse *pParse, Table *pTab, Index *pOnlyIdx){
   int iDb;
   int iStatCur;
 
@@ -1401,7 +1401,7 @@ struct analysisInfo {
 ** list of space separated integers. Read the first nOut of these into
 ** the array aOut[].
 */
-static void decodeIntArray(
+void decodeIntArray(
   char *zIntArray,       /* String containing int array to decode */
   int nOut,              /* Number of slots in aOut[] */
   tRowcnt *aOut,         /* Store integers here */
@@ -1474,7 +1474,7 @@ static void decodeIntArray(
 ** Entries for which argv[1]==NULL simply record the number of rows in
 ** the table.
 */
-static int analysisLoader(void *pData, int argc, char **argv, char **NotUsed){
+int analysisLoader(void *pData, int argc, char **argv, char **NotUsed){
   analysisInfo *pInfo = (analysisInfo*)pData;
   Index *pIndex;
   Table *pTable;
@@ -1562,7 +1562,7 @@ void sqlite3DeleteIndexSamples(sqlite3 *db, Index *pIdx){
 ** Populate the pIdx->aAvgEq[] array based on the samples currently
 ** stored in pIdx->aSample[]. 
 */
-static void initAvgEq(Index *pIdx){
+void initAvgEq(Index *pIdx){
   if( pIdx ){
     IndexSample *aSample = pIdx->aSample;
     IndexSample *pFinal = &aSample[pIdx->nSample-1];
@@ -1621,7 +1621,7 @@ static void initAvgEq(Index *pIdx){
 ** Look up an index by name.  Or, if the name of a WITHOUT ROWID table
 ** is supplied instead, find the PRIMARY KEY index for that table.
 */
-static Index *findIndexOrPrimaryKey(
+Index *findIndexOrPrimaryKey(
   sqlite3 *db,
   const char *zName,
   const char *zDb
@@ -1646,7 +1646,7 @@ static Index *findIndexOrPrimaryKey(
 **
 ** where %Q is replaced with the database name before the SQL is executed.
 */
-static int loadStatTbl(
+int loadStatTbl(
   sqlite3 *db,                  /* Database handle */
   const char *zSql1,            /* SQL statement 1 (see above) */
   const char *zSql2,            /* SQL statement 2 (see above) */
@@ -1766,7 +1766,7 @@ static int loadStatTbl(
 ** Load content from the sqlite_stat4 table into 
 ** the Index.aSample[] arrays of all indices.
 */
-static int loadStat4(sqlite3 *db, const char *zDb){
+int loadStat4(sqlite3 *db, const char *zDb){
   int rc = SQLITE_OK;             /* Result codes from subroutines */
 
   assert( db->lookaside.bDisable );

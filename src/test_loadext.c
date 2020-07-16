@@ -18,7 +18,7 @@ SQLITE_EXTENSION_INIT1
 /*
 ** The half() SQL function returns half of its input value.
 */
-static void halfFunc(
+void halfFunc(
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
@@ -29,7 +29,7 @@ static void halfFunc(
 /*
 ** SQL functions to call the sqlite3_status function and return results.
 */
-static void statusFunc(
+void statusFunc(
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv

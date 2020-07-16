@@ -64,7 +64,7 @@
 ** or that return single-column results where the name of the
 ** result column is different from the name of the pragma
 */
-static const char *const pragCName[] = {
+const char *const pragCName[] = {
   /*   0 */ "id",          /* Used by: foreign_key_list */
   /*   1 */ "seq",        
   /*   2 */ "table",      
@@ -131,7 +131,7 @@ typedef struct PragmaName {
   u8 nPragCName;           /* Num of col names. 0 means use pragma name */
   u64 iArg;                /* Extra argument */
 } PragmaName;
-static const PragmaName aPragmaName[] = {
+const PragmaName aPragmaName[] = {
 #if defined(SQLITE_ENABLE_CEROD)
  {/* zName:     */ "activate_extensions",
   /* ePragTyp:  */ PragTyp_ACTIVATE_EXTENSIONS,

@@ -167,7 +167,7 @@ void sqlite3TableAffinity(Vdbe *v, Table *pTab, int iReg){
 ** a statement of the form  "INSERT INTO <iDb, pTab> SELECT ..." can 
 ** run without using a temporary table for the results of the SELECT. 
 */
-static int readsTable(Parse *p, int iDb, Table *pTab){
+int readsTable(Parse *p, int iDb, Table *pTab){
   Vdbe *v = sqlite3GetVdbe(p);
   int i;
   int iEnd = sqlite3VdbeCurrentAddr(v);
@@ -204,7 +204,7 @@ static int readsTable(Parse *p, int iDb, Table *pTab){
 /* This walker callback will compute the union of colFlags flags for all
 ** referenced columns in a CHECK constraint or generated column expression.
 */
-static int exprColumnFlagUnion(Walker *pWalker, Expr *pExpr){
+int exprColumnFlagUnion(Walker *pWalker, Expr *pExpr){
   if( pExpr->op==TK_COLUMN && pExpr->iColumn>=0 ){
     assert( pExpr->iColumn < pWalker->u.pTab->nCol );
     pWalker->eCode |= pWalker->u.pTab->aCol[pExpr->iColumn].colFlags;
@@ -338,7 +338,7 @@ void sqlite3ComputeGeneratedColumns(
 ** The 2nd register is the one that is returned.  That is all the
 ** insert routine needs to know about.
 */
-static int autoIncBegin(
+int autoIncBegin(
   Parse *pParse,      /* Parsing context */
   int iDb,            /* Index of the database holding pTab */
   Table *pTab         /* The table we are writing to */
@@ -448,7 +448,7 @@ void sqlite3AutoincrementBegin(Parse *pParse){
 ** larger than the maximum rowid in the memId memory cell, then the
 ** memory cell is updated.
 */
-static void autoIncStep(Parse *pParse, int memId, int regRowid){
+void autoIncStep(Parse *pParse, int memId, int regRowid){
   if( memId>0 ){
     sqlite3VdbeAddOp2(pParse->pVdbe, OP_MemMax, memId, regRowid);
   }
@@ -461,7 +461,7 @@ static void autoIncStep(Parse *pParse, int memId, int regRowid){
 ** table (either directly or through triggers) needs to call this
 ** routine just before the "exit" code.
 */
-static SQLITE_NOINLINE void autoIncrementEnd(Parse *pParse){
+SQLITE_NOINLINE void autoIncrementEnd(Parse *pParse){
   AutoincInfo *p;
   Vdbe *v = pParse->pVdbe;
   sqlite3 *db = pParse->db;
@@ -512,7 +512,7 @@ void sqlite3AutoincrementEnd(Parse *pParse){
 
 
 /* Forward declaration */
-static int xferOptimization(
+int xferOptimization(
   Parse *pParse,        /* Parser context */
   Table *pDest,         /* The table we are inserting into */
   Select *pSelect,      /* A SELECT statement to use as the data source */
@@ -1347,7 +1347,7 @@ insert_cleanup:
 ** expression node references any of the
 ** columns that are being modifed by an UPDATE statement.
 */
-static int checkConstraintExprNode(Walker *pWalker, Expr *pExpr){
+int checkConstraintExprNode(Walker *pWalker, Expr *pExpr){
   if( pExpr->op==TK_COLUMN ){
     assert( pExpr->iColumn>=0 || pExpr->iColumn==-1 );
     if( pExpr->iColumn>=0 ){
@@ -2458,7 +2458,7 @@ int sqlite3_xferopt_count;
 **    *   The same collating sequence on each column
 **    *   The index has the exact same WHERE clause
 */
-static int xferCompatibleIndex(Index *pDest, Index *pSrc){
+int xferCompatibleIndex(Index *pDest, Index *pSrc){
   int i;
   assert( pDest && pSrc );
   assert( pDest->pTable!=pSrc->pTable );
@@ -2519,7 +2519,7 @@ static int xferCompatibleIndex(Index *pDest, Index *pSrc){
 **
 ** This optimization is particularly useful at making VACUUM run faster.
 */
-static int xferOptimization(
+int xferOptimization(
   Parse *pParse,        /* Parser context */
   Table *pDest,         /* The table we are inserting into */
   Select *pSelect,      /* A SELECT statement to use as the data source */

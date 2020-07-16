@@ -51,7 +51,7 @@ struct Incrblob {
 ** calls to sqlite3_blob_read(), blob_write() or blob_reopen() will 
 ** immediately return SQLITE_ABORT.
 */
-static int blobSeekToRow(Incrblob *p, sqlite3_int64 iRow, char **pzErr){
+int blobSeekToRow(Incrblob *p, sqlite3_int64 iRow, char **pzErr){
   int rc;                         /* Error code */
   char *zErr = 0;                 /* Error message */
   Vdbe *v = (Vdbe *)p->pStmt;
@@ -370,7 +370,7 @@ int sqlite3_blob_close(sqlite3_blob *pBlob){
 /*
 ** Perform a read or write operation on a blob
 */
-static int blobReadWrite(
+int blobReadWrite(
   sqlite3_blob *pBlob, 
   void *z, 
   int n, 

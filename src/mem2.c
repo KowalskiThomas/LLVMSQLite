@@ -79,7 +79,7 @@ struct MemBlockHdr {
 ** static variables organized and to reduce namespace pollution
 ** when this module is combined with other in the amalgamation.
 */
-static struct {
+struct {
   
   /*
   ** Mutex to control access to the memory allocation subsystem.
@@ -126,7 +126,7 @@ static struct {
 /*
 ** Adjust memory usage statistics
 */
-static void adjustStats(int iSize, int increment){
+void adjustStats(int iSize, int increment){
   int i = ROUND8(iSize)/8;
   if( i>NCSIZE-1 ){
     i = NCSIZE - 1;
@@ -149,7 +149,7 @@ static void adjustStats(int iSize, int increment){
 ** This routine checks the guards at either end of the allocation and
 ** if they are incorrect it asserts.
 */
-static struct MemBlockHdr *sqlite3MemsysGetHeader(void *pAllocation){
+struct MemBlockHdr *sqlite3MemsysGetHeader(void *pAllocation){
   struct MemBlockHdr *p;
   int *pInt;
   u8 *pU8;
@@ -173,7 +173,7 @@ static struct MemBlockHdr *sqlite3MemsysGetHeader(void *pAllocation){
 /*
 ** Return the number of bytes currently allocated at address p.
 */
-static int sqlite3MemSize(void *p){
+int sqlite3MemSize(void *p){
   struct MemBlockHdr *pHdr;
   if( !p ){
     return 0;
@@ -185,7 +185,7 @@ static int sqlite3MemSize(void *p){
 /*
 ** Initialize the memory allocation subsystem.
 */
-static int sqlite3MemInit(void *NotUsed){
+int sqlite3MemInit(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
   assert( (sizeof(struct MemBlockHdr)&7) == 0 );
   if( !sqlite3GlobalConfig.bMemstat ){
@@ -199,7 +199,7 @@ static int sqlite3MemInit(void *NotUsed){
 /*
 ** Deinitialize the memory allocation subsystem.
 */
-static void sqlite3MemShutdown(void *NotUsed){
+void sqlite3MemShutdown(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
   mem.mutex = 0;
 }
@@ -207,7 +207,7 @@ static void sqlite3MemShutdown(void *NotUsed){
 /*
 ** Round up a request size to the next valid allocation size.
 */
-static int sqlite3MemRoundup(int n){
+int sqlite3MemRoundup(int n){
   return ROUND8(n);
 }
 
@@ -216,7 +216,7 @@ static int sqlite3MemRoundup(int n){
 ** the content of a new memory allocation to unpredictable values and
 ** to clear the content of a freed allocation to unpredictable values.
 */
-static void randomFill(char *pBuf, int nByte){
+void randomFill(char *pBuf, int nByte){
   unsigned int x, y, r;
   x = SQLITE_PTR_TO_INT(pBuf);
   y = nByte | 1;
@@ -239,7 +239,7 @@ static void randomFill(char *pBuf, int nByte){
 /*
 ** Allocate nByte bytes of memory.
 */
-static void *sqlite3MemMalloc(int nByte){
+void *sqlite3MemMalloc(int nByte){
   struct MemBlockHdr *pHdr;
   void **pBt;
   char *z;
@@ -298,7 +298,7 @@ static void *sqlite3MemMalloc(int nByte){
 /*
 ** Free memory.
 */
-static void sqlite3MemFree(void *pPrior){
+void sqlite3MemFree(void *pPrior){
   struct MemBlockHdr *pHdr;
   void **pBt;
   char *z;
@@ -340,7 +340,7 @@ static void sqlite3MemFree(void *pPrior){
 ** much more likely to break and we are much more liking to find
 ** the error.
 */
-static void *sqlite3MemRealloc(void *pPrior, int nByte){
+void *sqlite3MemRealloc(void *pPrior, int nByte){
   struct MemBlockHdr *pOldHdr;
   void *pNew;
   assert( mem.disallow==0 );

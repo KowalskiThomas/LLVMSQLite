@@ -33,7 +33,7 @@
 #  include "tcl.h"
 #endif
 
-static struct Wrapped {
+struct Wrapped {
   sqlite3_pcache_methods2 pcache;
   sqlite3_mem_methods     mem;
   sqlite3_mutex_methods   mutex;
@@ -46,7 +46,7 @@ static struct Wrapped {
   int pcache_fail;             /* True to fail pcache subsystem inialization */
 } wrapped;
 
-static int wrMemInit(void *pAppData){
+int wrMemInit(void *pAppData){
   int rc;
   if( wrapped.mem_fail ){
     rc = SQLITE_ERROR;
@@ -58,18 +58,18 @@ static int wrMemInit(void *pAppData){
   }
   return rc;
 }
-static void wrMemShutdown(void *pAppData){
+void wrMemShutdown(void *pAppData){
   wrapped.mem.xShutdown(wrapped.mem.pAppData);
   wrapped.mem_init = 0;
 }
-static void *wrMemMalloc(int n)           {return wrapped.mem.xMalloc(n);}
-static void wrMemFree(void *p)            {wrapped.mem.xFree(p);}
-static void *wrMemRealloc(void *p, int n) {return wrapped.mem.xRealloc(p, n);}
-static int wrMemSize(void *p)             {return wrapped.mem.xSize(p);}
-static int wrMemRoundup(int n)            {return wrapped.mem.xRoundup(n);}
+void *wrMemMalloc(int n)           {return wrapped.mem.xMalloc(n);}
+void wrMemFree(void *p)            {wrapped.mem.xFree(p);}
+void *wrMemRealloc(void *p, int n) {return wrapped.mem.xRealloc(p, n);}
+int wrMemSize(void *p)             {return wrapped.mem.xSize(p);}
+int wrMemRoundup(int n)            {return wrapped.mem.xRoundup(n);}
 
 
-static int wrMutexInit(void){
+int wrMutexInit(void){
   int rc;
   if( wrapped.mutex_fail ){
     rc = SQLITE_ERROR;
@@ -81,36 +81,36 @@ static int wrMutexInit(void){
   }
   return rc;
 }
-static int wrMutexEnd(void){
+int wrMutexEnd(void){
   wrapped.mutex.xMutexEnd();
   wrapped.mutex_init = 0;
   return SQLITE_OK;
 }
-static sqlite3_mutex *wrMutexAlloc(int e){
+sqlite3_mutex *wrMutexAlloc(int e){
   return wrapped.mutex.xMutexAlloc(e);
 }
-static void wrMutexFree(sqlite3_mutex *p){
+void wrMutexFree(sqlite3_mutex *p){
   wrapped.mutex.xMutexFree(p);
 }
-static void wrMutexEnter(sqlite3_mutex *p){
+void wrMutexEnter(sqlite3_mutex *p){
   wrapped.mutex.xMutexEnter(p);
 }
-static int wrMutexTry(sqlite3_mutex *p){
+int wrMutexTry(sqlite3_mutex *p){
   return wrapped.mutex.xMutexTry(p);
 }
-static void wrMutexLeave(sqlite3_mutex *p){
+void wrMutexLeave(sqlite3_mutex *p){
   wrapped.mutex.xMutexLeave(p);
 }
-static int wrMutexHeld(sqlite3_mutex *p){
+int wrMutexHeld(sqlite3_mutex *p){
   return wrapped.mutex.xMutexHeld(p);
 }
-static int wrMutexNotheld(sqlite3_mutex *p){
+int wrMutexNotheld(sqlite3_mutex *p){
   return wrapped.mutex.xMutexNotheld(p);
 }
 
 
 
-static int wrPCacheInit(void *pArg){
+int wrPCacheInit(void *pArg){
   int rc;
   if( wrapped.pcache_fail ){
     rc = SQLITE_ERROR;
@@ -122,27 +122,27 @@ static int wrPCacheInit(void *pArg){
   }
   return rc;
 }
-static void wrPCacheShutdown(void *pArg){
+void wrPCacheShutdown(void *pArg){
   wrapped.pcache.xShutdown(wrapped.pcache.pArg);
   wrapped.pcache_init = 0;
 }
 
-static sqlite3_pcache *wrPCacheCreate(int a, int b, int c){
+sqlite3_pcache *wrPCacheCreate(int a, int b, int c){
   return wrapped.pcache.xCreate(a, b, c);
 }  
-static void wrPCacheCachesize(sqlite3_pcache *p, int n){
+void wrPCacheCachesize(sqlite3_pcache *p, int n){
   wrapped.pcache.xCachesize(p, n);
 }  
-static int wrPCachePagecount(sqlite3_pcache *p){
+int wrPCachePagecount(sqlite3_pcache *p){
   return wrapped.pcache.xPagecount(p);
 }  
-static sqlite3_pcache_page *wrPCacheFetch(sqlite3_pcache *p, unsigned a, int b){
+sqlite3_pcache_page *wrPCacheFetch(sqlite3_pcache *p, unsigned a, int b){
   return wrapped.pcache.xFetch(p, a, b);
 }  
-static void wrPCacheUnpin(sqlite3_pcache *p, sqlite3_pcache_page *a, int b){
+void wrPCacheUnpin(sqlite3_pcache *p, sqlite3_pcache_page *a, int b){
   wrapped.pcache.xUnpin(p, a, b);
 }  
-static void wrPCacheRekey(
+void wrPCacheRekey(
   sqlite3_pcache *p, 
   sqlite3_pcache_page *a, 
   unsigned b, 
@@ -150,14 +150,14 @@ static void wrPCacheRekey(
 ){
   wrapped.pcache.xRekey(p, a, b, c);
 }  
-static void wrPCacheTruncate(sqlite3_pcache *p, unsigned a){
+void wrPCacheTruncate(sqlite3_pcache *p, unsigned a){
   wrapped.pcache.xTruncate(p, a);
 }  
-static void wrPCacheDestroy(sqlite3_pcache *p){
+void wrPCacheDestroy(sqlite3_pcache *p){
   wrapped.pcache.xDestroy(p);
 }  
 
-static void installInitWrappers(void){
+void installInitWrappers(void){
   sqlite3_mutex_methods mutexmethods = {
     wrMutexInit,  wrMutexEnd,   wrMutexAlloc,
     wrMutexFree,  wrMutexEnter, wrMutexTry,
@@ -188,7 +188,7 @@ static void installInitWrappers(void){
   sqlite3_config(SQLITE_CONFIG_PCACHE2, &pcachemethods);
 }
 
-static int SQLITE_TCLAPI init_wrapper_install(
+int SQLITE_TCLAPI init_wrapper_install(
   ClientData clientData, /* Unused */
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int objc,              /* Number of arguments */
@@ -212,7 +212,7 @@ static int SQLITE_TCLAPI init_wrapper_install(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI init_wrapper_uninstall(
+int SQLITE_TCLAPI init_wrapper_uninstall(
   ClientData clientData, /* Unused */
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int objc,              /* Number of arguments */
@@ -230,7 +230,7 @@ static int SQLITE_TCLAPI init_wrapper_uninstall(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI init_wrapper_clear(
+int SQLITE_TCLAPI init_wrapper_clear(
   ClientData clientData, /* Unused */
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int objc,              /* Number of arguments */
@@ -247,7 +247,7 @@ static int SQLITE_TCLAPI init_wrapper_clear(
   return TCL_OK;
 }
 
-static int SQLITE_TCLAPI init_wrapper_query(
+int SQLITE_TCLAPI init_wrapper_query(
   ClientData clientData, /* Unused */
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int objc,              /* Number of arguments */

@@ -59,7 +59,7 @@ Table *sqlite3SrcListLookup(Parse *pParse, SrcList *pSrc){
 **      defensive mode, and the current sqlite3_prepare()
 **      is for a top-level SQL statement.
 */
-static int tabIsReadOnly(Parse *pParse, Table *pTab){
+int tabIsReadOnly(Parse *pParse, Table *pTab){
   sqlite3 *db;
   if( IsVirtual(pTab) ){
     return sqlite3GetVTable(pParse->db, pTab)->pMod->pModule->xUpdate==0;

@@ -25,7 +25,7 @@ typedef sqlite3_int64 sqlite3StatValueType;
 typedef u32 sqlite3StatValueType;
 #endif
 typedef struct sqlite3StatType sqlite3StatType;
-static SQLITE_WSD struct sqlite3StatType {
+SQLITE_WSD struct sqlite3StatType {
   sqlite3StatValueType nowValue[10];  /* Current value */
   sqlite3StatValueType mxValue[10];   /* Maximum value */
 } sqlite3Stat = { {0,}, {0,} };
@@ -34,7 +34,7 @@ static SQLITE_WSD struct sqlite3StatType {
 ** Elements of sqlite3Stat[] are protected by either the memory allocator
 ** mutex, or by the pcache1 mutex.  The following array determines which.
 */
-static const char statMutex[] = {
+const char statMutex[] = {
   0,  /* SQLITE_STATUS_MEMORY_USED */
   1,  /* SQLITE_STATUS_PAGECACHE_USED */
   1,  /* SQLITE_STATUS_PAGECACHE_OVERFLOW */
@@ -173,7 +173,7 @@ int sqlite3_status(int op, int *pCurrent, int *pHighwater, int resetFlag){
 /*
 ** Return the number of LookasideSlot elements on the linked list
 */
-static u32 countLookasideSlots(LookasideSlot *p){
+u32 countLookasideSlots(LookasideSlot *p){
   u32 cnt = 0;
   while( p ){
     p = p->pNext;

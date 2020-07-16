@@ -63,15 +63,15 @@ struct sqlite3_mutex {
 ** The sqlite3_mutex_held() and sqlite3_mutex_notheld() routine are
 ** intended for use only inside assert() statements.
 */
-static int winMutexHeld(sqlite3_mutex *p){
+int winMutexHeld(sqlite3_mutex *p){
   return p->nRef!=0 && p->owner==GetCurrentThreadId();
 }
 
-static int winMutexNotheld2(sqlite3_mutex *p, DWORD tid){
+int winMutexNotheld2(sqlite3_mutex *p, DWORD tid){
   return p->nRef==0 || p->owner!=tid;
 }
 
-static int winMutexNotheld(sqlite3_mutex *p){
+int winMutexNotheld(sqlite3_mutex *p){
   DWORD tid = GetCurrentThreadId();
   return winMutexNotheld2(p, tid);
 }
@@ -97,7 +97,7 @@ void sqlite3MemoryBarrier(void){
 /*
 ** Initialize and deinitialize the mutex subsystem.
 */
-static sqlite3_mutex winMutex_staticMutexes[] = {
+sqlite3_mutex winMutex_staticMutexes[] = {
   SQLITE3_MUTEX_INITIALIZER(2),
   SQLITE3_MUTEX_INITIALIZER(3),
   SQLITE3_MUTEX_INITIALIZER(4),
@@ -112,19 +112,19 @@ static sqlite3_mutex winMutex_staticMutexes[] = {
   SQLITE3_MUTEX_INITIALIZER(13)
 };
 
-static int winMutex_isInit = 0;
-static int winMutex_isNt = -1; /* <0 means "need to query" */
+int winMutex_isInit = 0;
+int winMutex_isNt = -1; /* <0 means "need to query" */
 
 /* As the winMutexInit() and winMutexEnd() functions are called as part
 ** of the sqlite3_initialize() and sqlite3_shutdown() processing, the
 ** "interlocked" magic used here is probably not strictly necessary.
 */
-static LONG SQLITE_WIN32_VOLATILE winMutex_lock = 0;
+LONG SQLITE_WIN32_VOLATILE winMutex_lock = 0;
 
 int sqlite3_win32_is_nt(void); /* os_win.c */
 void sqlite3_win32_sleep(DWORD milliseconds); /* os_win.c */
 
-static int winMutexInit(void){
+int winMutexInit(void){
   /* The first to increment to 1 does actual initialization */
   if( InterlockedCompareExchange(&winMutex_lock, 1, 0)==0 ){
     int i;
@@ -146,7 +146,7 @@ static int winMutexInit(void){
   return SQLITE_OK;
 }
 
-static int winMutexEnd(void){
+int winMutexEnd(void){
   /* The first to decrement to 0 does actual shutdown
   ** (which should be the last to shutdown.) */
   if( InterlockedCompareExchange(&winMutex_lock, 0, 1)==1 ){
@@ -209,7 +209,7 @@ static int winMutexEnd(void){
 ** mutex types, the same mutex is returned on every call that has
 ** the same type number.
 */
-static sqlite3_mutex *winMutexAlloc(int iType){
+sqlite3_mutex *winMutexAlloc(int iType){
   sqlite3_mutex *p;
 
   switch( iType ){
@@ -257,7 +257,7 @@ static sqlite3_mutex *winMutexAlloc(int iType){
 ** allocated mutex.  SQLite is careful to deallocate every
 ** mutex that it allocates.
 */
-static void winMutexFree(sqlite3_mutex *p){
+void winMutexFree(sqlite3_mutex *p){
   assert( p );
   assert( p->nRef==0 && p->owner==0 );
   if( p->id==SQLITE_MUTEX_FAST || p->id==SQLITE_MUTEX_RECURSIVE ){
@@ -281,7 +281,7 @@ static void winMutexFree(sqlite3_mutex *p){
 ** can enter.  If the same thread tries to enter any other kind of mutex
 ** more than once, the behavior is undefined.
 */
-static void winMutexEnter(sqlite3_mutex *p){
+void winMutexEnter(sqlite3_mutex *p){
 #if defined(SQLITE_DEBUG) || defined(SQLITE_TEST)
   DWORD tid = GetCurrentThreadId();
 #endif
@@ -304,7 +304,7 @@ static void winMutexEnter(sqlite3_mutex *p){
 #endif
 }
 
-static int winMutexTry(sqlite3_mutex *p){
+int winMutexTry(sqlite3_mutex *p){
 #if defined(SQLITE_DEBUG) || defined(SQLITE_TEST)
   DWORD tid = GetCurrentThreadId();
 #endif
@@ -354,7 +354,7 @@ static int winMutexTry(sqlite3_mutex *p){
 ** is undefined if the mutex is not currently entered or
 ** is not currently allocated.  SQLite will never do either.
 */
-static void winMutexLeave(sqlite3_mutex *p){
+void winMutexLeave(sqlite3_mutex *p){
 #if defined(SQLITE_DEBUG) || defined(SQLITE_TEST)
   DWORD tid = GetCurrentThreadId();
 #endif

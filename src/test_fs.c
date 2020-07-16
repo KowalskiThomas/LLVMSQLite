@@ -143,7 +143,7 @@ struct FsdirCsr {
 **   argv[2]   -> table name
 **   argv[...] -> other module argument fields.
 */
-static int fsdirConnect(
+int fsdirConnect(
   sqlite3 *db,
   void *pAux,
   int argc, const char *const*argv,
@@ -170,7 +170,7 @@ static int fsdirConnect(
 /*
 ** xDestroy/xDisconnect implementation.
 */
-static int fsdirDisconnect(sqlite3_vtab *pVtab){
+int fsdirDisconnect(sqlite3_vtab *pVtab){
   sqlite3_free(pVtab);
   return SQLITE_OK;
 }
@@ -180,7 +180,7 @@ static int fsdirDisconnect(sqlite3_vtab *pVtab){
 **
 **   (dir = ?)
 */
-static int fsdirBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
+int fsdirBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
   int ii;
 
   pIdxInfo->estimatedCost = 1000000000.0;
@@ -206,7 +206,7 @@ static int fsdirBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
 **
 ** Open a new fsdir cursor.
 */
-static int fsdirOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
+int fsdirOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   FsdirCsr *pCur;
   /* Allocate an extra 256 bytes because it is undefined how big dirent.d_name
   ** is and we need enough space.  Linux provides plenty already, but
@@ -221,7 +221,7 @@ static int fsdirOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
 /*
 ** Close a fsdir cursor.
 */
-static int fsdirClose(sqlite3_vtab_cursor *cur){
+int fsdirClose(sqlite3_vtab_cursor *cur){
   FsdirCsr *pCur = (FsdirCsr*)cur;
   if( pCur->pDir ) closedir(pCur->pDir);
   sqlite3_free(pCur->zDir);
@@ -232,7 +232,7 @@ static int fsdirClose(sqlite3_vtab_cursor *cur){
 /*
 ** Skip the cursor to the next entry.
 */
-static int fsdirNext(sqlite3_vtab_cursor *cur){
+int fsdirNext(sqlite3_vtab_cursor *cur){
   FsdirCsr *pCsr = (FsdirCsr*)cur;
 
   if( pCsr->pDir ){
@@ -250,7 +250,7 @@ static int fsdirNext(sqlite3_vtab_cursor *cur){
 /*
 ** xFilter method implementation.
 */
-static int fsdirFilter(
+int fsdirFilter(
   sqlite3_vtab_cursor *pVtabCursor, 
   int idxNum, const char *idxStr,
   int argc, sqlite3_value **argv
@@ -284,7 +284,7 @@ static int fsdirFilter(
 /*
 ** xEof method implementation.
 */
-static int fsdirEof(sqlite3_vtab_cursor *cur){
+int fsdirEof(sqlite3_vtab_cursor *cur){
   FsdirCsr *pCsr = (FsdirCsr*)cur;
   return pCsr->pDir==0;
 }
@@ -292,7 +292,7 @@ static int fsdirEof(sqlite3_vtab_cursor *cur){
 /*
 ** xColumn method implementation.
 */
-static int fsdirColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
+int fsdirColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
   FsdirCsr *pCsr = (FsdirCsr*)cur;
   switch( i ){
     case 0: /* dir */
@@ -313,7 +313,7 @@ static int fsdirColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
 /*
 ** xRowid method implementation.
 */
-static int fsdirRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
+int fsdirRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
   FsdirCsr *pCsr = (FsdirCsr*)cur;
   *pRowid = pCsr->iRowid;
   return SQLITE_OK;
@@ -349,7 +349,7 @@ struct FstreeCsr {
 **   argv[2]   -> table name
 **   argv[...] -> other module argument fields.
 */
-static int fstreeConnect(
+int fstreeConnect(
   sqlite3 *db,
   void *pAux,
   int argc, const char *const*argv,
@@ -377,7 +377,7 @@ static int fstreeConnect(
 /*
 ** xDestroy/xDisconnect implementation.
 */
-static int fstreeDisconnect(sqlite3_vtab *pVtab){
+int fstreeDisconnect(sqlite3_vtab *pVtab){
   sqlite3_free(pVtab);
   return SQLITE_OK;
 }
@@ -387,7 +387,7 @@ static int fstreeDisconnect(sqlite3_vtab *pVtab){
 **
 **   (dir = ?)
 */
-static int fstreeBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
+int fstreeBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
   int ii;
 
   for(ii=0; ii<pIdxInfo->nConstraint; ii++){
@@ -415,7 +415,7 @@ static int fstreeBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
 **
 ** Open a new fstree cursor.
 */
-static int fstreeOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
+int fstreeOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   FstreeCsr *pCur;
   pCur = (FstreeCsr*)sqlite3_malloc(sizeof(FstreeCsr));
   if( pCur==0 ) return SQLITE_NOMEM;
@@ -425,7 +425,7 @@ static int fstreeOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   return SQLITE_OK;
 }
 
-static void fstreeCloseFd(FstreeCsr *pCsr){
+void fstreeCloseFd(FstreeCsr *pCsr){
   if( pCsr->fd>=0 ){
     close(pCsr->fd);
     pCsr->fd = -1;
@@ -435,7 +435,7 @@ static void fstreeCloseFd(FstreeCsr *pCsr){
 /*
 ** Close a fstree cursor.
 */
-static int fstreeClose(sqlite3_vtab_cursor *cur){
+int fstreeClose(sqlite3_vtab_cursor *cur){
   FstreeCsr *pCsr = (FstreeCsr*)cur;
   sqlite3_finalize(pCsr->pStmt);
   fstreeCloseFd(pCsr);
@@ -446,7 +446,7 @@ static int fstreeClose(sqlite3_vtab_cursor *cur){
 /*
 ** Skip the cursor to the next entry.
 */
-static int fstreeNext(sqlite3_vtab_cursor *cur){
+int fstreeNext(sqlite3_vtab_cursor *cur){
   FstreeCsr *pCsr = (FstreeCsr*)cur;
   int rc;
 
@@ -466,7 +466,7 @@ static int fstreeNext(sqlite3_vtab_cursor *cur){
 /*
 ** xFilter method implementation.
 */
-static int fstreeFilter(
+int fstreeFilter(
   sqlite3_vtab_cursor *pVtabCursor, 
   int idxNum, const char *idxStr,
   int argc, sqlite3_value **argv
@@ -554,7 +554,7 @@ static int fstreeFilter(
 /*
 ** xEof method implementation.
 */
-static int fstreeEof(sqlite3_vtab_cursor *cur){
+int fstreeEof(sqlite3_vtab_cursor *cur){
   FstreeCsr *pCsr = (FstreeCsr*)cur;
   return pCsr->pStmt==0;
 }
@@ -562,7 +562,7 @@ static int fstreeEof(sqlite3_vtab_cursor *cur){
 /*
 ** xColumn method implementation.
 */
-static int fstreeColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
+int fstreeColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
   FstreeCsr *pCsr = (FstreeCsr*)cur;
   if( i==0 ){      /* path */
     sqlite3_result_value(ctx, sqlite3_column_value(pCsr->pStmt, 0));
@@ -593,7 +593,7 @@ static int fstreeColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
 /*
 ** xRowid method implementation.
 */
-static int fstreeRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
+int fstreeRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
   *pRowid = 0;
   return SQLITE_OK;
 }
@@ -615,7 +615,7 @@ static int fstreeRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
 **   argv[2]   -> table name
 **   argv[...] -> other module argument fields.
 */
-static int fsConnect(
+int fsConnect(
   sqlite3 *db,
   void *pAux,
   int argc, const char *const*argv,
@@ -650,7 +650,7 @@ static int fsConnect(
 /* Note that for this virtual table, the xCreate and xConnect
 ** methods are identical. */
 
-static int fsDisconnect(sqlite3_vtab *pVtab){
+int fsDisconnect(sqlite3_vtab *pVtab){
   sqlite3_free(pVtab);
   return SQLITE_OK;
 }
@@ -659,7 +659,7 @@ static int fsDisconnect(sqlite3_vtab *pVtab){
 /*
 ** Open a new fs cursor.
 */
-static int fsOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
+int fsOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   fs_cursor *pCur;
   pCur = sqlite3MallocZero(sizeof(fs_cursor));
   *ppCursor = &pCur->base;
@@ -669,7 +669,7 @@ static int fsOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
 /*
 ** Close a fs cursor.
 */
-static int fsClose(sqlite3_vtab_cursor *cur){
+int fsClose(sqlite3_vtab_cursor *cur){
   fs_cursor *pCur = (fs_cursor *)cur;
   sqlite3_finalize(pCur->pStmt);
   sqlite3_free(pCur->zBuf);
@@ -677,7 +677,7 @@ static int fsClose(sqlite3_vtab_cursor *cur){
   return SQLITE_OK;
 }
 
-static int fsNext(sqlite3_vtab_cursor *cur){
+int fsNext(sqlite3_vtab_cursor *cur){
   fs_cursor *pCur = (fs_cursor *)cur;
   int rc;
 
@@ -687,7 +687,7 @@ static int fsNext(sqlite3_vtab_cursor *cur){
   return rc;
 }
 
-static int fsFilter(
+int fsFilter(
   sqlite3_vtab_cursor *pVtabCursor, 
   int idxNum, const char *idxStr,
   int argc, sqlite3_value **argv
@@ -719,7 +719,7 @@ static int fsFilter(
   return rc;
 }
 
-static int fsColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
+int fsColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
   fs_cursor *pCur = (fs_cursor*)cur;
 
   assert( i==0 || i==1 || i==2 );
@@ -760,18 +760,18 @@ static int fsColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
   return SQLITE_OK;
 }
 
-static int fsRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
+int fsRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
   fs_cursor *pCur = (fs_cursor*)cur;
   *pRowid = sqlite3_column_int64(pCur->pStmt, 0);
   return SQLITE_OK;
 }
 
-static int fsEof(sqlite3_vtab_cursor *cur){
+int fsEof(sqlite3_vtab_cursor *cur){
   fs_cursor *pCur = (fs_cursor*)cur;
   return (sqlite3_data_count(pCur->pStmt)==0);
 }
 
-static int fsBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
+int fsBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
   int ii;
 
   for(ii=0; ii<pIdxInfo->nConstraint; ii++){
@@ -795,7 +795,7 @@ static int fsBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
 ** A virtual table module that provides read-only access to a
 ** Tcl global variable namespace.
 */
-static sqlite3_module fsModule = {
+sqlite3_module fsModule = {
   0,                         /* iVersion */
   fsConnect,
   fsConnect,
@@ -818,7 +818,7 @@ static sqlite3_module fsModule = {
   0,                           /* xRename */
 };
 
-static sqlite3_module fsdirModule = {
+sqlite3_module fsdirModule = {
   0,                              /* iVersion */
   fsdirConnect,                   /* xCreate */
   fsdirConnect,                   /* xConnect */
@@ -841,7 +841,7 @@ static sqlite3_module fsdirModule = {
   0,                              /* xRename */
 };
 
-static sqlite3_module fstreeModule = {
+sqlite3_module fstreeModule = {
   0,                              /* iVersion */
   fstreeConnect,                  /* xCreate */
   fstreeConnect,                  /* xConnect */
@@ -872,7 +872,7 @@ extern int getDbPointer(Tcl_Interp *interp, const char *zA, sqlite3 **ppDb);
 /*
 ** Register the echo virtual table module.
 */
-static int SQLITE_TCLAPI register_fs_module(
+int SQLITE_TCLAPI register_fs_module(
   ClientData clientData, /* Pointer to sqlite3_enable_XXX function */
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int objc,              /* Number of arguments */

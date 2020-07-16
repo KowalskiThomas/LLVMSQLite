@@ -27,7 +27,7 @@ SQLITE_EXTENSION_INIT1
 /*
 ** The sqr() SQL function returns the square of its input value.
 */
-static void sqrFunc(
+void sqrFunc(
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
@@ -39,7 +39,7 @@ static void sqrFunc(
 /*
 ** This is the entry point to register the extension for the sqr() function.
 */
-static int sqr_init(
+int sqr_init(
   sqlite3 *db, 
   char **pzErrMsg, 
   const sqlite3_api_routines *pApi
@@ -52,7 +52,7 @@ static int sqr_init(
 /*
 ** The cube() SQL function returns the cube of its input value.
 */
-static void cubeFunc(
+void cubeFunc(
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
@@ -64,7 +64,7 @@ static void cubeFunc(
 /*
 ** This is the entry point to register the extension for the cube() function.
 */
-static int cube_init(
+int cube_init(
   sqlite3 *db, 
   char **pzErrMsg, 
   const sqlite3_api_routines *pApi
@@ -77,7 +77,7 @@ static int cube_init(
 /*
 ** This is a broken extension entry point
 */
-static int broken_init(
+int broken_init(
   sqlite3 *db, 
   char **pzErrMsg, 
   const sqlite3_api_routines *pApi
@@ -94,7 +94,7 @@ static int broken_init(
 **
 ** Register the "sqr" extension to be loaded automatically.
 */
-static int SQLITE_TCLAPI autoExtSqrObjCmd(
+int SQLITE_TCLAPI autoExtSqrObjCmd(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -110,7 +110,7 @@ static int SQLITE_TCLAPI autoExtSqrObjCmd(
 **
 ** Unregister the "sqr" extension.
 */
-static int SQLITE_TCLAPI cancelAutoExtSqrObjCmd(
+int SQLITE_TCLAPI cancelAutoExtSqrObjCmd(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -126,7 +126,7 @@ static int SQLITE_TCLAPI cancelAutoExtSqrObjCmd(
 **
 ** Register the "cube" extension to be loaded automatically.
 */
-static int SQLITE_TCLAPI autoExtCubeObjCmd(
+int SQLITE_TCLAPI autoExtCubeObjCmd(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -142,7 +142,7 @@ static int SQLITE_TCLAPI autoExtCubeObjCmd(
 **
 ** Unregister the "cube" extension.
 */
-static int SQLITE_TCLAPI cancelAutoExtCubeObjCmd(
+int SQLITE_TCLAPI cancelAutoExtCubeObjCmd(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -158,7 +158,7 @@ static int SQLITE_TCLAPI cancelAutoExtCubeObjCmd(
 **
 ** Register the broken extension to be loaded automatically.
 */
-static int SQLITE_TCLAPI autoExtBrokenObjCmd(
+int SQLITE_TCLAPI autoExtBrokenObjCmd(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -174,7 +174,7 @@ static int SQLITE_TCLAPI autoExtBrokenObjCmd(
 **
 ** Unregister the broken extension.
 */
-static int SQLITE_TCLAPI cancelAutoExtBrokenObjCmd(
+int SQLITE_TCLAPI cancelAutoExtBrokenObjCmd(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -193,7 +193,7 @@ static int SQLITE_TCLAPI cancelAutoExtBrokenObjCmd(
 **
 ** Reset all auto-extensions
 */
-static int SQLITE_TCLAPI resetAutoExtObjCmd(
+int SQLITE_TCLAPI resetAutoExtObjCmd(
   void * clientData,
   Tcl_Interp *interp,
   int objc,

@@ -43,7 +43,7 @@
 ** sqlite3FileSuffix3(). It modifies the filename in buffer z in the
 ** same way as SQLite does when in 8.3 filenames mode.
 */
-static void sqlite3Delete83Name(char *z){
+void sqlite3Delete83Name(char *z){
   int i, sz;
   sz = (int)strlen(z);
   for(i=sz-1; i>0 && z[i]!='/' && z[i]!='.'; i--){}
@@ -57,7 +57,7 @@ static void sqlite3Delete83Name(char *z){
 **
 ** If an error occurs, non-zero is returned. Or, if no error occurs, zero.
 */
-static int sqlite3DeleteUnlinkIfExists(
+int sqlite3DeleteUnlinkIfExists(
   sqlite3_vfs *pVfs,
   const char *zFile, 
   int *pbExists

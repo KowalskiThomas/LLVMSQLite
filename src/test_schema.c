@@ -76,7 +76,7 @@ struct schema_cursor {
 /*
 ** Table destructor for the schema module.
 */
-static int schemaDestroy(sqlite3_vtab *pVtab){
+int schemaDestroy(sqlite3_vtab *pVtab){
   sqlite3_free(pVtab);
   return 0;
 }
@@ -84,7 +84,7 @@ static int schemaDestroy(sqlite3_vtab *pVtab){
 /*
 ** Table constructor for the schema module.
 */
-static int schemaCreate(
+int schemaCreate(
   sqlite3 *db,
   void *pAux,
   int argc, const char *const*argv,
@@ -107,7 +107,7 @@ static int schemaCreate(
 /*
 ** Open a new cursor on the schema table.
 */
-static int schemaOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
+int schemaOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   int rc = SQLITE_NOMEM;
   schema_cursor *pCur;
   pCur = sqlite3_malloc(sizeof(schema_cursor));
@@ -122,7 +122,7 @@ static int schemaOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
 /*
 ** Close a schema table cursor.
 */
-static int schemaClose(sqlite3_vtab_cursor *cur){
+int schemaClose(sqlite3_vtab_cursor *cur){
   schema_cursor *pCur = (schema_cursor *)cur;
   sqlite3_finalize(pCur->pDbList);
   sqlite3_finalize(pCur->pTableList);
@@ -134,7 +134,7 @@ static int schemaClose(sqlite3_vtab_cursor *cur){
 /*
 ** Retrieve a column of data.
 */
-static int schemaColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
+int schemaColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
   schema_cursor *pCur = (schema_cursor *)cur;
   switch( i ){
     case 0:
@@ -153,19 +153,19 @@ static int schemaColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
 /*
 ** Retrieve the current rowid.
 */
-static int schemaRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
+int schemaRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
   schema_cursor *pCur = (schema_cursor *)cur;
   *pRowid = pCur->rowid;
   return SQLITE_OK;
 }
 
-static int finalize(sqlite3_stmt **ppStmt){
+int finalize(sqlite3_stmt **ppStmt){
   int rc = sqlite3_finalize(*ppStmt);
   *ppStmt = 0;
   return rc;
 }
 
-static int schemaEof(sqlite3_vtab_cursor *cur){
+int schemaEof(sqlite3_vtab_cursor *cur){
   schema_cursor *pCur = (schema_cursor *)cur;
   return (pCur->pDbList ? 0 : 1);
 }
@@ -173,7 +173,7 @@ static int schemaEof(sqlite3_vtab_cursor *cur){
 /*
 ** Advance the cursor to the next row.
 */
-static int schemaNext(sqlite3_vtab_cursor *cur){
+int schemaNext(sqlite3_vtab_cursor *cur){
   int rc = SQLITE_OK;
   schema_cursor *pCur = (schema_cursor *)cur;
   schema_vtab *pVtab = (schema_vtab *)(cur->pVtab);
@@ -244,7 +244,7 @@ next_exit:
 /*
 ** Reset a schema table cursor.
 */
-static int schemaFilter(
+int schemaFilter(
   sqlite3_vtab_cursor *pVtabCursor, 
   int idxNum, const char *idxStr,
   int argc, sqlite3_value **argv
@@ -263,7 +263,7 @@ static int schemaFilter(
 /*
 ** Analyse the WHERE condition.
 */
-static int schemaBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
+int schemaBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
   return SQLITE_OK;
 }
 
@@ -271,7 +271,7 @@ static int schemaBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
 ** A virtual table module that merely echos method calls into TCL
 ** variables.
 */
-static sqlite3_module schemaModule = {
+sqlite3_module schemaModule = {
   0,                           /* iVersion */
   schemaCreate,
   schemaCreate,
@@ -306,7 +306,7 @@ extern int getDbPointer(Tcl_Interp *interp, const char *zA, sqlite3 **ppDb);
 /*
 ** Register the schema virtual table module.
 */
-static int SQLITE_TCLAPI register_schema_module(
+int SQLITE_TCLAPI register_schema_module(
   ClientData clientData, /* Not used */
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int objc,              /* Number of arguments */

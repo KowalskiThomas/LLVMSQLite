@@ -130,7 +130,7 @@
 ** also check to make sure that the pointer to the function is
 ** not NULL before calling it.
 */
-static const sqlite3_api_routines sqlite3Apis = {
+const sqlite3_api_routines sqlite3Apis = {
   sqlite3_aggregate_context,
 #ifndef SQLITE_OMIT_DEPRECATED
   sqlite3_aggregate_count,
@@ -491,7 +491,7 @@ static const sqlite3_api_routines sqlite3Apis = {
 ** error message text.  The calling function should free this memory
 ** by calling sqlite3DbFree(db, ).
 */
-static int sqlite3LoadExtension(
+int sqlite3LoadExtension(
   sqlite3 *db,          /* Load the extension into this database connection */
   const char *zFile,    /* Name of the shared library containing extension */
   const char *zProc,    /* Entry point.  Use "sqlite3_extension_init" if 0 */
@@ -684,7 +684,7 @@ int sqlite3_enable_load_extension(sqlite3 *db, int onoff){
 ** mutex must be held while accessing this list.
 */
 typedef struct sqlite3AutoExtList sqlite3AutoExtList;
-static SQLITE_WSD struct sqlite3AutoExtList {
+SQLITE_WSD struct sqlite3AutoExtList {
   u32 nExt;              /* Number of entries in aExt[] */          
   void (**aExt)(void);   /* Pointers to the extension init functions */
 } sqlite3Autoext = { 0, 0 };

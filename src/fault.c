@@ -32,7 +32,7 @@
 ** Global variables.
 */
 typedef struct BenignMallocHooks BenignMallocHooks;
-static SQLITE_WSD struct BenignMallocHooks {
+SQLITE_WSD struct BenignMallocHooks {
   void (*xBenignBegin)(void);
   void (*xBenignEnd)(void);
 } sqlite3Hooks = { 0, 0 };

@@ -43,7 +43,7 @@ TCL_DECLARE_MUTEX(testasync_g_writerMutex);
 /*
 ** sqlite3async_initialize PARENT-VFS ISDEFAULT
 */
-static int SQLITE_TCLAPI testAsyncInit(
+int SQLITE_TCLAPI testAsyncInit(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -76,7 +76,7 @@ static int SQLITE_TCLAPI testAsyncInit(
 /*
 ** sqlite3async_shutdown
 */
-static int SQLITE_TCLAPI testAsyncShutdown(
+int SQLITE_TCLAPI testAsyncShutdown(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -86,7 +86,7 @@ static int SQLITE_TCLAPI testAsyncShutdown(
   return TCL_OK;
 }
 
-static Tcl_ThreadCreateType tclWriterThread(ClientData pIsStarted){
+Tcl_ThreadCreateType tclWriterThread(ClientData pIsStarted){
   Tcl_MutexLock(&testasync_g_writerMutex);
   *((int *)pIsStarted) = 1;
   sqlite3async_run();
@@ -100,7 +100,7 @@ static Tcl_ThreadCreateType tclWriterThread(ClientData pIsStarted){
 **
 ** Start a new writer thread.
 */
-static int SQLITE_TCLAPI testAsyncStart(
+int SQLITE_TCLAPI testAsyncStart(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -132,7 +132,7 @@ static int SQLITE_TCLAPI testAsyncStart(
 ** If the current writer thread is set to run forever then this
 ** command would block forever.  To prevent that, an error is returned. 
 */
-static int SQLITE_TCLAPI testAsyncWait(
+int SQLITE_TCLAPI testAsyncWait(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -158,7 +158,7 @@ static int SQLITE_TCLAPI testAsyncWait(
 /*
 ** sqlite3async_control OPTION ?VALUE?
 */
-static int SQLITE_TCLAPI testAsyncControl(
+int SQLITE_TCLAPI testAsyncControl(
   void * clientData,
   Tcl_Interp *interp,
   int objc,

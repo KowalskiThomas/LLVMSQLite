@@ -35,7 +35,7 @@ struct ProcessLocalVar {
   ProcessLocalVar *pNext;
 };
 
-static ProcessLocalStorage *pGlobal = 0;
+ProcessLocalStorage *pGlobal = 0;
 
 int sqlite3_wsd_init(int N, int J){
   if( !pGlobal ){

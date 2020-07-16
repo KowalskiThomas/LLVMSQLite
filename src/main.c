@@ -683,7 +683,7 @@ int sqlite3_config(int op, ...){
 ** If pStart is not NULL then it is sz*cnt bytes of memory to use for
 ** the lookaside memory.
 */
-static int setupLookaside(sqlite3 *db, void *pBuf, int sz, int cnt){
+int setupLookaside(sqlite3 *db, void *pBuf, int sz, int cnt){
 #ifndef SQLITE_OMIT_LOOKASIDE
   void *pStart;
   sqlite3_int64 szAlloc = sz*(sqlite3_int64)cnt;
@@ -949,7 +949,7 @@ int sqlite3_db_config(sqlite3 *db, int op, ...){
 ** This is the collating function named "RTRIM" which is always
 ** available.  Ignore trailing spaces.
 */
-static int rtrimCollFunc(
+int rtrimCollFunc(
   void *pUser,
   int nKey1, const void *pKey1,
   int nKey2, const void *pKey2
@@ -978,7 +978,7 @@ int sqlite3IsBinary(const CollSeq *p){
 **
 ** At the moment there is only a UTF-8 implementation.
 */
-static int nocaseCollatingFunc(
+int nocaseCollatingFunc(
   void *NotUsed,
   int nKey1, const void *pKey1,
   int nKey2, const void *pKey2
@@ -1068,7 +1068,7 @@ void sqlite3CloseSavepoints(sqlite3 *db){
 ** copies of a single function are created when create_function() is called
 ** with SQLITE_ANY as the encoding.
 */
-static void functionDestroy(sqlite3 *db, FuncDef *p){
+void functionDestroy(sqlite3 *db, FuncDef *p){
   FuncDestructor *pDestructor = p->u.pDestructor;
   if( pDestructor ){
     pDestructor->nRef--;
@@ -1083,7 +1083,7 @@ static void functionDestroy(sqlite3 *db, FuncDef *p){
 ** Disconnect all sqlite3_vtab objects that belong to database connection
 ** db. This is called when db is being closed.
 */
-static void disconnectAllVtab(sqlite3 *db){
+void disconnectAllVtab(sqlite3 *db){
 #ifndef SQLITE_OMIT_VIRTUALTABLE
   int i;
   HashElem *p;
@@ -1114,7 +1114,7 @@ static void disconnectAllVtab(sqlite3 *db){
 ** Return TRUE if database connection db has unfinalized prepared
 ** statements or unfinished sqlite3_backup objects.  
 */
-static int connectionIsBusy(sqlite3 *db){
+int connectionIsBusy(sqlite3 *db){
   int j;
   assert( sqlite3_mutex_held(db->mutex) );
   if( db->pVdbe ) return 1;
@@ -1128,7 +1128,7 @@ static int connectionIsBusy(sqlite3 *db){
 /*
 ** Close an existing SQLite database
 */
-static int sqlite3Close(sqlite3 *db, int forceZombie){
+int sqlite3Close(sqlite3 *db, int forceZombie){
   if( !db ){
     /* EVIDENCE-OF: R-63257-11740 Calling sqlite3_close() or
     ** sqlite3_close_v2() with a NULL pointer argument is a harmless no-op. */
@@ -1550,7 +1550,7 @@ const char *sqlite3ErrStr(int rc){
 ** Return non-zero to retry the lock.  Return zero to stop trying
 ** and cause SQLite to return SQLITE_BUSY.
 */
-static int sqliteDefaultBusyCallback(
+int sqliteDefaultBusyCallback(
   void *ptr,               /* Database connection */
   int count,               /* Number of times table has been busy */
   sqlite3_file *pFile      /* The file on which the lock occurred */
@@ -1852,7 +1852,7 @@ int sqlite3CreateFunc(
 **    sqlite3_create_function_v2()
 **    sqlite3_create_window_function()
 */
-static int createFunctionApi(
+int createFunctionApi(
   sqlite3 *db,
   const char *zFunc,
   int nArg,
@@ -1983,7 +1983,7 @@ int sqlite3_create_function16(
 ** for name resolution but are actually overloaded by the xFindFunction
 ** method of virtual tables.
 */
-static void sqlite3InvalidFunction(
+void sqlite3InvalidFunction(
   sqlite3_context *context,  /* The function calling context */
   int NotUsed,               /* Number of arguments to the function */
   sqlite3_value **NotUsed2   /* Value of each argument */
@@ -2555,7 +2555,7 @@ const char *sqlite3_errstr(int rc){
 ** Create a new collating function for database "db".  The name is zName
 ** and the encoding is enc.
 */
-static int createCollation(
+int createCollation(
   sqlite3* db,
   const char *zName, 
   u8 enc,
@@ -2632,7 +2632,7 @@ static int createCollation(
 ** initializer must be kept in sync with the SQLITE_LIMIT_*
 ** #defines in sqlite3.h.
 */
-static const int aHardLimit[] = {
+const int aHardLimit[] = {
   SQLITE_MAX_LENGTH,
   SQLITE_MAX_SQL_LENGTH,
   SQLITE_MAX_COLUMN,
@@ -3002,7 +3002,7 @@ int sqlite3ParseUri(
 ** This routine does the core work of extracting URI parameters from a
 ** database filename for the sqlite3_uri_parameter() interface.
 */
-static const char *uriParameter(const char *zFilename, const char *zParam){
+const char *uriParameter(const char *zFilename, const char *zParam){
   zFilename += sqlite3Strlen30(zFilename) + 1;
   while( zFilename[0] ){
     int x = strcmp(zFilename, zParam);
@@ -3020,7 +3020,7 @@ static const char *uriParameter(const char *zFilename, const char *zParam){
 ** sqlite3_open() and sqlite3_open16(). The database filename "zFilename"  
 ** is UTF-8 encoded.
 */
-static int openDatabase(
+int openDatabase(
   const char *zFilename, /* Database filename UTF-8 encoded */
   sqlite3 **ppDb,        /* OUT: Returned database handle */
   unsigned int flags,    /* Operational flags */
@@ -4238,7 +4238,7 @@ int sqlite3_test_control(int op, ...){
 **
 ** This only works if the filename passed in was obtained from the Pager.
 */
-static const char *databaseName(const char *zName){
+const char *databaseName(const char *zName){
   while( zName[-1]!=0 || zName[-2]!=0 || zName[-3]!=0 || zName[-4]!=0 ){
     zName--;
   }
@@ -4249,7 +4249,7 @@ static const char *databaseName(const char *zName){
 ** Append text z[] to the end of p[].  Return a pointer to the first
 ** character after then zero terminator on the new text in p[].
 */
-static char *appendText(char *p, const char *z){
+char *appendText(char *p, const char *z){
   size_t n = strlen(z);
   memcpy(p, z, n+1);
   return p+n+1;

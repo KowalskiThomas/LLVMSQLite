@@ -94,7 +94,7 @@ struct echo_cursor {
   sqlite3_stmt *pStmt;
 };
 
-static int simulateVtabError(echo_vtab *p, const char *zMethod){
+int simulateVtabError(echo_vtab *p, const char *zMethod){
   const char *zErr;
   char zVarname[128];
   zVarname[127] = '\0';
@@ -119,7 +119,7 @@ static int simulateVtabError(echo_vtab *p, const char *zMethod){
 **     [pqr]   becomes   pqr
 **     `mno`   becomes   mno
 */
-static void dequoteString(char *z){
+void dequoteString(char *z){
   int quote;
   int i, j;
   if( z==0 ) return;
@@ -156,7 +156,7 @@ static void dequoteString(char *z){
 ** nCol column names. The caller is responsible for calling sqlite3_free
 ** on *paCol.
 */
-static int getColumnNames(
+int getColumnNames(
   sqlite3 *db, 
   const char *zTab,
   char ***paCol, 
@@ -236,7 +236,7 @@ out:
 ** See comments associated with the member variable aIndex above 
 ** "struct echo_vtab" for details of the contents of the array.
 */
-static int getIndexArray(
+int getIndexArray(
   sqlite3 *db,             /* Database connection */
   const char *zTab,        /* Name of table in database db */
   int nCol,
@@ -310,7 +310,7 @@ get_index_array_out:
 ** Global Tcl variable $echo_module is a list. This routine appends
 ** the string element zArg to that list in interpreter interp.
 */
-static void appendToEchoModule(Tcl_Interp *interp, const char *zArg){
+void appendToEchoModule(Tcl_Interp *interp, const char *zArg){
   int flags = (TCL_APPEND_VALUE | TCL_LIST_ELEMENT | TCL_GLOBAL_ONLY);
   Tcl_SetVar(interp, "echo_module", (zArg?zArg:""), flags);
 }
@@ -332,7 +332,7 @@ static void appendToEchoModule(Tcl_Interp *interp, const char *zArg){
 ** Hence, the virtual table should have exactly the same column names and 
 ** types as the real table.
 */
-static int echoDeclareVtab(
+int echoDeclareVtab(
   echo_vtab *pVtab, 
   sqlite3 *db 
 ){
@@ -375,7 +375,7 @@ static int echoDeclareVtab(
 ** This function frees all runtime structures associated with the virtual
 ** table pVtab.
 */
-static int echoDestructor(sqlite3_vtab *pVtab){
+int echoDestructor(sqlite3_vtab *pVtab){
   echo_vtab *p = (echo_vtab*)pVtab;
   sqlite3_free(p->aIndex);
   sqlite3_free(p->aCol);
@@ -396,7 +396,7 @@ struct EchoModule {
 ** to allocate the required in-memory structures for a newly connected
 ** virtual table.
 */
-static int echoConstructor(
+int echoConstructor(
   sqlite3 *db,
   void *pAux,
   int argc, const char *const*argv,
@@ -461,7 +461,7 @@ static int echoConstructor(
 /* 
 ** Echo virtual table module xCreate method.
 */
-static int echoCreate(
+int echoCreate(
   sqlite3 *db,
   void *pAux,
   int argc, const char *const*argv,
@@ -509,7 +509,7 @@ static int echoCreate(
 /* 
 ** Echo virtual table module xConnect method.
 */
-static int echoConnect(
+int echoConnect(
   sqlite3 *db,
   void *pAux,
   int argc, const char *const*argv,
@@ -523,7 +523,7 @@ static int echoConnect(
 /* 
 ** Echo virtual table module xDisconnect method.
 */
-static int echoDisconnect(sqlite3_vtab *pVtab){
+int echoDisconnect(sqlite3_vtab *pVtab){
   appendToEchoModule(((echo_vtab *)pVtab)->interp, "xDisconnect");
   return echoDestructor(pVtab);
 }
@@ -531,7 +531,7 @@ static int echoDisconnect(sqlite3_vtab *pVtab){
 /* 
 ** Echo virtual table module xDestroy method.
 */
-static int echoDestroy(sqlite3_vtab *pVtab){
+int echoDestroy(sqlite3_vtab *pVtab){
   int rc = SQLITE_OK;
   echo_vtab *p = (echo_vtab *)pVtab;
   appendToEchoModule(((echo_vtab *)pVtab)->interp, "xDestroy");
@@ -553,7 +553,7 @@ static int echoDestroy(sqlite3_vtab *pVtab){
 /* 
 ** Echo virtual table module xOpen method.
 */
-static int echoOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
+int echoOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   echo_cursor *pCur;
   if( simulateVtabError((echo_vtab *)pVTab, "xOpen") ){
     return SQLITE_ERROR;
@@ -566,7 +566,7 @@ static int echoOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
 /* 
 ** Echo virtual table module xClose method.
 */
-static int echoClose(sqlite3_vtab_cursor *cur){
+int echoClose(sqlite3_vtab_cursor *cur){
   int rc;
   echo_cursor *pCur = (echo_cursor *)cur;
   sqlite3_stmt *pStmt = pCur->pStmt;
@@ -580,14 +580,14 @@ static int echoClose(sqlite3_vtab_cursor *cur){
 ** Return non-zero if the cursor does not currently point to a valid record
 ** (i.e if the scan has finished), or zero otherwise.
 */
-static int echoEof(sqlite3_vtab_cursor *cur){
+int echoEof(sqlite3_vtab_cursor *cur){
   return (((echo_cursor *)cur)->pStmt ? 0 : 1);
 }
 
 /* 
 ** Echo virtual table module xNext method.
 */
-static int echoNext(sqlite3_vtab_cursor *cur){
+int echoNext(sqlite3_vtab_cursor *cur){
   int rc = SQLITE_OK;
   echo_cursor *pCur = (echo_cursor *)cur;
 
@@ -611,7 +611,7 @@ static int echoNext(sqlite3_vtab_cursor *cur){
 /* 
 ** Echo virtual table module xColumn method.
 */
-static int echoColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
+int echoColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
   int iCol = i + 1;
   sqlite3_stmt *pStmt = ((echo_cursor *)cur)->pStmt;
 
@@ -631,7 +631,7 @@ static int echoColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
 /* 
 ** Echo virtual table module xRowid method.
 */
-static int echoRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
+int echoRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
   sqlite3_stmt *pStmt = ((echo_cursor *)cur)->pStmt;
 
   if( simulateVtabError((echo_vtab *)(cur->pVtab), "xRowid") ){
@@ -651,7 +651,7 @@ static int echoRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
 ** In echoFilter(), code assert()s that the supplied idxNum value is
 ** indeed the hash of the supplied idxStr.
 */
-static int hashString(const char *zString){
+int hashString(const char *zString){
   u32 val = 0;
   int ii;
   for(ii=0; zString[ii]; ii++){
@@ -663,7 +663,7 @@ static int hashString(const char *zString){
 /* 
 ** Echo virtual table module xFilter method.
 */
-static int echoFilter(
+int echoFilter(
   sqlite3_vtab_cursor *pVtabCursor, 
   int idxNum, const char *idxStr,
   int argc, sqlite3_value **argv
@@ -723,7 +723,7 @@ static int echoFilter(
 ** If the third argument, doFree, is true, then sqlite3_free() is
 ** also called to free the buffer pointed to by zAppend.
 */
-static void string_concat(char **pzStr, char *zAppend, int doFree, int *pRc){
+void string_concat(char **pzStr, char *zAppend, int doFree, int *pRc){
   char *zIn = *pzStr;
   if( !zAppend && doFree && *pRc==SQLITE_OK ){
     *pRc = SQLITE_NOMEM;
@@ -759,7 +759,7 @@ static void string_concat(char **pzStr, char *zAppend, int doFree, int *pRc){
 ** (select all columns). Or, for version 3.10.0 and greater, the list of
 ** columns identified by the pIdxInfo->colUsed mask.
 */
-static char *echoSelectList(echo_vtab *pTab, sqlite3_index_info *pIdxInfo){
+char *echoSelectList(echo_vtab *pTab, sqlite3_index_info *pIdxInfo){
   char *zRet = 0;
   if( sqlite3_libversion_number()<3010000 ){
     zRet = sqlite3_mprintf(", *");
@@ -799,7 +799,7 @@ static char *echoSelectList(echo_vtab *pTab, sqlite3_index_info *pIdxInfo){
 ** where the <where-clause> and <order-by-clause> are determined
 ** by the contents of the structure pointed to by the pIdxInfo argument.
 */
-static int echoBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
+int echoBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
   int ii;
   char *zQuery = 0;
   char *zCol = 0;
@@ -1098,7 +1098,7 @@ int echoUpdate(
 ** virtual tables. Do nothing other than add the name of the callback
 ** to the $::echo_module Tcl variable.
 */
-static int echoTransactionCall(sqlite3_vtab *tab, const char *zCall){
+int echoTransactionCall(sqlite3_vtab *tab, const char *zCall){
   char *z;
   echo_vtab *pVtab = (echo_vtab *)tab;
   z = sqlite3_mprintf("echo(%s)", pVtab->zTableName);
@@ -1108,7 +1108,7 @@ static int echoTransactionCall(sqlite3_vtab *tab, const char *zCall){
   sqlite3_free(z);
   return SQLITE_OK;
 }
-static int echoBegin(sqlite3_vtab *tab){
+int echoBegin(sqlite3_vtab *tab){
   int rc;
   echo_vtab *pVtab = (echo_vtab *)tab;
   Tcl_Interp *interp = pVtab->interp;
@@ -1139,7 +1139,7 @@ static int echoBegin(sqlite3_vtab *tab){
   }
   return rc;
 }
-static int echoSync(sqlite3_vtab *tab){
+int echoSync(sqlite3_vtab *tab){
   int rc;
   echo_vtab *pVtab = (echo_vtab *)tab;
   Tcl_Interp *interp = pVtab->interp;
@@ -1167,7 +1167,7 @@ static int echoSync(sqlite3_vtab *tab){
   }
   return rc;
 }
-static int echoCommit(sqlite3_vtab *tab){
+int echoCommit(sqlite3_vtab *tab){
   echo_vtab *pVtab = (echo_vtab*)tab;
   int rc;
 
@@ -1185,7 +1185,7 @@ static int echoCommit(sqlite3_vtab *tab){
   pVtab->inTransaction = 0;
   return rc;
 }
-static int echoRollback(sqlite3_vtab *tab){
+int echoRollback(sqlite3_vtab *tab){
   int rc;
   echo_vtab *pVtab = (echo_vtab*)tab;
 
@@ -1203,7 +1203,7 @@ static int echoRollback(sqlite3_vtab *tab){
 ** all arguments to the ::echo_glob_overload procedure of TCL
 ** and return the result of that procedure as a string.
 */
-static void overloadedGlobFunction(
+void overloadedGlobFunction(
   sqlite3_context *pContext,
   int nArg,
   sqlite3_value **apArg
@@ -1236,7 +1236,7 @@ static void overloadedGlobFunction(
 ** do so if the function is named "glob", and a TCL command named
 ** ::echo_glob_overload exists.
 */
-static int echoFindFunction(
+int echoFindFunction(
   sqlite3_vtab *vtab,
   int nArg,
   const char *zFuncName,
@@ -1257,7 +1257,7 @@ static int echoFindFunction(
   return 1;
 }
 
-static int echoRename(sqlite3_vtab *vtab, const char *zNewName){
+int echoRename(sqlite3_vtab *vtab, const char *zNewName){
   int rc = SQLITE_OK;
   echo_vtab *p = (echo_vtab *)vtab;
 
@@ -1277,17 +1277,17 @@ static int echoRename(sqlite3_vtab *vtab, const char *zNewName){
   return rc;
 }
 
-static int echoSavepoint(sqlite3_vtab *pVTab, int iSavepoint){
+int echoSavepoint(sqlite3_vtab *pVTab, int iSavepoint){
   assert( pVTab );
   return SQLITE_OK;
 }
 
-static int echoRelease(sqlite3_vtab *pVTab, int iSavepoint){
+int echoRelease(sqlite3_vtab *pVTab, int iSavepoint){
   assert( pVTab );
   return SQLITE_OK;
 }
 
-static int echoRollbackTo(sqlite3_vtab *pVTab, int iSavepoint){
+int echoRollbackTo(sqlite3_vtab *pVTab, int iSavepoint){
   assert( pVTab );
   return SQLITE_OK;
 }
@@ -1296,7 +1296,7 @@ static int echoRollbackTo(sqlite3_vtab *pVTab, int iSavepoint){
 ** A virtual table module that merely "echos" the contents of another
 ** table (like an SQL VIEW).
 */
-static sqlite3_module echoModule = {
+sqlite3_module echoModule = {
   1,                         /* iVersion */
   echoCreate,
   echoConnect,
@@ -1319,7 +1319,7 @@ static sqlite3_module echoModule = {
   echoRename                 /* xRename - rename the table */
 };
 
-static sqlite3_module echoModuleV2 = {
+sqlite3_module echoModuleV2 = {
   2,                         /* iVersion */
   echoCreate,
   echoConnect,
@@ -1351,14 +1351,14 @@ static sqlite3_module echoModuleV2 = {
 extern int getDbPointer(Tcl_Interp *interp, const char *zA, sqlite3 **ppDb);
 extern const char *sqlite3ErrName(int);
 
-static void moduleDestroy(void *p){
+void moduleDestroy(void *p){
   sqlite3_free(p);
 }
 
 /*
 ** Register the echo virtual table module.
 */
-static int SQLITE_TCLAPI register_echo_module(
+int SQLITE_TCLAPI register_echo_module(
   ClientData clientData, /* Pointer to sqlite3_enable_XXX function */
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int objc,              /* Number of arguments */
@@ -1398,7 +1398,7 @@ static int SQLITE_TCLAPI register_echo_module(
 **
 ** sqlite3_declare_vtab DB SQL
 */
-static int SQLITE_TCLAPI declare_vtab(
+int SQLITE_TCLAPI declare_vtab(
   ClientData clientData, /* Pointer to sqlite3_enable_XXX function */
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int objc,              /* Number of arguments */

@@ -77,7 +77,7 @@ struct tclvar_cursor {
 };
 
 /* Methods for the tclvar module */
-static int tclvarConnect(
+int tclvarConnect(
   sqlite3 *db,
   void *pAux,
   int argc, const char *const*argv,
@@ -102,7 +102,7 @@ static int tclvarConnect(
 /* Note that for this virtual table, the xCreate and xConnect
 ** methods are identical. */
 
-static int tclvarDisconnect(sqlite3_vtab *pVtab){
+int tclvarDisconnect(sqlite3_vtab *pVtab){
   sqlite3_free(pVtab);
   return SQLITE_OK;
 }
@@ -111,7 +111,7 @@ static int tclvarDisconnect(sqlite3_vtab *pVtab){
 /*
 ** Open a new tclvar cursor.
 */
-static int tclvarOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
+int tclvarOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   tclvar_cursor *pCur;
   pCur = sqlite3MallocZero(sizeof(tclvar_cursor));
   *ppCursor = &pCur->base;
@@ -121,7 +121,7 @@ static int tclvarOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
 /*
 ** Close a tclvar cursor.
 */
-static int tclvarClose(sqlite3_vtab_cursor *cur){
+int tclvarClose(sqlite3_vtab_cursor *cur){
   tclvar_cursor *pCur = (tclvar_cursor *)cur;
   if( pCur->pList1 ){
     Tcl_DecrRefCount(pCur->pList1);
@@ -136,7 +136,7 @@ static int tclvarClose(sqlite3_vtab_cursor *cur){
 /*
 ** Returns 1 if data is ready, or 0 if not.
 */
-static int next2(Tcl_Interp *interp, tclvar_cursor *pCur, Tcl_Obj *pObj){
+int next2(Tcl_Interp *interp, tclvar_cursor *pCur, Tcl_Obj *pObj){
   Tcl_Obj *p;
 
   if( pObj ){
@@ -165,7 +165,7 @@ static int next2(Tcl_Interp *interp, tclvar_cursor *pCur, Tcl_Obj *pObj){
   return 1;
 }
 
-static int tclvarNext(sqlite3_vtab_cursor *cur){
+int tclvarNext(sqlite3_vtab_cursor *cur){
   Tcl_Obj *pObj;
   int n = 0;
   int ok = 0;
@@ -185,7 +185,7 @@ static int tclvarNext(sqlite3_vtab_cursor *cur){
   return 0;
 }
 
-static int tclvarFilter(
+int tclvarFilter(
   sqlite3_vtab_cursor *pVtabCursor, 
   int idxNum, const char *idxStr,
   int argc, sqlite3_value **argv
@@ -247,7 +247,7 @@ static int tclvarFilter(
   return tclvarNext(pVtabCursor);
 }
 
-static int tclvarColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
+int tclvarColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
   Tcl_Obj *p1;
   Tcl_Obj *p2;
   const char *z1; 
@@ -289,12 +289,12 @@ static int tclvarColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
   return SQLITE_OK;
 }
 
-static int tclvarRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
+int tclvarRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
   *pRowid = 0;
   return SQLITE_OK;
 }
 
-static int tclvarEof(sqlite3_vtab_cursor *cur){
+int tclvarEof(sqlite3_vtab_cursor *cur){
   tclvar_cursor *pCur = (tclvar_cursor*)cur;
   return (pCur->pList2?0:1);
 }
@@ -307,7 +307,7 @@ static int tclvarEof(sqlite3_vtab_cursor *cur){
 ** There is guaranteed to be enough room in the buffer pointed to by zStr
 ** for the new character and nul-terminator.
 */
-static int tclvarAddToIdxstr(char *zStr, char x){
+int tclvarAddToIdxstr(char *zStr, char x){
   int i;
   for(i=0; zStr[i]; i++){
     if( zStr[i]==x ) return 1;
@@ -321,7 +321,7 @@ static int tclvarAddToIdxstr(char *zStr, char x){
 ** Return true if variable $::tclvar_set_omit exists and is set to true.
 ** False otherwise.
 */
-static int tclvarSetOmit(Tcl_Interp *interp){
+int tclvarSetOmit(Tcl_Interp *interp){
   int rc;
   int res = 0;
   Tcl_Obj *pRes;
@@ -348,7 +348,7 @@ static int tclvarSetOmit(Tcl_Interp *interp){
 ** For each constraint present, the corresponding TCLVAR_XXX character is
 ** appended to the idxStr value. 
 */
-static int tclvarBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
+int tclvarBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
   tclvar_vtab *pTab = (tclvar_vtab*)tab;
   int ii;
   char *zStr = sqlite3_malloc(32);
@@ -413,7 +413,7 @@ static int tclvarBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
 /*
 ** Invoked for any UPDATE, INSERT, or DELETE against a tclvar table
 */
-static int tclvarUpdate(
+int tclvarUpdate(
   sqlite3_vtab *tab,
   int argc,
   sqlite3_value **argv,
@@ -466,7 +466,7 @@ static int tclvarUpdate(
 ** A virtual table module that provides read-only access to a
 ** Tcl global variable namespace.
 */
-static sqlite3_module tclvarModule = {
+sqlite3_module tclvarModule = {
   0,                         /* iVersion */
   tclvarConnect,
   tclvarConnect,
@@ -497,7 +497,7 @@ extern int getDbPointer(Tcl_Interp *interp, const char *zA, sqlite3 **ppDb);
 /*
 ** Register the echo virtual table module.
 */
-static int SQLITE_TCLAPI register_tclvar_module(
+int SQLITE_TCLAPI register_tclvar_module(
   ClientData clientData, /* Pointer to sqlite3_enable_XXX function */
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int objc,              /* Number of arguments */

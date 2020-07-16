@@ -123,7 +123,7 @@ struct tcl_cursor {
 /*
 ** Dequote string z in place.
 */
-static void tclDequote(char *z){
+void tclDequote(char *z){
   char q = z[0];
 
   /* Set stack variable q to the close-quote character */
@@ -165,7 +165,7 @@ static void tclDequote(char *z){
 **   argv[2]   -> table name
 **   argv[...] -> other module argument fields.
 */
-static int tclConnect(
+int tclConnect(
   sqlite3 *db,
   void *pAux,
   int argc, const char *const*argv,
@@ -221,7 +221,7 @@ static int tclConnect(
 }
 
 /* The xDisconnect and xDestroy methods are also the same */
-static int tclDisconnect(sqlite3_vtab *pVtab){
+int tclDisconnect(sqlite3_vtab *pVtab){
   tcl_vtab *pTab = (tcl_vtab*)pVtab;
   Tcl_DecrRefCount(pTab->pCmd);
   sqlite3_free(pTab);
@@ -231,7 +231,7 @@ static int tclDisconnect(sqlite3_vtab *pVtab){
 /*
 ** Open a new tcl cursor.
 */
-static int tclOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
+int tclOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   tcl_cursor *pCur;
   pCur = sqlite3_malloc(sizeof(tcl_cursor));
   if( pCur==0 ) return SQLITE_NOMEM;
@@ -243,7 +243,7 @@ static int tclOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
 /*
 ** Close a tcl cursor.
 */
-static int tclClose(sqlite3_vtab_cursor *cur){
+int tclClose(sqlite3_vtab_cursor *cur){
   tcl_cursor *pCur = (tcl_cursor *)cur;
   if( pCur ){
     sqlite3_finalize(pCur->pStmt);
@@ -252,7 +252,7 @@ static int tclClose(sqlite3_vtab_cursor *cur){
   return SQLITE_OK;
 }
 
-static int tclNext(sqlite3_vtab_cursor *pVtabCursor){
+int tclNext(sqlite3_vtab_cursor *pVtabCursor){
   tcl_cursor *pCsr = (tcl_cursor*)pVtabCursor;
   if( pCsr->pStmt ){
     tcl_vtab *pTab = (tcl_vtab*)(pVtabCursor->pVtab);
@@ -270,7 +270,7 @@ static int tclNext(sqlite3_vtab_cursor *pVtabCursor){
   return SQLITE_OK;
 }
 
-static int tclFilter(
+int tclFilter(
   sqlite3_vtab_cursor *pVtabCursor, 
   int idxNum, const char *idxStr,
   int argc, sqlite3_value **argv
@@ -353,7 +353,7 @@ static int tclFilter(
   return rc;
 }
 
-static int tclColumn(
+int tclColumn(
   sqlite3_vtab_cursor *pVtabCursor, 
   sqlite3_context *ctx, 
   int i
@@ -363,18 +363,18 @@ static int tclColumn(
   return SQLITE_OK;
 }
 
-static int tclRowid(sqlite3_vtab_cursor *pVtabCursor, sqlite_int64 *pRowid){
+int tclRowid(sqlite3_vtab_cursor *pVtabCursor, sqlite_int64 *pRowid){
   tcl_cursor *pCsr = (tcl_cursor*)pVtabCursor;
   *pRowid = sqlite3_column_int64(pCsr->pStmt, 0);
   return SQLITE_OK;
 }
 
-static int tclEof(sqlite3_vtab_cursor *pVtabCursor){
+int tclEof(sqlite3_vtab_cursor *pVtabCursor){
   tcl_cursor *pCsr = (tcl_cursor*)pVtabCursor;
   return (pCsr->pStmt==0);
 }
 
-static int tclBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
+int tclBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
   tcl_vtab *pTab = (tcl_vtab*)tab;
   Tcl_Interp *interp = pTab->interp;
   Tcl_Obj *pArg;
@@ -546,7 +546,7 @@ static int tclBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
 ** A virtual table module that provides read-only access to a
 ** Tcl global variable namespace.
 */
-static sqlite3_module tclModule = {
+sqlite3_module tclModule = {
   0,                         /* iVersion */
   tclConnect,
   tclConnect,
@@ -577,7 +577,7 @@ extern int getDbPointer(Tcl_Interp *interp, const char *zA, sqlite3 **ppDb);
 /*
 ** Register the echo virtual table module.
 */
-static int SQLITE_TCLAPI register_tcl_module(
+int SQLITE_TCLAPI register_tcl_module(
   ClientData clientData, /* Pointer to sqlite3_enable_XXX function */
   Tcl_Interp *interp,    /* The TCL interpreter that invoked this command */
   int objc,              /* Number of arguments */

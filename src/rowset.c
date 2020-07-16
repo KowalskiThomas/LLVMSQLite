@@ -182,7 +182,7 @@ void sqlite3RowSetDelete(void *pArg){
 ** In an OOM situation, the RowSet.db->mallocFailed flag is set and this
 ** routine returns NULL.
 */
-static struct RowSetEntry *rowSetEntryAlloc(RowSet *p){
+struct RowSetEntry *rowSetEntryAlloc(RowSet *p){
   assert( p!=0 );
   if( p->nFresh==0 ){  /*OPTIMIZATION-IF-FALSE*/
     /* We could allocate a fresh RowSetEntry each time one is needed, but it
@@ -238,7 +238,7 @@ void sqlite3RowSetInsert(RowSet *p, i64 rowid){
 ** The input lists are connected via pRight pointers and are 
 ** assumed to each already be in sorted order.
 */
-static struct RowSetEntry *rowSetEntryMerge(
+struct RowSetEntry *rowSetEntryMerge(
   struct RowSetEntry *pA,    /* First sorted list to be merged */
   struct RowSetEntry *pB     /* Second sorted list to be merged */
 ){
@@ -273,7 +273,7 @@ static struct RowSetEntry *rowSetEntryMerge(
 ** Sort all elements on the list of RowSetEntry objects into order of
 ** increasing v.
 */ 
-static struct RowSetEntry *rowSetEntrySort(struct RowSetEntry *pIn){
+struct RowSetEntry *rowSetEntrySort(struct RowSetEntry *pIn){
   unsigned int i;
   struct RowSetEntry *pNext, *aBucket[40];
 
@@ -302,7 +302,7 @@ static struct RowSetEntry *rowSetEntrySort(struct RowSetEntry *pIn){
 ** Convert this tree into a linked list connected by the pRight pointers
 ** and return pointers to the first and last elements of the new list.
 */
-static void rowSetTreeToList(
+void rowSetTreeToList(
   struct RowSetEntry *pIn,         /* Root of the input tree */
   struct RowSetEntry **ppFirst,    /* Write head of the output list here */
   struct RowSetEntry **ppLast      /* Write tail of the output list here */
@@ -337,7 +337,7 @@ static void rowSetTreeToList(
 **
 ** Return a pointer to the root of the constructed binary tree.
 */
-static struct RowSetEntry *rowSetNDeepTree(
+struct RowSetEntry *rowSetNDeepTree(
   struct RowSetEntry **ppList,
   int iDepth
 ){
@@ -373,7 +373,7 @@ static struct RowSetEntry *rowSetNDeepTree(
 ** Convert a sorted list of elements into a binary tree. Make the tree
 ** as deep as it needs to be in order to contain the entire list.
 */
-static struct RowSetEntry *rowSetListToTree(struct RowSetEntry *pList){
+struct RowSetEntry *rowSetListToTree(struct RowSetEntry *pList){
   int iDepth;           /* Depth of the tree so far */
   struct RowSetEntry *p;       /* Current tree root */
   struct RowSetEntry *pLeft;   /* Left subtree */

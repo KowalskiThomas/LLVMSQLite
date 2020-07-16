@@ -249,7 +249,7 @@ struct SqlMessage {
 ** State information about the server is stored in a static variable
 ** named "g" as follows:
 */
-static struct ServerState {
+struct ServerState {
   pthread_mutex_t queueMutex;   /* Hold this mutex to access the msg queue */
   pthread_mutex_t serverMutex;  /* Held by the server while it is running */
   pthread_cond_t serverWakeup;  /* Signal this condvar to wake up the server */
@@ -269,7 +269,7 @@ static struct ServerState {
 ** when this routine is called.  This routine takes care of 
 ** initializing them and destroying them when it has finished.
 */
-static void sendToServer(SqlMessage *pMsg){
+void sendToServer(SqlMessage *pMsg){
   /* Initialize the mutex and condition variable on the message
   */
   pthread_mutex_init(&pMsg->clientMutex, 0);
@@ -477,7 +477,7 @@ void sqlite3_server_start(void){
 ** pointed to by the first argument after the sqlite3_server() call
 ** returns.
 */
-static void *serverWrapper(void *pnDecr){
+void *serverWrapper(void *pnDecr){
   void *p = sqlite3_server(0);
   (*(int*)pnDecr)--;
   return p;

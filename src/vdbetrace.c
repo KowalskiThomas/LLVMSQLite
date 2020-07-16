@@ -26,7 +26,7 @@
 ** a host parameter.  If the text contains no host parameters, return
 ** the total number of bytes in the text.
 */
-static int findNextHostParameter(const char *zSql, int *pnToken){
+int findNextHostParameter(const char *zSql, int *pnToken){
   int tokenType;
   int nTotal = 0;
   int n;

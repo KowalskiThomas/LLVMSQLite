@@ -98,7 +98,7 @@ int sqlite3TestHexToBin(const unsigned char *zIn, int N, unsigned char *aOut){
 ** beginning of the file.  Convert that information to hexadecimal
 ** and return the resulting HEX string.
 */
-static int SQLITE_TCLAPI hexio_read(
+int SQLITE_TCLAPI hexio_read(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -148,7 +148,7 @@ static int SQLITE_TCLAPI hexio_read(
 ** Write DATA into file FILENAME beginning at OFFSET from the
 ** beginning of the file.  DATA is expressed in hexadecimal.
 */
-static int SQLITE_TCLAPI hexio_write(
+int SQLITE_TCLAPI hexio_write(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -196,7 +196,7 @@ static int SQLITE_TCLAPI hexio_write(
 ** the value of that integer.  HEXDATA can contain between 2 and 8
 ** hexadecimal digits.
 */
-static int SQLITE_TCLAPI hexio_get_int(
+int SQLITE_TCLAPI hexio_get_int(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -236,7 +236,7 @@ static int SQLITE_TCLAPI hexio_get_int(
 **
 ** Render INTEGER has a 16-bit big-endian integer in hexadecimal.
 */
-static int SQLITE_TCLAPI hexio_render_int16(
+int SQLITE_TCLAPI hexio_render_int16(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -263,7 +263,7 @@ static int SQLITE_TCLAPI hexio_render_int16(
 **
 ** Render INTEGER has a 32-bit big-endian integer in hexadecimal.
 */
-static int SQLITE_TCLAPI hexio_render_int32(
+int SQLITE_TCLAPI hexio_render_int32(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -293,7 +293,7 @@ static int SQLITE_TCLAPI hexio_render_int32(
 ** The UTF8 might not be well-formed.  Run this string through
 ** sqlite3Utf8to8() convert it back to hex and return the result.
 */
-static int SQLITE_TCLAPI utf8_to_utf8(
+int SQLITE_TCLAPI utf8_to_utf8(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -325,7 +325,7 @@ static int SQLITE_TCLAPI utf8_to_utf8(
 #endif
 }
 
-static int getFts3Varint(const char *p, sqlite_int64 *v){
+int getFts3Varint(const char *p, sqlite_int64 *v){
   const unsigned char *q = (const unsigned char *) p;
   sqlite_uint64 x = 0, y = 1;
   while( (*q & 0x80) == 0x80 ){
@@ -337,7 +337,7 @@ static int getFts3Varint(const char *p, sqlite_int64 *v){
   return (int) (q - (unsigned char *)p);
 }
 
-static int putFts3Varint(char *p, sqlite_int64 v){
+int putFts3Varint(char *p, sqlite_int64 v){
   unsigned char *q = (unsigned char *) p;
   sqlite_uint64 vu = v;
   do{
@@ -355,7 +355,7 @@ static int putFts3Varint(char *p, sqlite_int64 v){
 ** Read a varint from the start of BLOB. Set variable VARNAME to contain
 ** the interpreted value. Return the number of bytes of BLOB consumed.
 */
-static int SQLITE_TCLAPI read_fts3varint(
+int SQLITE_TCLAPI read_fts3varint(
   void * clientData,
   Tcl_Interp *interp,
   int objc,
@@ -381,7 +381,7 @@ static int SQLITE_TCLAPI read_fts3varint(
 /*
 ** USAGE:  make_fts3record ARGLIST
 */
-static int SQLITE_TCLAPI make_fts3record(
+int SQLITE_TCLAPI make_fts3record(
   void * clientData,
   Tcl_Interp *interp,
   int objc,

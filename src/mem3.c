@@ -97,7 +97,7 @@ struct Mem3Block {
 ** static variables organized and to reduce namespace pollution
 ** when this module is combined with other in the amalgamation.
 */
-static SQLITE_WSD struct Mem3Global {
+SQLITE_WSD struct Mem3Global {
   /*
   ** Memory available for allocation. nPool is the size of the array
   ** (in Mem3Blocks) pointed to by aPool less 2.
@@ -144,7 +144,7 @@ static SQLITE_WSD struct Mem3Global {
 ** Unlink the chunk at mem3.aPool[i] from list it is currently
 ** on.  *pRoot is the list that i is a member of.
 */
-static void memsys3UnlinkFromList(u32 i, u32 *pRoot){
+void memsys3UnlinkFromList(u32 i, u32 *pRoot){
   u32 next = mem3.aPool[i].u.list.next;
   u32 prev = mem3.aPool[i].u.list.prev;
   assert( sqlite3_mutex_held(mem3.mutex) );
@@ -164,7 +164,7 @@ static void memsys3UnlinkFromList(u32 i, u32 *pRoot){
 ** Unlink the chunk at index i from 
 ** whatever list is currently a member of.
 */
-static void memsys3Unlink(u32 i){
+void memsys3Unlink(u32 i){
   u32 size, hash;
   assert( sqlite3_mutex_held(mem3.mutex) );
   assert( (mem3.aPool[i-1].u.hdr.size4x & 1)==0 );
@@ -184,7 +184,7 @@ static void memsys3Unlink(u32 i){
 ** Link the chunk at mem3.aPool[i] so that is on the list rooted
 ** at *pRoot.
 */
-static void memsys3LinkIntoList(u32 i, u32 *pRoot){
+void memsys3LinkIntoList(u32 i, u32 *pRoot){
   assert( sqlite3_mutex_held(mem3.mutex) );
   mem3.aPool[i].u.list.next = *pRoot;
   mem3.aPool[i].u.list.prev = 0;
@@ -198,7 +198,7 @@ static void memsys3LinkIntoList(u32 i, u32 *pRoot){
 ** Link the chunk at index i into either the appropriate
 ** small chunk list, or into the large chunk hash table.
 */
-static void memsys3Link(u32 i){
+void memsys3Link(u32 i){
   u32 size, hash;
   assert( sqlite3_mutex_held(mem3.mutex) );
   assert( i>=1 );
@@ -219,20 +219,20 @@ static void memsys3Link(u32 i){
 ** will already be held (obtained by code in malloc.c) if
 ** sqlite3GlobalConfig.bMemStat is true.
 */
-static void memsys3Enter(void){
+void memsys3Enter(void){
   if( sqlite3GlobalConfig.bMemstat==0 && mem3.mutex==0 ){
     mem3.mutex = sqlite3MutexAlloc(SQLITE_MUTEX_STATIC_MEM);
   }
   sqlite3_mutex_enter(mem3.mutex);
 }
-static void memsys3Leave(void){
+void memsys3Leave(void){
   sqlite3_mutex_leave(mem3.mutex);
 }
 
 /*
 ** Called when we are unable to satisfy an allocation of nBytes.
 */
-static void memsys3OutOfMemory(int nByte){
+void memsys3OutOfMemory(int nByte){
   if( !mem3.alarmBusy ){
     mem3.alarmBusy = 1;
     assert( sqlite3_mutex_held(mem3.mutex) );
@@ -249,7 +249,7 @@ static void memsys3OutOfMemory(int nByte){
 ** size parameters for check-out and return a pointer to the 
 ** user portion of the chunk.
 */
-static void *memsys3Checkout(u32 i, u32 nBlock){
+void *memsys3Checkout(u32 i, u32 nBlock){
   u32 x;
   assert( sqlite3_mutex_held(mem3.mutex) );
   assert( i>=1 );
@@ -267,7 +267,7 @@ static void *memsys3Checkout(u32 i, u32 nBlock){
 ** Return a pointer to the new allocation.  Or, if the master chunk
 ** is not large enough, return 0.
 */
-static void *memsys3FromMaster(u32 nBlock){
+void *memsys3FromMaster(u32 nBlock){
   assert( sqlite3_mutex_held(mem3.mutex) );
   assert( mem3.szMaster>=nBlock );
   if( nBlock>=mem3.szMaster-1 ){
@@ -312,7 +312,7 @@ static void *memsys3FromMaster(u32 nBlock){
 ** chunk before invoking this routine, then must unlink the (possibly
 ** changed) master chunk once this routine has finished.
 */
-static void memsys3Merge(u32 *pRoot){
+void memsys3Merge(u32 *pRoot){
   u32 iNext, prev, size, i, x;
 
   assert( sqlite3_mutex_held(mem3.mutex) );
@@ -351,7 +351,7 @@ static void memsys3Merge(u32 *pRoot){
 ** This function assumes that the necessary mutexes, if any, are
 ** already held by the caller. Hence "Unsafe".
 */
-static void *memsys3MallocUnsafe(int nByte){
+void *memsys3MallocUnsafe(int nByte){
   u32 i;
   u32 nBlock;
   u32 toFree;
@@ -433,7 +433,7 @@ static void *memsys3MallocUnsafe(int nByte){
 ** This function assumes that the necessary mutexes, if any, are
 ** already held by the caller. Hence "Unsafe".
 */
-static void memsys3FreeUnsafe(void *pOld){
+void memsys3FreeUnsafe(void *pOld){
   Mem3Block *p = (Mem3Block*)pOld;
   int i;
   u32 size, x;
@@ -474,7 +474,7 @@ static void memsys3FreeUnsafe(void *pOld){
 ** size returned omits the 8-byte header overhead.  This only
 ** works for chunks that are currently checked out.
 */
-static int memsys3Size(void *p){
+int memsys3Size(void *p){
   Mem3Block *pBlock;
   assert( p!=0 );
   pBlock = (Mem3Block*)p;
@@ -485,7 +485,7 @@ static int memsys3Size(void *p){
 /*
 ** Round up a request size to the next valid allocation size.
 */
-static int memsys3Roundup(int n){
+int memsys3Roundup(int n){
   if( n<=12 ){
     return 12;
   }else{
@@ -496,7 +496,7 @@ static int memsys3Roundup(int n){
 /*
 ** Allocate nBytes of memory.
 */
-static void *memsys3Malloc(int nBytes){
+void *memsys3Malloc(int nBytes){
   sqlite3_int64 *p;
   assert( nBytes>0 );          /* malloc.c filters out 0 byte requests */
   memsys3Enter();
@@ -508,7 +508,7 @@ static void *memsys3Malloc(int nBytes){
 /*
 ** Free memory.
 */
-static void memsys3Free(void *pPrior){
+void memsys3Free(void *pPrior){
   assert( pPrior );
   memsys3Enter();
   memsys3FreeUnsafe(pPrior);
@@ -518,7 +518,7 @@ static void memsys3Free(void *pPrior){
 /*
 ** Change the size of an existing memory allocation
 */
-static void *memsys3Realloc(void *pPrior, int nBytes){
+void *memsys3Realloc(void *pPrior, int nBytes){
   int nOld;
   void *p;
   if( pPrior==0 ){
@@ -549,7 +549,7 @@ static void *memsys3Realloc(void *pPrior, int nBytes){
 /*
 ** Initialize this module.
 */
-static int memsys3Init(void *NotUsed){
+int memsys3Init(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
   if( !sqlite3GlobalConfig.pHeap ){
     return SQLITE_ERROR;
@@ -574,7 +574,7 @@ static int memsys3Init(void *NotUsed){
 /*
 ** Deinitialize this module.
 */
-static void memsys3Shutdown(void *NotUsed){
+void memsys3Shutdown(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
   mem3.mutex = 0;
   return;

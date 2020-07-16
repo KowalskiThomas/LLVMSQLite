@@ -30,7 +30,7 @@ extern const char *sqlite3ErrName(int);
 /* These functions are implemented in test1.c. */
 extern int getDbPointer(Tcl_Interp *, const char *, sqlite3 **);
 
-static int SQLITE_TCLAPI backupTestCmd(
+int SQLITE_TCLAPI backupTestCmd(
   ClientData clientData, 
   Tcl_Interp *interp, 
   int objc,
@@ -105,7 +105,7 @@ static int SQLITE_TCLAPI backupTestCmd(
   return TCL_OK;
 }
 
-static void SQLITE_TCLAPI backupTestFinish(ClientData clientData){
+void SQLITE_TCLAPI backupTestFinish(ClientData clientData){
   sqlite3_backup *pBackup = (sqlite3_backup *)clientData;
   sqlite3_backup_finish(pBackup);
 }
@@ -114,7 +114,7 @@ static void SQLITE_TCLAPI backupTestFinish(ClientData clientData){
 **     sqlite3_backup CMDNAME DESTHANDLE DESTNAME SRCHANDLE SRCNAME
 **
 */
-static int SQLITE_TCLAPI backupTestInit(
+int SQLITE_TCLAPI backupTestInit(
   ClientData clientData, 
   Tcl_Interp *interp, 
   int objc,

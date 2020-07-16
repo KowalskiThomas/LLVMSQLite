@@ -144,7 +144,7 @@
 **
 **   ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
 */
-static void row_numberStepFunc(
+void row_numberStepFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -154,7 +154,7 @@ static void row_numberStepFunc(
   UNUSED_PARAMETER(nArg);
   UNUSED_PARAMETER(apArg);
 }
-static void row_numberValueFunc(sqlite3_context *pCtx){
+void row_numberValueFunc(sqlite3_context *pCtx){
   i64 *p = (i64*)sqlite3_aggregate_context(pCtx, sizeof(*p));
   sqlite3_result_int64(pCtx, (p ? *p : 0));
 }
@@ -175,7 +175,7 @@ struct CallCount {
 **
 **   RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW 
 */
-static void dense_rankStepFunc(
+void dense_rankStepFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -186,7 +186,7 @@ static void dense_rankStepFunc(
   UNUSED_PARAMETER(nArg);
   UNUSED_PARAMETER(apArg);
 }
-static void dense_rankValueFunc(sqlite3_context *pCtx){
+void dense_rankValueFunc(sqlite3_context *pCtx){
   struct CallCount *p;
   p = (struct CallCount*)sqlite3_aggregate_context(pCtx, sizeof(*p));
   if( p ){
@@ -207,7 +207,7 @@ struct NthValueCtx {
   i64 nStep;
   sqlite3_value *pValue;
 };
-static void nth_valueStepFunc(
+void nth_valueStepFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -248,7 +248,7 @@ static void nth_valueStepFunc(
       pCtx, "second argument to nth_value must be a positive integer", -1
   );
 }
-static void nth_valueFinalizeFunc(sqlite3_context *pCtx){
+void nth_valueFinalizeFunc(sqlite3_context *pCtx){
   struct NthValueCtx *p;
   p = (struct NthValueCtx*)sqlite3_aggregate_context(pCtx, 0);
   if( p && p->pValue ){
@@ -260,7 +260,7 @@ static void nth_valueFinalizeFunc(sqlite3_context *pCtx){
 #define nth_valueInvFunc noopStepFunc
 #define nth_valueValueFunc noopValueFunc
 
-static void first_valueStepFunc(
+void first_valueStepFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -276,7 +276,7 @@ static void first_valueStepFunc(
   UNUSED_PARAMETER(nArg);
   UNUSED_PARAMETER(apArg);
 }
-static void first_valueFinalizeFunc(sqlite3_context *pCtx){
+void first_valueFinalizeFunc(sqlite3_context *pCtx){
   struct NthValueCtx *p;
   p = (struct NthValueCtx*)sqlite3_aggregate_context(pCtx, sizeof(*p));
   if( p && p->pValue ){
@@ -294,7 +294,7 @@ static void first_valueFinalizeFunc(sqlite3_context *pCtx){
 **
 **   RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW 
 */
-static void rankStepFunc(
+void rankStepFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -310,7 +310,7 @@ static void rankStepFunc(
   UNUSED_PARAMETER(nArg);
   UNUSED_PARAMETER(apArg);
 }
-static void rankValueFunc(sqlite3_context *pCtx){
+void rankValueFunc(sqlite3_context *pCtx){
   struct CallCount *p;
   p = (struct CallCount*)sqlite3_aggregate_context(pCtx, sizeof(*p));
   if( p ){
@@ -325,7 +325,7 @@ static void rankValueFunc(sqlite3_context *pCtx){
 **
 **   GROUPS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
 */
-static void percent_rankStepFunc(
+void percent_rankStepFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -338,7 +338,7 @@ static void percent_rankStepFunc(
     p->nTotal++;
   }
 }
-static void percent_rankInvFunc(
+void percent_rankInvFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -349,7 +349,7 @@ static void percent_rankInvFunc(
   p = (struct CallCount*)sqlite3_aggregate_context(pCtx, sizeof(*p));
   p->nStep++;
 }
-static void percent_rankValueFunc(sqlite3_context *pCtx){
+void percent_rankValueFunc(sqlite3_context *pCtx){
   struct CallCount *p;
   p = (struct CallCount*)sqlite3_aggregate_context(pCtx, sizeof(*p));
   if( p ){
@@ -370,7 +370,7 @@ static void percent_rankValueFunc(sqlite3_context *pCtx){
 **
 **   GROUPS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING
 */
-static void cume_distStepFunc(
+void cume_distStepFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -383,7 +383,7 @@ static void cume_distStepFunc(
     p->nTotal++;
   }
 }
-static void cume_distInvFunc(
+void cume_distInvFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -394,7 +394,7 @@ static void cume_distInvFunc(
   p = (struct CallCount*)sqlite3_aggregate_context(pCtx, sizeof(*p));
   p->nStep++;
 }
-static void cume_distValueFunc(sqlite3_context *pCtx){
+void cume_distValueFunc(sqlite3_context *pCtx){
   struct CallCount *p;
   p = (struct CallCount*)sqlite3_aggregate_context(pCtx, 0);
   if( p ){
@@ -419,7 +419,7 @@ struct NtileCtx {
 **
 **   ROWS CURRENT ROW AND UNBOUNDED FOLLOWING
 */
-static void ntileStepFunc(
+void ntileStepFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -439,7 +439,7 @@ static void ntileStepFunc(
     p->nTotal++;
   }
 }
-static void ntileInvFunc(
+void ntileInvFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -450,7 +450,7 @@ static void ntileInvFunc(
   p = (struct NtileCtx*)sqlite3_aggregate_context(pCtx, sizeof(*p));
   p->iRow++;
 }
-static void ntileValueFunc(sqlite3_context *pCtx){
+void ntileValueFunc(sqlite3_context *pCtx){
   struct NtileCtx *p;
   p = (struct NtileCtx*)sqlite3_aggregate_context(pCtx, sizeof(*p));
   if( p && p->nParam>0 ){
@@ -485,7 +485,7 @@ struct LastValueCtx {
 /*
 ** Implementation of last_value().
 */
-static void last_valueStepFunc(
+void last_valueStepFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -503,7 +503,7 @@ static void last_valueStepFunc(
     }
   }
 }
-static void last_valueInvFunc(
+void last_valueInvFunc(
   sqlite3_context *pCtx, 
   int nArg,
   sqlite3_value **apArg
@@ -520,14 +520,14 @@ static void last_valueInvFunc(
     }
   }
 }
-static void last_valueValueFunc(sqlite3_context *pCtx){
+void last_valueValueFunc(sqlite3_context *pCtx){
   struct LastValueCtx *p;
   p = (struct LastValueCtx*)sqlite3_aggregate_context(pCtx, 0);
   if( p && p->pVal ){
     sqlite3_result_value(pCtx, p->pVal);
   }
 }
-static void last_valueFinalizeFunc(sqlite3_context *pCtx){
+void last_valueFinalizeFunc(sqlite3_context *pCtx){
   struct LastValueCtx *p;
   p = (struct LastValueCtx*)sqlite3_aggregate_context(pCtx, sizeof(*p));
   if( p && p->pVal ){
@@ -545,17 +545,17 @@ static void last_valueFinalizeFunc(sqlite3_context *pCtx){
 **
 **       if( pFuncDef->zName==row_valueName ){ ... }
 */
-static const char row_numberName[] =   "row_number";
-static const char dense_rankName[] =   "dense_rank";
-static const char rankName[] =         "rank";
-static const char percent_rankName[] = "percent_rank";
-static const char cume_distName[] =    "cume_dist";
-static const char ntileName[] =        "ntile";
-static const char last_valueName[] =   "last_value";
-static const char nth_valueName[] =    "nth_value";
-static const char first_valueName[] =  "first_value";
-static const char leadName[] =         "lead";
-static const char lagName[] =          "lag";
+const char row_numberName[] =   "row_number";
+const char dense_rankName[] =   "dense_rank";
+const char rankName[] =         "rank";
+const char percent_rankName[] = "percent_rank";
+const char cume_distName[] =    "cume_dist";
+const char ntileName[] =        "ntile";
+const char last_valueName[] =   "last_value";
+const char nth_valueName[] =    "nth_value";
+const char first_valueName[] =  "first_value";
+const char leadName[] =         "lead";
+const char lagName[] =          "lag";
 
 /*
 ** No-op implementations of xStep() and xFinalize().  Used as place-holders
@@ -566,7 +566,7 @@ static const char lagName[] =          "lag";
 ** let the test coverage routine know not to expect this function to be
 ** invoked.
 */
-static void noopStepFunc(    /*NO_TEST*/
+void noopStepFunc(    /*NO_TEST*/
   sqlite3_context *p,        /*NO_TEST*/
   int n,                     /*NO_TEST*/
   sqlite3_value **a          /*NO_TEST*/
@@ -576,7 +576,7 @@ static void noopStepFunc(    /*NO_TEST*/
   UNUSED_PARAMETER(a);       /*NO_TEST*/
   assert(0);                 /*NO_TEST*/
 }                            /*NO_TEST*/
-static void noopValueFunc(sqlite3_context *p){ UNUSED_PARAMETER(p); /*no-op*/ }
+void noopValueFunc(sqlite3_context *p){ UNUSED_PARAMETER(p); /*no-op*/ }
 
 /* Window functions that use all window interfaces: xStep, xFinal,
 ** xValue, and xInverse */
@@ -628,7 +628,7 @@ void sqlite3WindowFunctions(void){
   sqlite3InsertBuiltinFuncs(aWindowFuncs, ArraySize(aWindowFuncs));
 }
 
-static Window *windowFind(Parse *pParse, Window *pList, const char *zName){
+Window *windowFind(Parse *pParse, Window *pList, const char *zName){
   Window *p;
   for(p=pList; p; p=p->pNextWin){
     if( sqlite3StrICmp(p->zName, zName)==0 ) break;
@@ -745,7 +745,7 @@ struct WindowRewrite {
 ** this function appends to the output expression-list and updates 
 ** expression (*ppExpr) in place.
 */
-static int selectWindowRewriteExprCb(Walker *pWalker, Expr *pExpr){
+int selectWindowRewriteExprCb(Walker *pWalker, Expr *pExpr){
   struct WindowRewrite *p = pWalker->u.pRewrite;
   Parse *pParse = pWalker->pParse;
   assert( p!=0 );
@@ -824,7 +824,7 @@ static int selectWindowRewriteExprCb(Walker *pWalker, Expr *pExpr){
 
   return WRC_Continue;
 }
-static int selectWindowRewriteSelectCb(Walker *pWalker, Select *pSelect){
+int selectWindowRewriteSelectCb(Walker *pWalker, Select *pSelect){
   struct WindowRewrite *p = pWalker->u.pRewrite;
   Select *pSave = p->pSubSelect;
   if( pSave==pSelect ){
@@ -851,7 +851,7 @@ static int selectWindowRewriteSelectCb(Walker *pWalker, Select *pSelect){
 ** pWin->iEphCsr, where N is the number of elements in (*ppSub) after
 ** appending the new one.
 */
-static void selectWindowRewriteEList(
+void selectWindowRewriteEList(
   Parse *pParse, 
   Window *pWin,
   SrcList *pSrc,
@@ -885,7 +885,7 @@ static void selectWindowRewriteEList(
 ** Append a copy of each expression in expression-list pAppend to
 ** expression list pList. Return a pointer to the result list.
 */
-static ExprList *exprListAppendList(
+ExprList *exprListAppendList(
   Parse *pParse,          /* Parsing context */
   ExprList *pList,        /* List to which to append. Might be NULL */
   ExprList *pAppend,      /* List of values to append. Might be NULL */
@@ -1097,7 +1097,7 @@ void sqlite3WindowListDelete(sqlite3 *db, Window *p){
 ** integer will be caught later.  But it is important not to leave
 ** variable values in the expression tree.
 */
-static Expr *sqlite3WindowOffsetExpr(Parse *pParse, Expr *pExpr){
+Expr *sqlite3WindowOffsetExpr(Parse *pParse, Expr *pExpr){
   if( 0==sqlite3ExprIsConstant(pExpr) ){
     if( IN_RENAME_OBJECT ) sqlite3RenameExprUnmap(pParse, pExpr);
     sqlite3ExprDelete(pParse->db, pExpr);
@@ -1396,7 +1396,7 @@ void sqlite3WindowCodeInit(Parse *pParse, Select *pSelect){
 ** code to check that the value is a non-negative integer and throws an
 ** exception if it is not.
 */
-static void windowCheckValue(Parse *pParse, int reg, int eCond){
+void windowCheckValue(Parse *pParse, int reg, int eCond){
   static const char *azErr[] = {
     "frame starting offset must be a non-negative integer",
     "frame ending offset must be a non-negative integer",
@@ -1442,7 +1442,7 @@ static void windowCheckValue(Parse *pParse, int reg, int eCond){
 ** Return the number of arguments passed to the window-function associated
 ** with the object passed as the only argument to this function.
 */
-static int windowArgCount(Window *pWin){
+int windowArgCount(Window *pWin){
   ExprList *pList = pWin->pOwner->x.pList;
   return (pList ? pList->nExpr : 0);
 }
@@ -1531,7 +1531,7 @@ struct WindowCodeArg {
 ** Generate VM code to read the window frames peer values from cursor csr into
 ** an array of registers starting at reg.
 */
-static void windowReadPeerValues(
+void windowReadPeerValues(
   WindowCodeArg *p,
   int csr,
   int reg
@@ -1568,7 +1568,7 @@ static void windowReadPeerValues(
 ** If argument regPartSize is non-zero, then it is a register containing the
 ** number of rows in the current partition.
 */
-static void windowAggStep(
+void windowAggStep(
   WindowCodeArg *p,
   Window *pMWin,                  /* Linked list of window functions */
   int csr,                        /* Read arguments from this cursor */
@@ -1682,7 +1682,7 @@ static void windowAggStep(
 ** pMWin. Or, for built-in window-functions that do not use the standard
 ** API, generate the equivalent VM code.
 */
-static void windowAggFinal(WindowCodeArg *p, int bFin){
+void windowAggFinal(WindowCodeArg *p, int bFin){
   Parse *pParse = p->pParse;
   Window *pMWin = p->pMWin;
   Vdbe *v = sqlite3GetVdbe(pParse);
@@ -1721,7 +1721,7 @@ static void windowAggFinal(WindowCodeArg *p, int bFin){
 ** results in the Window.regResult registers, ready to return the upper
 ** layer.
 */
-static void windowFullScan(WindowCodeArg *p){
+void windowFullScan(WindowCodeArg *p){
   Window *pWin;
   Parse *pParse = p->pParse;
   Window *pMWin = p->pMWin;
@@ -1827,7 +1827,7 @@ static void windowFullScan(WindowCodeArg *p){
 **   lag()
 **   lead()
 */
-static void windowReturnOneRow(WindowCodeArg *p){
+void windowReturnOneRow(WindowCodeArg *p){
   Window *pMWin = p->pMWin;
   Vdbe *v = p->pVdbe;
 
@@ -1903,7 +1903,7 @@ static void windowReturnOneRow(WindowCodeArg *p){
 ** any equivalent initialization required by any built-in window functions
 ** in the list.
 */
-static int windowInitAccum(Parse *pParse, Window *pMWin){
+int windowInitAccum(Parse *pParse, Window *pMWin){
   Vdbe *v = sqlite3GetVdbe(pParse);
   int regArg;
   int nArg = 0;
@@ -1935,7 +1935,7 @@ static int windowInitAccum(Parse *pParse, Window *pMWin){
 ** Return true if the current frame should be cached in the ephemeral table,
 ** even if there are no xInverse() calls required.
 */
-static int windowCacheFrame(Window *pMWin){
+int windowCacheFrame(Window *pMWin){
   Window *pWin;
   if( pMWin->regStartRowid ) return 1;
   for(pWin=pMWin; pWin; pWin=pWin->pNextWin){
@@ -1961,7 +1961,7 @@ static int windowCacheFrame(Window *pMWin){
 ** regOld and control falls through. Otherwise, if the contents of the arrays
 ** are equal, an OP_Goto is executed. The address of the OP_Goto is returned.
 */
-static void windowIfNewPeer(
+void windowIfNewPeer(
   Parse *pParse,
   ExprList *pOrderBy,
   int regNew,                     /* First in array of new values */
@@ -2007,7 +2007,7 @@ static void windowIfNewPeer(
 ** a numeric type (real or integer), then the result of the addition addition
 ** or subtraction is a a copy of csr1.peerVal.
 */
-static void windowCodeRangeTest(
+void windowCodeRangeTest(
   WindowCodeArg *p, 
   int op,                         /* OP_Ge, OP_Gt, or OP_Le */
   int csr1,                       /* Cursor number for cursor 1 */
@@ -2132,7 +2132,7 @@ static void windowCodeRangeTest(
 ** operation. Refer to the header comment for sqlite3WindowCodeStep() for
 ** details.
 */
-static int windowCodeOp(
+int windowCodeOp(
  WindowCodeArg *p,                /* Context object */
  int op,                          /* WINDOW_RETURN_ROW, AGGSTEP or AGGINVERSE */
  int regCountdown,                /* Register for OP_IfPos countdown */
@@ -2328,7 +2328,7 @@ Window *sqlite3WindowListDup(sqlite3 *db, Window *p){
 ** If an OOM error occurs, this function sets the Parse.db.mallocFailed 
 ** flag and returns zero.
 */
-static int windowExprGtZero(Parse *pParse, Expr *pExpr){
+int windowExprGtZero(Parse *pParse, Expr *pExpr){
   int ret = 0;
   sqlite3 *db = pParse->db;
   sqlite3_value *pVal = 0;

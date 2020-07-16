@@ -44,7 +44,7 @@
 ** according to the compile-time configuration of the database.  Test
 ** procedures use this to determine when tests should be omitted.
 */
-static void set_options(Tcl_Interp *interp){
+void set_options(Tcl_Interp *interp){
 #if HAVE_MALLOC_USABLE_SIZE
   Tcl_SetVar2(interp, "sqlite_options", "malloc_usable_size", "1",
               TCL_GLOBAL_ONLY);

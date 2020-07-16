@@ -38,7 +38,7 @@ struct testpcacheGlobalType {
   unsigned prngSeed;        /* Seed for the PRNG */
   unsigned highStress;      /* Call xStress agressively */
 };
-static testpcacheGlobalType testpcacheGlobal;
+testpcacheGlobalType testpcacheGlobal;
 
 /*
 ** Initializer.
@@ -50,7 +50,7 @@ static testpcacheGlobalType testpcacheGlobal;
 ** the destructor always gets call - otherwise there would be a
 ** memory leak.
 */
-static int testpcacheInit(void *pArg){
+int testpcacheInit(void *pArg){
   assert( pArg==(void*)&testpcacheGlobal );
   assert( testpcacheGlobal.pDummy==0 );
   assert( testpcacheGlobal.nInstance==0 );
@@ -64,7 +64,7 @@ static int testpcacheInit(void *pArg){
 ** Verify that this is only called after initialization.
 ** Free the memory allocated by the initializer.
 */
-static void testpcacheShutdown(void *pArg){
+void testpcacheShutdown(void *pArg){
   assert( pArg==(void*)&testpcacheGlobal );
   assert( testpcacheGlobal.pDummy!=0 );
   assert( testpcacheGlobal.nInstance==0 );
@@ -116,7 +116,7 @@ struct testpcache {
 /*
 ** Get a random number using the PRNG in the given page cache.
 */
-static unsigned testpcacheRandom(testpcache *p){
+unsigned testpcacheRandom(testpcache *p){
   unsigned x = 0;
   int i;
   for(i=0; i<4; i++){
@@ -130,7 +130,7 @@ static unsigned testpcacheRandom(testpcache *p){
 /*
 ** Allocate a new page cache instance.
 */
-static sqlite3_pcache *testpcacheCreate(
+sqlite3_pcache *testpcacheCreate(
   int szPage, 
   int szExtra, 
   int bPurgeable
@@ -165,7 +165,7 @@ static sqlite3_pcache *testpcacheCreate(
 /*
 ** Set the cache size
 */
-static void testpcacheCachesize(sqlite3_pcache *pCache, int newSize){
+void testpcacheCachesize(sqlite3_pcache *pCache, int newSize){
   testpcache *p = (testpcache*)pCache;
   assert( p->iMagic==TESTPCACHE_VALID );
   assert( testpcacheGlobal.pDummy!=0 );
@@ -176,7 +176,7 @@ static void testpcacheCachesize(sqlite3_pcache *pCache, int newSize){
 ** Return the number of pages in the cache that are being used.
 ** This includes both pinned and unpinned pages.
 */
-static int testpcachePagecount(sqlite3_pcache *pCache){
+int testpcachePagecount(sqlite3_pcache *pCache){
   testpcache *p = (testpcache*)pCache;
   assert( p->iMagic==TESTPCACHE_VALID );
   assert( testpcacheGlobal.pDummy!=0 );
@@ -187,7 +187,7 @@ static int testpcachePagecount(sqlite3_pcache *pCache){
 /*
 ** Fetch a page.
 */
-static sqlite3_pcache_page *testpcacheFetch(
+sqlite3_pcache_page *testpcacheFetch(
   sqlite3_pcache *pCache,
   unsigned key,
   int createFlag
@@ -286,7 +286,7 @@ static sqlite3_pcache_page *testpcacheFetch(
 /*
 ** Unpin a page.
 */
-static void testpcacheUnpin(
+void testpcacheUnpin(
   sqlite3_pcache *pCache,
   sqlite3_pcache_page *pOldPage,
   int discard
@@ -331,7 +331,7 @@ static void testpcacheUnpin(
 /*
 ** Rekey a single page.
 */
-static void testpcacheRekey(
+void testpcacheRekey(
   sqlite3_pcache *pCache,
   sqlite3_pcache_page *pOldPage,
   unsigned oldKey,
@@ -379,7 +379,7 @@ static void testpcacheRekey(
 ** Truncate the page cache.  Every page with a key of iLimit or larger
 ** is discarded.
 */
-static void testpcacheTruncate(sqlite3_pcache *pCache, unsigned iLimit){
+void testpcacheTruncate(sqlite3_pcache *pCache, unsigned iLimit){
   testpcache *p = (testpcache*)pCache;
   unsigned int i;
   assert( p->iMagic==TESTPCACHE_VALID );
@@ -401,7 +401,7 @@ static void testpcacheTruncate(sqlite3_pcache *pCache, unsigned iLimit){
 /*
 ** Destroy a page cache.
 */
-static void testpcacheDestroy(sqlite3_pcache *pCache){
+void testpcacheDestroy(sqlite3_pcache *pCache){
   testpcache *p = (testpcache*)pCache;
   assert( p->iMagic==TESTPCACHE_VALID );
   assert( testpcacheGlobal.pDummy!=0 );

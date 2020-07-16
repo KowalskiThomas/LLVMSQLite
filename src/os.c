@@ -336,7 +336,7 @@ int sqlite3OsInit(void){
 /*
 ** The list of all registered VFS implementations.
 */
-static sqlite3_vfs * SQLITE_WSD vfsList = 0;
+sqlite3_vfs * SQLITE_WSD vfsList = 0;
 #define vfsList GLOBAL(sqlite3_vfs *, vfsList)
 
 /*
@@ -367,7 +367,7 @@ sqlite3_vfs *sqlite3_vfs_find(const char *zVfs){
 /*
 ** Unlink a VFS from the linked list
 */
-static void vfsUnlink(sqlite3_vfs *pVfs){
+void vfsUnlink(sqlite3_vfs *pVfs){
   assert( sqlite3_mutex_held(sqlite3MutexAlloc(SQLITE_MUTEX_STATIC_MASTER)) );
   if( pVfs==0 ){
     /* No-op */

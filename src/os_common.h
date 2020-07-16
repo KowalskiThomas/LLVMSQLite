@@ -41,8 +41,8 @@
 */
 #include "hwtime.h"
 
-static sqlite_uint64 g_start;
-static sqlite_uint64 g_elapsed;
+sqlite_uint64 g_start;
+sqlite_uint64 g_elapsed;
 #define TIMER_START       g_start=sqlite3Hwtime()
 #define TIMER_END         g_elapsed=sqlite3Hwtime()-g_start
 #define TIMER_ELAPSED     g_elapsed
@@ -70,7 +70,7 @@ extern int sqlite3_diskfull;
   if( (sqlite3_io_error_persist && sqlite3_io_error_hit) \
        || sqlite3_io_error_pending-- == 1 )  \
               { local_ioerr(); CODE; }
-static void local_ioerr(){
+void local_ioerr(){
   IOTRACE(("IOERR\n"));
   sqlite3_io_error_hit++;
   if( !sqlite3_io_error_benign ) sqlite3_io_error_hardhit++;

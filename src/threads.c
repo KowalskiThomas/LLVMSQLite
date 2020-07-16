@@ -120,7 +120,7 @@ struct SQLiteThread {
 };
 
 /* Thread procedure Win32 compatibility shim */
-static unsigned __stdcall sqlite3ThreadProc(
+unsigned __stdcall sqlite3ThreadProc(
   void *pArg  /* IN: Pointer to the SQLiteThread structure */
 ){
   SQLiteThread *p = (SQLiteThread *)pArg;

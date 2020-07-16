@@ -91,7 +91,7 @@ int sqlite3_sort_count = 0;
 */
 #ifdef SQLITE_TEST
 int sqlite3_max_blobsize = 0;
-static void updateMaxBlobsize(Mem *p){
+void updateMaxBlobsize(Mem *p){
   if( (p->flags & (MEM_Str|MEM_Blob))!=0 && p->n>sqlite3_max_blobsize ){
     sqlite3_max_blobsize = p->n;
   }
@@ -143,7 +143,7 @@ int sqlite3_found_count = 0;
 **   sqlite3MisuseError(lineno)
 **   sqlite3CantopenError(lineno)
 */
-static void test_trace_breakpoint(int pc, Op *pOp, Vdbe *v){
+void test_trace_breakpoint(int pc, Op *pOp, Vdbe *v){
   static int n = 0;
   n++;
 }
@@ -553,7 +553,7 @@ void sqlite3VdbeMemPrettyPrint(Mem *pMem, StrAccum *pStr){
 /*
 ** Print the value of a register for tracing purposes:
 */
-static void memTracePrint(Mem *p){
+void memTracePrint(Mem *p){
   if( p->flags & MEM_Undefined ){
     printf(" undefined");
   }else if( p->flags & MEM_Null ){
@@ -579,7 +579,7 @@ static void memTracePrint(Mem *p){
   }
   if( p->flags & MEM_Subtype ) printf(" subtype=0x%02x", p->eSubtype);
 }
-static void registerTrace(int iReg, Mem *p){
+void registerTrace(int iReg, Mem *p){
   printf("R[%d] = ", iReg);
   memTracePrint(p);
   if( p->pScopyFrom ){
@@ -630,7 +630,7 @@ void sqlite3VdbeRegisterDump(Vdbe *v){
 **
 **     assert( checkSavepointCount(db) );
 */
-static int checkSavepointCount(sqlite3 *db){
+int checkSavepointCount(sqlite3 *db){
   int n = 0;
   Savepoint *p;
   for(p=db->pSavepoint; p; p=p->pNext) n++;
