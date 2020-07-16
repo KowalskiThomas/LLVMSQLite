@@ -51,14 +51,16 @@
 
 using namespace std::chrono;
 
-// This takes too much time:
-static const constexpr bool shouldOptimiseModule = true;
-static const constexpr bool optimiseFunctions = true;
-static const constexpr bool optimiseCodegen = true;
-static const constexpr bool optimiseOthers = true;
-static const constexpr bool duplicateFunctions = true;
-static const constexpr int optLevel = 3;
+const constexpr bool shouldOptimiseModule = false;
+const constexpr bool optimiseFunctions = true;
+const constexpr bool optimiseCodegen = true;
+const constexpr bool optimiseOthers = true;
+const constexpr bool duplicateFunctions = true;
+const constexpr int optLevel = 3;
 
+extern "C" {
+    SQLITE_NOINLINE void vdbeMemClear(Mem *p);
+}
 
 void initializeDialects();
 
@@ -158,6 +160,7 @@ struct VdbeRunner {
     }
 
     std::unique_ptr<llvm::ExecutionEngine> engine;
+    std::unique_ptr<llvm::TargetMachine> machine;
     bool moduleCreated = false;
     bool engineCreated = false;
 
@@ -171,23 +174,21 @@ struct VdbeRunner {
         debug("Creating an execution engine")
         LLVMSQLITE_ASSERT(llvmModule && "Can't create an ExecutionEngine with no LLVMModule");
 
-        writeToFile("loaded_module.ll", *llvmModule);
-
         std::map<llvm::StringRef, llvm::GlobalValue *> gv;
         for (auto &gvs : llvmModule->globals())
             gv[gvs.getName()] = llvmModule->getGlobalVariable(gvs.getName());
 
-        auto functions = std::set<llvm::StringRef>{};
+        auto functions = std::set<std::string>{};
         for (auto &f : llvmModule->functions()) {
-            functions.insert(f.getName());
+            if (!f.getName().empty())
+                functions.insert(f.getName().str());
         }
 
         auto builder = llvm::EngineBuilder(std::move(llvmModule));
         std::string s;
         builder.setErrorStr(&s);
 
-        ALWAYS_ASSERT(!llvm::InitializeNativeTarget());
-        ALWAYS_ASSERT(!llvm::InitializeNativeTargetAsmPrinter());
+        initializeTargets();
         engine = std::unique_ptr<llvm::ExecutionEngine>
                 (builder
                          .setEngineKind(llvm::EngineKind::JIT)
@@ -195,7 +196,7 @@ struct VdbeRunner {
                                  optimiseCodegen ? llvm::CodeGenOpt::Aggressive
                                                  : llvm::CodeGenOpt::None)
                          .setVerifyModules(true)
-                         .create()
+                         .create(machine.get())
                 );
 
         if (!engine) err("Error: " << s);
@@ -228,13 +229,13 @@ struct VdbeRunner {
 
         std::map<void *, llvm::StringRef> addresses;
         for (auto &fname : functions) {
-            auto ptr = engine->getFunctionAddress(fname.str());
+            auto ptr = engine->getFunctionAddress(fname);
             addresses[(void *) ptr] = fname;
         }
         for (auto &p : addresses) {
             debug(p.first << " -> " << p.second);
         }
-        ALWAYS_ASSERT(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
+            ALWAYS_ASSERT(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
 
         engineCreated = true;
     }

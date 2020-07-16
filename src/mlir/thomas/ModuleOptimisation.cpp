@@ -55,19 +55,8 @@ void VdbeRunner::optimiseModule() {
     }
 #endif
 
-    auto maybeHost = llvm::orc::JITTargetMachineBuilder::detectHost();
-    if (!maybeHost) {
-        err("Host could not be detected: " << maybeHost.takeError());
-        exit(SQLITE_BRIDGE_FAILURE);
-    }
-    auto host = *maybeHost;
-    llvm::orc::JITTargetMachineBuilder tmb(host);
-    auto maybeMachine = tmb.createTargetMachine();
-    if (!maybeMachine) {
-        err("Target machine could not be created: " << maybeMachine.takeError());
-        exit(SQLITE_BRIDGE_FAILURE);
-    }
-    auto &machine = *maybeMachine;
+    LLVMSQLITE_ASSERT(machine);
+
     auto targetTriple = machine->getTargetTriple();
 
     auto passManagerBuilder = llvm::PassManagerBuilder();
@@ -118,6 +107,7 @@ void VdbeRunner::optimiseModule() {
             }
 
             static auto toCopyNoInline = std::set<std::string>{
+                    "vdbeMemClearExternAndSetNull",
                     "sqlite3_log",
                     "getAndInitPage",
                     "sqlite3PcacheRelease",
@@ -220,6 +210,7 @@ void VdbeRunner::optimiseModule() {
             }
 
             NF->copyAttributesFrom(&I);
+            NF->setCallingConv(llvm::CallingConv::C);
             VMap[&I] = NF;
         }
 
@@ -229,8 +220,6 @@ void VdbeRunner::optimiseModule() {
             if (false) {
                 // An alias cannot act as an external reference, so we need to create
                 // either a function or a global variable depending on the value type.
-                // FIXME: Once pointee types are gone we can probably pick one or the
-                // other.
                 llvm::GlobalValue *GV;
                 if (I->getValueType()->isFunctionTy())
                     GV = llvm::Function::Create(llvm::cast<llvm::FunctionType>(I->getValueType()),
@@ -279,15 +268,22 @@ void VdbeRunner::optimiseModule() {
                 GV->addMetadata(MD.first,
                                 *MapMetadata(MD.second, VMap, llvm::RF_MoveDistinctMDs));
 
-            llvm::copyComdat(GV, &*I);
+            copyComdat(GV, &*I);
         }
 
         debug("Copying function bodies")
         for (const llvm::Function &I : *loadedModule) {
-            if (I.isDeclaration())
+            if (I.isDeclaration()) {
                 continue;
+            }
 
-            if (!shouldInline(I)) {
+            if (!shouldInline(I) && !shouldCopyNoInline(I)) {
+                out("Not copying body of " << I.getName());
+                continue;
+            }
+
+            if (I.getParent() != loadedModule.get()) {
+                out("Not in current module: " << I.getName());
                 continue;
             }
 
@@ -307,7 +303,7 @@ void VdbeRunner::optimiseModule() {
 
             copyComdat(F, &I);
 
-            if (inlined.find(F->getName().str()) != inlined.cend()) {
+            if (shouldInline(*F)) {
                 F->addFnAttr(llvm::Attribute::AlwaysInline);
                 F->removeFnAttr(llvm::Attribute::NoInline);
                 F->removeFnAttr(llvm::Attribute::OptimizeNone);
@@ -385,29 +381,41 @@ void VdbeRunner::optimiseModule() {
     auto tock = system_clock::now();
     functionOptimisationTime = duration_cast<milliseconds>(tock - tick).count();
 
-#define DUMP_TO_DISK 1
-#ifdef DUMP_TO_DISK
+    static const constexpr auto dumpToDisk = true;
+    if (dumpToDisk)
     { // Cache the module to disk
         VdbeHash vdbeHash;
         std::string moduleFileName = vdbeHash.getFileName(vdbe);
         debug("Dumping to '" << moduleFileName << "'");
         writeToFile(moduleFileName.c_str(), *llvmModule);
     } // End module caching
-#endif
 }
 
 void VdbeRunner::initializeTargets() {
-    static bool initialized = false;
-    if (initialized)
-        return;
-
-    initialized = true;
-
     bool error = llvm::InitializeNativeTarget();
     ALWAYS_ASSERT(!error && "InitializeNativeTarget returned an error!");
 
     error = llvm::InitializeNativeTargetAsmPrinter();
     ALWAYS_ASSERT(!error && "InitializeNativeTargetAsmPrinter returned an error!");
+
+    if (!machine) {
+        auto maybeHost = llvm::orc::JITTargetMachineBuilder::detectHost();
+        if (!maybeHost) {
+            err("Host could not be detected: " << maybeHost.takeError());
+            exit(SQLITE_BRIDGE_FAILURE);
+        }
+        auto host = *maybeHost;
+
+        llvm::orc::JITTargetMachineBuilder tmb(host);
+        tmb.setCodeGenOptLevel(llvm::CodeGenOpt::Aggressive);
+        tmb.setCPU("x86-64");
+        auto maybeMachine = tmb.createTargetMachine();
+        if (!maybeMachine) {
+            err("Target machine could not be created: " << maybeMachine.takeError());
+            exit(SQLITE_BRIDGE_FAILURE);
+        }
+        machine = std::move(*maybeMachine);
+    }
 }
 
 void initializeDialects() {
@@ -417,7 +425,7 @@ void initializeDialects() {
     mlir::registerDialect<VdbeDialect>();
 }
 
-void findUsages(llvm::Module &mod) {
+[[maybe_unused]] void findUsages(llvm::Module &mod) {
     std::set<std::string> matches;
     for (auto &g : mod) {
         for (auto &block : g) {
