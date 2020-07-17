@@ -68,3 +68,42 @@ LLVMSQLite works in the exact same way as the SQLite shell. The build process pr
 * `profilable_shell` works the same way as the others but allows you to switch JIT compilation on or off using `-jit` or `-nojit`.
 
 *I have modified the shell so that if you pass an initialisation SQL file with `-init`, SQLite will exit after executing it.*
+
+# Benchmarking with TPC-H
+
+To carry out performance tests, I use the TPC-H benchmark. To do that, you'll need (1) a TPC-H database and (2) TPC-H compliant queries. 
+
+**Getting a TPC-H database**
+
+I use the very good [TPC-H SQLite](https://github.com/lovasoa/TPCH-sqlite) repository.
+
+```
+git clone https://github.com/lovasoa/TPCH-sqlite tpch
+cd tpch
+SCALE_FACTOR=1.0 make
+```
+
+This will generate a `TPC-H.db` file that you can use with the SQLite shell:
+
+```
+./shell /home/me/tpch/TPC-H.db
+```
+
+**Getting SQL queries**
+
+TPC-H is a set of 21 SQL queries that are randomly generated given some constraints. I have implemented a generator that you will find in `kowalski_util/tpc-h`. To use it, simply do the following:
+
+```
+cd kowalski_util/tpc-h
+python3 generator.py N > q.sql
+```
+
+Where N is any number between 1 and 21. (Compatible with Python >= 3.7.)
+
+To use the SQL statement directly in the shell, do the following:
+
+```
+./shell /path/to/the.db -init /path/to/q.sql
+```
+
+The custom LLVMSQLite shell will exit immediately when the statement is processed.
