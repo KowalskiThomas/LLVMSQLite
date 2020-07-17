@@ -236,9 +236,13 @@ struct VdbeRunner {
         for (auto &p : addresses) {
             debug(p.first << " -> " << p.second);
         }
-            ALWAYS_ASSERT(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
+        ALWAYS_ASSERT(jittedFunctionPointer != nullptr && "JITted function pointer is null!");
 
         engineCreated = true;
+
+        out("HasError: " << engine->hasError());
+        if (engine->hasError())
+            err("Engine error: " << engine->getErrorMessage());
 
         auto tock = system_clock::now();
         functionCompilationTime = duration_cast<milliseconds>(tock - tick).count();
