@@ -32,6 +32,7 @@ add_library(sqlite_llvm
     ModuleOptimisation.cpp
     BridgeUtils.cpp
     ModuleWriter.cpp
+    DynamicLibrary.cpp
 )
 llvm_update_compile_flags(sqlite_llvm)
 target_link_libraries(sqlite_llvm PRIVATE ${LIBS})

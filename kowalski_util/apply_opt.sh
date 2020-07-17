@@ -1,4 +1,4 @@
-/Users/kowalski/llvm/usr/local/bin/opt -S "$1" -o "$2"  \
+opt -S "$1" -o "$2"  \
 --aa \
 --aa-eval \
 --adce \

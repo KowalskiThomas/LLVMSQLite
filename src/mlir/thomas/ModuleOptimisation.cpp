@@ -74,7 +74,7 @@ void VdbeRunner::optimiseModule() {
     passManagerBuilder.PerformThinLTO = optimiseOthers;
     passManagerBuilder.LibraryInfo = new llvm::TargetLibraryInfoImpl(targetTriple);
     machine->adjustPassManager(passManagerBuilder);
-    out("Triple: " << machine->getTargetTriple().getTriple());
+    debug("Triple: " << machine->getTargetTriple().getTriple());
 
     extern std::unique_ptr<llvm::Module> loadedModule;
     LLVMSQLITE_ASSERT(loadedModule != nullptr);
@@ -244,7 +244,7 @@ void VdbeRunner::optimiseModule() {
                     I->getName(),
                     llvmModule.get()
             );
-            out("Copying GV " << GA->getName());
+            debug("Copying GV " << GA->getName());
             GA->copyAttributesFrom(&*I);
             VMap[&*I] = GA;
         }
@@ -280,12 +280,12 @@ void VdbeRunner::optimiseModule() {
             }
 
             if (!shouldInline(I) && !shouldCopyNoInline(I)) {
-                out("Not copying body of " << I.getName());
+                debug("Not copying body of " << I.getName());
                 continue;
             }
 
             if (I.getParent() != loadedModule.get()) {
-                out("Not in current module: " << I.getName());
+                debug("Not in current module: " << I.getName());
                 continue;
             }
 

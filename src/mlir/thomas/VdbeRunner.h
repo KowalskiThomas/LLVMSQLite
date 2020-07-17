@@ -51,6 +51,8 @@
 
 using namespace std::chrono;
 
+void addToDynamicLibrary();
+
 const constexpr bool shouldOptimiseModule = false;
 const constexpr bool optimiseFunctions = true;
 const constexpr bool optimiseCodegen = true;
@@ -112,14 +114,21 @@ struct VdbeRunner {
     VdbeRunner(Vdbe *p, std::unique_ptr<llvm::Module> module)
             : engine(nullptr),
               vdbe(p),
-              ctx(nullptr),
-              llvmDialect(nullptr),
-              vdbeDialect(nullptr),
+              ctx(&context),
+              llvmDialect(context.getRegisteredDialect<LLVMDialect>()),
+              vdbeDialect(context.getRegisteredDialect<VdbeDialect>()),
               llvmModule(std::move(module)),
-              builder(static_cast<mlir::MLIRContext *>(nullptr)),
+              builder(mlir::OpBuilder(ctx)),
               moduleCreated(true),
               engineCreated(false) {
         initializeTargets();
+        initializeDialects();
+        initialiseTypeCache(llvmDialect);
+
+        mlirModule = mlir::ModuleOp::create(builder.getUnknownLoc());
+        vdbeDialect->setVdbe(p);
+
+        runPrerequisites(mlirModule, llvmDialect);
     }
 
     mlir::ModuleOp &module() {
@@ -188,6 +197,7 @@ struct VdbeRunner {
         builder.setErrorStr(&s);
 
         initializeTargets();
+        addToDynamicLibrary();
         engine = std::unique_ptr<llvm::ExecutionEngine>
                 (builder
                          .setEngineKind(llvm::EngineKind::JIT)
