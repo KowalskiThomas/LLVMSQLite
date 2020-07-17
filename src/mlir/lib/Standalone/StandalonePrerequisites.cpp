@@ -519,7 +519,7 @@ void Prerequisites::generateReferenceTosqlite3VdbeMemRelease(ModuleOp m, LLVMDia
                 T::sqlite3_valuePtrTy
             }, false);
 
-    GENERATE_SYMBOL(f_sqlite3VdbeMemRelease, sqlite3VdbeMemRelease, "f_sqlite3VdbeMemRelease");
+    GENERATE_SYMBOL(f_sqlite3VdbeMemRelease, sqlite3VdbeMemRelease, "sqlite3VdbeMemRelease");
 }
 
 void Prerequisites::generateReferenceToAssert(ModuleOp m, LLVMDialect *d) {

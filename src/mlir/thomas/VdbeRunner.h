@@ -240,9 +240,10 @@ struct VdbeRunner {
 
         engineCreated = true;
 
-        out("HasError: " << engine->hasError());
-        if (engine->hasError())
+        if (engine->hasError()) {
             err("Engine error: " << engine->getErrorMessage());
+            exit(154);
+        }
 
         auto tock = system_clock::now();
         functionCompilationTime = duration_cast<milliseconds>(tock - tick).count();
@@ -262,6 +263,7 @@ struct VdbeRunner {
         debug("Calling now");
         extern int iCompare;
         extern char sqlite3SmallTypeSizes[];
+        extern const unsigned char sqlite3CtypeMap[];
         int returnedValue = ((vdbeExecType) (jittedFunctionPointer))(
                 vdbe,
                 sqlite3CtypeMap,
