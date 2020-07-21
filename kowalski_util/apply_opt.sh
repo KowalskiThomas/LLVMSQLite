@@ -1,3 +1,5 @@
+# x86_64-apple-darwin19.5.0
+
 opt -S "$1" -o "$2"  \
 --aa \
 --aa-eval \
@@ -20,7 +22,7 @@ opt -S "$1" -o "$2"  \
 --called-value-propagation \
 --callsite-splitting \
 --canonicalize-aliases \
---codegenprepare --mtriple=x86_64-apple-darwin19.5.0 \
+--codegenprepare --mtriple=x86_64-pc-linux-gnu \
 --consthoist \
 --constmerge \
 --constprop \
@@ -36,7 +38,6 @@ opt -S "$1" -o "$2"  \
 --domfrontier \
 --domtree \
 --dse \
---dwarfehprepare \
 --expand-reductions \
 --expandmemcmp \
 --external-aa \
@@ -49,9 +50,6 @@ opt -S "$1" -o "$2"  \
 --globals-aa \
 --globalsplit \
 --guard-widening \
---gvn \
---gvn-hoist \
---gvn-sink \
 --hardware-loops \
 --hotcoldsplit \
 --indirectbr-expand \
@@ -60,7 +58,6 @@ opt -S "$1" -o "$2"  \
 --inferattrs \
 --inject-tli-mappings \
 --inline \
---instcombine \
 --instcount \
 --instnamer \
 --instsimplify \
@@ -79,8 +76,10 @@ opt -S "$1" -o "$2"  \
 --lcssa-verification \
 --libcalls-shrinkwrap \
 --licm \
---lint \
 --load-store-vectorizer \
+--loop-vectorize \
+--slp-vectorizer \
+--vector-combine \
 --loop-accesses \
 --loop-data-prefetch \
 --loop-deletion \
@@ -103,7 +102,6 @@ opt -S "$1" -o "$2"  \
 --loop-unroll \
 --loop-unroll-and-jam \
 --loop-unswitch \
---loop-vectorize \
 --loop-versioning \
 --loop-versioning-licm \
 --loops \
@@ -152,15 +150,10 @@ opt -S "$1" -o "$2"  \
 --simple-loop-unswitch \
 --simplifycfg \
 --sink \
---slp-vectorizer \
 --slsr \
 --speculative-execution \
 --sroa \
 --strip \
---strip-dead-debug-info \
---strip-dead-prototypes \
---strip-debug-declare \
---strip-gc-relocates \
 --strip-nonlinetable-debuginfo \
 --tailcallelim \
 --targetlibinfo \
@@ -170,7 +163,6 @@ opt -S "$1" -o "$2"  \
 --type-promotion \
 --unify-loop-exits \
 --unreachableblockelim \
---vector-combine \
 --verify \
 --verify-safepoint-ir \
 --wasmehprepare \
@@ -178,10 +170,21 @@ opt -S "$1" -o "$2"  \
 --memoryssa \
 --basiccg \
 --phi-values \
-
+--lint \
 --cfl-anders-aa \
 --cfl-steens-aa \
+
+# Causes undefs
+--gvn \
+--gvn-hoist \
+--gvn-sink \
+
+--instcombine \
+
+
+
 --check-debugify \
+
 
 
 --x86-cf-opt \
