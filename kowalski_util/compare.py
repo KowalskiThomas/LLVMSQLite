@@ -12,7 +12,7 @@ pairs = list()
 for f in files:
     if "nojit" not in f:
         number = f.split('-')[1]
-        with_jit = [x for x in files if f"-{number}-" in x and "-nojit-" in x][0]
+        with_jit = [x for x in files if f"-{number}-nojit" in x and "-nojit-" in x][0]
 
         f = f"{dir}/{f}"
         with_jit = f"{dir}/{with_jit}"

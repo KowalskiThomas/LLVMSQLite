@@ -211,7 +211,6 @@ void VdbeRunner::optimiseModule() {
             }
 
             NF->copyAttributesFrom(&I);
-            NF->setCallingConv(llvm::CallingConv::C);
             VMap[&I] = NF;
         }
 
@@ -279,7 +278,9 @@ void VdbeRunner::optimiseModule() {
                 continue;
             }
 
+            llvm::Function *F = llvm::cast<llvm::Function>(VMap[&I]);
             if (!shouldInline(I) && !shouldCopyNoInline(I)) {
+                F->setCallingConv(llvm::CallingConv::C);
                 debug("Not copying body of " << I.getName());
                 continue;
             }
@@ -289,7 +290,6 @@ void VdbeRunner::optimiseModule() {
                 continue;
             }
 
-            llvm::Function *F = llvm::cast<llvm::Function>(VMap[&I]);
             llvm::Function::arg_iterator DestI = F->arg_begin();
             for (llvm::Function::const_arg_iterator J = I.arg_begin(); J != I.arg_end();
                  ++J) {
@@ -340,6 +340,22 @@ void VdbeRunner::optimiseModule() {
                 for (unsigned i = 0, e = NMD.getNumOperands(); i != e; ++i)
                     NewNMD->addOperand(MapMetadata(NMD.getOperand(i), VMap));
         }
+
+        for (auto &g : *llvmModule) {
+            for (auto &block : g) {
+                for (auto &inst : block) {
+                    if (llvm::isa<llvm::CallInst>(inst)) {
+                        auto &callInst = llvm::cast<llvm::CallInst>(inst);
+                        auto calledFunction = callInst.getCalledFunction();
+                        if (calledFunction && !shouldInline(*calledFunction)) {
+                            callInst.setCallingConv(llvm::CallingConv::C);
+                            callInst.setTailCall(false);
+                        }
+                    }
+                }
+            }
+        }
+
 
         writeToFile("jit_llvm_with_functions.ll", *llvmModule);
     }
