@@ -4,7 +4,8 @@
 
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/IRReader/IRReader.h"
-
+#include "llvm/ExecutionEngine/Orc/DebugUtils.h"
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/MCJIT.h"
 #include "llvm/ExecutionEngine/JITLink/JITLink.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
@@ -174,6 +175,37 @@ struct VdbeRunner {
 
     void createExecutionEngine() {
         auto tick = system_clock::now();
+
+        auto maybeJit = llvm::orc::LLJITBuilder().create();
+        if (!maybeJit) {
+            exit(12389123);
+        }
+        auto jit = std::move(*maybeJit);
+        if (!jit) {
+            exit(123123);
+        }
+
+        auto uCtx = std::make_unique<llvm::LLVMContext>();
+        auto tsm = llvm::orc::ThreadSafeModule(
+            std::move(llvmModule),
+            std::move(uCtx)
+        );
+        ALWAYS_ASSERT(tsm);
+        if (!tsm) {
+            exit(123123);
+        }
+
+        jit->addIRModule(std::move(tsm));
+
+        auto maybeF = jit->lookup(JIT_MAIN_FN_NAME);
+        if (!maybeF) {
+            err("Couldn't find JITted function");
+            exit(123123);
+        }
+        auto f = *maybeF;
+        out("f: " << f.getAddress());
+        exit(123123);
+
 
         debug("Creating an execution engine")
         LLVMSQLITE_ASSERT(llvmModule && "Can't create an ExecutionEngine with no LLVMModule");
