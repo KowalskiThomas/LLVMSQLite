@@ -3,6 +3,45 @@
 
 #include <chrono>
 
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include "llvm-c/Transforms/PassManagerBuilder.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/Analysis/BasicAliasAnalysis.h"
+#include "llvm/Analysis/CFLAndersAliasAnalysis.h"
+#include "llvm/Analysis/CFLSteensAliasAnalysis.h"
+#include "llvm/Analysis/GlobalsModRef.h"
+#include "llvm/Analysis/InlineCost.h"
+#include "llvm/Analysis/Passes.h"
+#include "llvm/Analysis/ScopedNoAliasAA.h"
+#include "llvm/Analysis/TargetLibraryInfo.h"
+#include "llvm/Analysis/TypeBasedAliasAnalysis.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/ManagedStatic.h"
+#include "llvm/Transforms/AggressiveInstCombine/AggressiveInstCombine.h"
+#include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/IPO/Attributor.h"
+#include "llvm/Transforms/IPO/ForceFunctionAttrs.h"
+#include "llvm/Transforms/IPO/FunctionAttrs.h"
+#include "llvm/Transforms/IPO/InferFunctionAttrs.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Instrumentation.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Scalar/InstSimplifyPass.h"
+#include "llvm/Transforms/Scalar/LICM.h"
+#include "llvm/Transforms/Scalar/LoopUnrollPass.h"
+#include "llvm/Transforms/Scalar/SimpleLoopUnswitch.h"
+#include "llvm/Transforms/Utils.h"
+#include "llvm/Transforms/Vectorize.h"
+#include "llvm/Transforms/Vectorize/LoopVectorize.h"
+#include "llvm/Transforms/Vectorize/SLPVectorizer.h"
+#include "llvm/Transforms/Vectorize/VectorCombine.h"
+
+
 #include "Standalone/StandalonePassManager.h"
 
 namespace llvm {
@@ -53,9 +92,9 @@ void VdbeRunner::optimiseModule() {
         exit(SQLITE_BRIDGE_FAILURE);
     }
 #else
-    if (broken) {
-        llvm_unreachable("Generated IR Module is invalid");
-    }
+        if (broken) {
+            llvm_unreachable("Generated IR Module is invalid");
+        }
 #endif
 
     LLVMSQLITE_ASSERT(machine);
@@ -312,6 +351,8 @@ void VdbeRunner::optimiseModule() {
 
             copyComdat(F, &I);
 
+            // TODO: FastCC
+            F->setCallingConv(llvm::CallingConv::C);
             if (shouldInline(*F)) {
                 F->addFnAttr(llvm::Attribute::AlwaysInline);
                 F->removeFnAttr(llvm::Attribute::NoInline);
@@ -354,7 +395,7 @@ void VdbeRunner::optimiseModule() {
                     if (llvm::isa<llvm::CallInst>(inst)) {
                         auto &callInst = llvm::cast<llvm::CallInst>(inst);
                         auto calledFunction = callInst.getCalledFunction();
-                        if (calledFunction && !shouldInline(*calledFunction)) {
+                        if (true) { // (calledFunction && !shouldInline(*calledFunction)) {
                             callInst.setCallingConv(llvm::CallingConv::C);
                             callInst.setTailCall(false);
                         }
@@ -388,12 +429,25 @@ void VdbeRunner::optimiseModule() {
     if (shouldOptimiseModule) {
         debug("Optimising the module")
         // Create the ModulePassManager
-        llvm::legacy::PassManager modulePassManager;
-        passManagerBuilder.populateModulePassManager(modulePassManager);
-        modulePassManager.add(llvm::createTargetTransformInfoWrapperPass(machine->getTargetIRAnalysis()));
+        llvm::legacy::PassManager MPM;
+        passManagerBuilder.populateModulePassManager(MPM);
+        MPM.add(llvm::createTargetTransformInfoWrapperPass(machine->getTargetIRAnalysis()));
+
+        MPM.add(llvm::createIPSCCPPass());
+        MPM.add(llvm::createCalledValuePropagationPass());
+        MPM.add(llvm::createGlobalOptimizerPass()); // Optimize out global vars
+        // Promote any localized global vars.
+        MPM.add(llvm::createPromoteMemoryToRegisterPass());
+
+        MPM.add(llvm::createDeadArgEliminationPass()); // Dead argument elimination
+
+        MPM.add(llvm::createInstructionCombiningPass()); // Clean up after IPCP & DAE
+        // llvm::addExtensionsToPM(llvm::EP_Peephole, MPM);
+        MPM.add(llvm::createCFGSimplificationPass()); // Clean up after IPCP & DAE
+
 
         // Optimise the module
-        modulePassManager.run(*llvmModule);
+        MPM.run(*llvmModule);
 
 #if DEBUG_MACHINE && LLVMSQLITE_DEBUG
         writeToFile("jit_llvm_after_module_opt.ll", *llvmModule);
@@ -404,8 +458,7 @@ void VdbeRunner::optimiseModule() {
     writeToFile("jit_llvm_final.ll", *llvmModule);
 
     static const constexpr auto dumpToDisk = true;
-    if (dumpToDisk)
-    { // Cache the module to disk
+    if (dumpToDisk) { // Cache the module to disk
         VdbeHash vdbeHash;
         std::string moduleFileName = vdbeHash.getFileName(vdbe);
         debug("Dumping to '" << moduleFileName << "'");

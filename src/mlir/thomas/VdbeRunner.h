@@ -53,7 +53,7 @@ using namespace std::chrono;
 
 void addToDynamicLibrary();
 
-const constexpr bool shouldOptimiseModule = false;
+const constexpr bool shouldOptimiseModule = true;
 const constexpr bool optimiseFunctions = true;
 const constexpr bool optimiseCodegen = true;
 const constexpr bool optimiseOthers = true;
