@@ -121,6 +121,7 @@ void VdbeToLLVM::runOnOperation() {
         patterns.insert<ReadCookieLowering>(&getContext());
         patterns.insert<SetCookieLowering>(&getContext());
         patterns.insert<DropTableLowering>(&getContext());
+        patterns.insert<RealAffinityLowering>(&getContext());
 
         mlir::populateStdToLLVMConversionPatterns(typeConverter, patterns);
     }

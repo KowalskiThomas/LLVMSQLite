@@ -93,6 +93,13 @@ void VdbeRunner::optimiseModule() {
                 "sqlite3VdbeIntegerAffinity",
                 "doubleToInt64",
                 "sqlite3Atoi64",
+                "sqlite3VdbeMemRealify",
+                "sqlite3BtreeCursorHintFlags",
+                "sqlite3VdbeMemShallowCopy",
+                "sqlite3VdbeMemNulTerminate",
+                "sqlite3VdbeRecordUnpack",
+                "sqlite3GetVarint",
+                "sqlite3VdbeSerialGet"
         };
 
         auto shouldInline = [&](const llvm::Function &f) {
@@ -426,7 +433,6 @@ void VdbeRunner::initializeTargets() {
 
         llvm::orc::JITTargetMachineBuilder tmb(host);
         tmb.setCodeGenOptLevel(llvm::CodeGenOpt::Aggressive);
-        tmb.setCPU("x86-64");
         auto maybeMachine = tmb.createTargetMachine();
         if (!maybeMachine) {
             err("Target machine could not be created: " << maybeMachine.takeError());

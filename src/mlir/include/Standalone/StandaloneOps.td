@@ -371,6 +371,10 @@ def Standalone_DropTable : Standalone_Op<"DropTable"> {
     let arguments = (ins I64Attr:$pc, I32Attr:$p1, I64Attr:$p4);
 }
 
+def Standalone_RealAffinity : Standalone_Op<"RealAffinity"> {
+    let arguments = (ins I64Attr:$pc, I32Attr:$p1);
+}
+
 /*
 def Standalone_ : Standalone_Op<""> {
     let arguments = (ins I64Attr:$pc, I32Attr:$curIdx, I32Attr:$reg, I32Attr:$nFields);

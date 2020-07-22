@@ -77,6 +77,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     { "standalone.Blob", false },
     { "standalone.Insert", false },
     { "standalone.Close", false },
+    { "standalone.RealAffinity", false },
 
     /* For later */
     // { "standalone.Variable", true },

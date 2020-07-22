@@ -90,6 +90,8 @@ namespace mlir::standalone::passes {
     DECLARE_LOWERING(Close)
     DECLARE_LOWERING(ParseSchema)
     DECLARE_LOWERING(DropTable)
+    DECLARE_LOWERING(RealAffinity)
+
 } // namespace mlir::standalone::passes
 
 #undef DECLARE_LOWERING

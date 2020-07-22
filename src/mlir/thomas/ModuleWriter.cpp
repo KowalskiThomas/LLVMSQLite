@@ -1535,6 +1535,17 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
                 break;
             }
+            case OP_RealAffinity: {
+                auto p1 = op.p1;
+
+                rewriter.create<VdbeOps::RealAffinity>
+                    (LOC,
+                        INTEGER_ATTR(64, false, pc),
+                        INTEGER_ATTR(32, true, p1)
+                    );
+
+                break;
+            }
         }
 
         // Add the block to the blocks map (for use in branches)

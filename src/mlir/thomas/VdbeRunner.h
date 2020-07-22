@@ -60,10 +60,6 @@ const constexpr bool optimiseOthers = true;
 const constexpr bool duplicateFunctions = true;
 const constexpr int optLevel = 3;
 
-extern "C" {
-    SQLITE_NOINLINE void vdbeMemClear(Mem *p);
-}
-
 void initializeDialects();
 
 [[maybe_unused]] void findUsages(llvm::Module &mod);

@@ -80,6 +80,7 @@ set(LOWERING_FILES
     Lowering/CastLowering.cpp
     Lowering/CloseLowering.cpp
     Lowering/DropTableLowering.cpp
+    Lowering/RealAffinityLowering.cpp
 )
 
 add_mlir_dialect_library(MLIRStandalone

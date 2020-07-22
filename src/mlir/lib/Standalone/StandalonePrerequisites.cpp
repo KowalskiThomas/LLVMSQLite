@@ -120,6 +120,7 @@ LLVMFuncOp f_sqlite3BtreeUpdateMeta;
 LLVMFuncOp f_sqlite3ExpirePreparedStatements;
 LLVMFuncOp f_sqlite3UnlinkAndDeleteTable;
 LLVMFuncOp f_sqlite3VdbeMemIntegerify;
+LLVMFuncOp f_sqlite3VdbeMemRealify;
 LLVMFuncOp f_sqlite3_randomness;
 LLVMFuncOp f_sqlite3AtoF;
 LLVMFuncOp f_sqlite3VdbeIntegerAffinity;
@@ -239,6 +240,7 @@ public:
     DECLARE_FUNCTION(sqlite3VdbeIntegerAffinity);
     DECLARE_FUNCTION(vdbeMemClearExternAndSetNull);
     DECLARE_FUNCTION(printTypeOf);
+    DECLARE_FUNCTION(sqlite3VdbeMemRealify);
 
     // Step 2
 
@@ -1541,6 +1543,15 @@ void Prerequisites::generateReferenceToprintTypeOf(ModuleOp m, LLVMDialect *d) {
     GENERATE_SYMBOL(f_printTypeOf, printTypeOf, "printTypeOf");
 }
 
+void Prerequisites::generateReferenceTosqlite3VdbeMemRealify(ModuleOp m, LLVMDialect *d) {
+    auto funcTy = LLVMType::getFunctionTy(
+        T::voidTy, {
+            T::sqlite3_valuePtrTy
+        }, false);
+
+    GENERATE_SYMBOL(f_sqlite3VdbeMemRealify, sqlite3VdbeMemRealify, "sqlite3VdbeMemRealify");
+}
+
 // Step 4
 
 #undef GENERATE_SYMBOL
@@ -1649,6 +1660,7 @@ void Prerequisites::runPrerequisites(ModuleOp m, LLVMDialect *d) {
     CALL_SYMBOL_GENERATOR(sqlite3VdbeIntegerAffinity);
     CALL_SYMBOL_GENERATOR(vdbeMemClearExternAndSetNull);
     CALL_SYMBOL_GENERATOR(printTypeOf);
+    CALL_SYMBOL_GENERATOR(sqlite3VdbeMemRealify);
 
     // Step 3
 
