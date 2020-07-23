@@ -12,14 +12,15 @@ def human_size(s: int):
     else:
         return s
 
-def run_blocking(to_call, parameters = None):
+def run_blocking(to_call, parameters = None, cwd: str = None):
     # print(f"> {to_call}")
     process = subprocess.Popen(
         to_call,
         shell=True,
         universal_newlines=True,
         stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE
+        stdout=subprocess.PIPE,
+        cwd=cwd
     )
     try:
         return process.communicate()

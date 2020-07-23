@@ -5,7 +5,8 @@ db = argv[1]
 
 do_run = "echo" not in argv
 
-queries = [x for x in range(1, 22)]
+excluded = { 17 }
+queries = [x for x in range(1, 22) if not x in excluded]
 jit_config = ["jit", "nojit"]
 
 count = 5

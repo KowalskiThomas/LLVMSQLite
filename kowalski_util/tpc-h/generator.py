@@ -172,7 +172,7 @@ def main():
     result = ""
     for query_number in queries:
         sql = generate_query(query_number)
-        sql = sql.replace("\n", "    ")
+#        sql = sql.replace("\n", "    ")
         result += sql
 
     output(result)
