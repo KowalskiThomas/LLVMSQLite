@@ -6,6 +6,7 @@ from generator import generate_query
 
 from common import run_blocking, date_to_string, now
 
+cwd = os.getcwd()
 assert __name__ == '__main__', "runner.py should be the main programme!"
 
 
@@ -17,15 +18,17 @@ def find_shell(jit_enabled: bool, path="."):
     path = os.path.abspath(path)
 
     dirs = os.listdir(path)
-    if "release" in dirs:
-        path = path + "/release/"
+    dir = "release"
+    if dir in dirs:
+        path = path + '/' + dir + '/'
     else:
-        print(f"Could not find directory 'release' in {path}")
+        print(f"Could not find directory '{dir}' in {path}")
 
+    wd = path
     path = path + binary_name
     path = os.path.abspath(path)
 
-    return path
+    return wd, path
 
 
 args = sys.argv[1:]
@@ -80,22 +83,22 @@ complete_script += "\n"
 with open(temp_file_path, 'w') as f:
     f.write(complete_script)
 
-shell = find_shell(jit_enabled=enable_jit)
+wd, shell = find_shell(jit_enabled=enable_jit)
 print(f"Shell: '{shell}'")
 
 to_run = f'echo ".quit" | {shell} "{db_file}" -init {temp_file_path}'
 print(to_run)
 
-stdout, stderr = run_blocking(to_run)
-with open("stdout.txt", 'w') as f:
+stdout, stderr = run_blocking(to_run, cwd=wd)
+with open(f"logs/stdout-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
     f.write(stdout)
-with open("stderr.txt", 'w') as f:
+with open(f"logs/stderr-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
     f.write(stderr)
 
 if enable_jit:
-    to_find = "Vdbe execution time without compilation"
+    to_find = "JIT Vdbe execution time"
 else:
-    to_find = "Total Vdbe execution time"
+    to_find = "Default Implementation Vdbe execution time"
 
 data = list()
 for line in stdout.split('\n'):
@@ -108,12 +111,13 @@ for line in stdout.split('\n'):
         data_point = int(data_point)
         data.append(data_point)
 
-assert len(data) > 0, "Didn't find any data points in the output. Check the value of 'to_find'."
+assert len(data) > 0, "Didn't find any data points in the output. Check the value of 'to_find'." + '\n' + stdout + '\n' + stderr
 
 # Skip initial schema retrieval query
 data = data[1:]
 
 date = date_to_string(now())
-with open(f"Results-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
+print("Writing file", cwd)
+with open(f"{cwd}/Results-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
     f.write('\n'.join([str(x) for x in data]))
     f.write('\n')
