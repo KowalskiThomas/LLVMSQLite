@@ -90,9 +90,9 @@ to_run = f'echo ".quit" | {shell} "{db_file}" -init {temp_file_path}'
 print(to_run)
 
 stdout, stderr = run_blocking(to_run, cwd=wd)
-with open("stdout.txt", 'w') as f:
+with open(f"logs/stdout-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
     f.write(stdout)
-with open("stderr.txt", 'w') as f:
+with open(f"logs/stderr-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
     f.write(stderr)
 
 if enable_jit:

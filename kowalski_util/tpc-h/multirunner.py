@@ -1,7 +1,11 @@
 from common import run_blocking
 from sys import argv
+import sys
 
 db = argv[1]
+if not ".db" in db:
+    print("Please give the database as first argument")
+    sys.exit(1)
 
 do_run = "echo" not in argv
 
@@ -11,7 +15,7 @@ jit_config = ["jit", "nojit"]
 
 count = 5
 for i, arg in enumerate(argv):
-    if arg == "count":
+    if arg.strip('-') == "count":
         count = int(argv[i + 1])
 
 total_line = ""
