@@ -36,17 +36,17 @@ int sqlite3VdbeExec(Vdbe *p) {
 #endif
 
     static Vdbe* lastVdbe = nullptr;
-    static auto initialTick = decltype(system_clock::now()){};
+    static auto initialTick = decltype(high_resolution_clock::now()){};
     if (lastVdbe != p) {
 #ifdef DEBUG_MACHINE
         printf("Resetting initialTick\n");
 #endif
-        initialTick = system_clock::now();
+        initialTick = high_resolution_clock::now();
         lastVdbe = p;
     }
 
 #ifdef LLVMSQLITE_DEBUG
-    auto tick = std::chrono::system_clock::now();
+    auto tick = std::chrono::high_resolution_clock::now();
 #endif
 
 #if ENABLE_JIT && !ENABLE_DEFAULT
@@ -76,7 +76,7 @@ int sqlite3VdbeExec(Vdbe *p) {
 #endif
 #endif
 
-    auto tock = system_clock::now();
+    auto tock = high_resolution_clock::now();
 
 #ifdef LLVMSQLITE_DEBUG
     auto diff = (unsigned long long)(duration_cast<milliseconds>(tock - tick).count());
@@ -94,6 +94,9 @@ int sqlite3VdbeExec(Vdbe *p) {
         printf("Preparation time: %llu ms\n", functionPreparationTime);
         printf("Optimisation time: %llu ms\n", functionOptimisationTime);
         printf("Compilation time: %llu ms\n", functionCompilationTime);
+        printf("Sum: %llu\n",
+                vdbeRunnerCreationTime + functionPreparationTime + functionOptimisationTime + functionCompilationTime);
+        printf("InitialDiff: %llu\n", initialDiff);
 #endif
         printf("Default Implementation Vdbe execution time: %llu ms\n", initialDiff);
 #if ENABLE_JIT

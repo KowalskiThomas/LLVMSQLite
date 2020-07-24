@@ -6,7 +6,7 @@ using namespace std::chrono;
 
 template<typename T>
 void printTimeDifference(time_point<T> tick, std::string msg) {
-    auto tock = system_clock::now();
+    auto tock = high_resolution_clock::now();
     auto diff = tock - tick;
     printf("%s time difference: %llu ms\n",
            msg.c_str(),

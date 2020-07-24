@@ -56,7 +56,7 @@ namespace llvm {
 }
 
 void VdbeRunner::writeModule() {
-    auto tick = system_clock::now();
+    auto tick = high_resolution_clock::now();
     ::writeFunction(context, llvmDialect, mlirModule);
 
 #if DEBUG_MACHINE && LLVMSQLITE_DEBUG
@@ -76,12 +76,12 @@ void VdbeRunner::writeModule() {
 #if DEBUG_MACHINE && LLVMSQLITE_DEBUG
     writeToFile("jit_llvm_unoptimised.ll", *llvmModule);
 #endif
-    auto tock = system_clock::now();
+    auto tock = high_resolution_clock::now();
     functionPreparationTime = (unsigned long long) (duration_cast<milliseconds>(tock - tick).count());
 }
 
 void VdbeRunner::optimiseModule() {
-    auto tick = std::chrono::system_clock::now();
+    auto tick = high_resolution_clock::now();
     initializeTargets();
 
     auto broken = llvm::verifyModule(*llvmModule, &llvm::errs());
@@ -465,7 +465,7 @@ void VdbeRunner::optimiseModule() {
         writeToFile(moduleFileName.c_str(), *llvmModule);
     } // End module caching
 
-    auto tock = system_clock::now();
+    auto tock = high_resolution_clock::now();
     functionOptimisationTime = duration_cast<milliseconds>(tock - tick).count();
 }
 

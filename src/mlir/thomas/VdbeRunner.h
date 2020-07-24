@@ -173,7 +173,7 @@ struct VdbeRunner {
     void initializeTargets();
 
     void createExecutionEngine() {
-        auto tick = system_clock::now();
+        auto tick = high_resolution_clock::now();
 
         debug("Creating an execution engine")
         LLVMSQLITE_ASSERT(llvmModule && "Can't create an ExecutionEngine with no LLVMModule");
@@ -251,7 +251,7 @@ struct VdbeRunner {
             exit(154);
         }
 
-        auto tock = system_clock::now();
+        auto tock = high_resolution_clock::now();
         functionCompilationTime = duration_cast<milliseconds>(tock - tick).count();
     }
 

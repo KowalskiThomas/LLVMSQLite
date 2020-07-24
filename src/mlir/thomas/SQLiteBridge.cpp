@@ -6,10 +6,10 @@ void printTypeOf(const char *, const uint32_t, Vdbe *p, Mem *);
 
 const char *const JIT_MAIN_FN_NAME = "jittedFunction";
 
-unsigned long long functionPreparationTime;
-unsigned long long functionOptimisationTime;
-unsigned long long functionCompilationTime;
-unsigned long long vdbeRunnerCreationTime;
+unsigned long long functionPreparationTime = 0;
+unsigned long long functionOptimisationTime = 0;
+unsigned long long functionCompilationTime = 0;
+unsigned long long vdbeRunnerCreationTime = 0;
 
 VdbeRunner* loadRunnerFromCache(Vdbe* p) {
     std::string fileName = VdbeHash().getFileName(p);
@@ -42,7 +42,7 @@ int jitVdbeStep(Vdbe *p) {
     if (VdbeRunner::runners.find(p) == VdbeRunner::runners.end()) {
         auto hash = vdbeHash(*p);
 
-        auto tick = system_clock::now();
+        auto tick = high_resolution_clock::now();
         runner = loadRunnerFromCache(p);
         if (runner == nullptr) {
             debug("Creating a new VDBERunner");
@@ -51,7 +51,7 @@ int jitVdbeStep(Vdbe *p) {
             LLVMSQLITE_ASSERT(runner->llvmModule);
             debug("Loaded VdbeRunner from cached module");
         }
-        auto tock = system_clock::now();
+        auto tock = high_resolution_clock::now();
         vdbeRunnerCreationTime = duration_cast<milliseconds>(tock - tick).count();
 
         LLVMSQLITE_ASSERT(runner);
