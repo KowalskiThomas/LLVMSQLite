@@ -86,10 +86,15 @@ int sqlite3VdbeExec(Vdbe *p) {
     if (step_return == SQLITE_DONE) {
         auto initialDiff = (unsigned long long)(duration_cast<milliseconds>(tock - initialTick).count());
 #if ENABLE_JIT
+        // Time spent in writeModule
         extern unsigned long long functionPreparationTime;
+        // Time spent in optimiseModule
         extern unsigned long long functionOptimisationTime;
+        // Time spent in createExecutionEngine
         extern unsigned long long functionCompilationTime;
+        // Time spent getting a valid VdbeRunner in jitVdbeStep
         extern unsigned long long vdbeRunnerCreationTime;
+
         printf("VdbeRunner creation time: %llu ms\n", vdbeRunnerCreationTime);
         printf("Preparation time: %llu ms\n", functionPreparationTime);
         printf("Optimisation time: %llu ms\n", functionOptimisationTime);
@@ -106,6 +111,12 @@ int sqlite3VdbeExec(Vdbe *p) {
                 - functionOptimisationTime
                 - functionCompilationTime
                 - vdbeRunnerCreationTime);
+
+        // Reset all times for next run
+        functionPreparationTime = 0;
+        functionOptimisationTime = 0;
+        functionCompilationTime = 0;
+        vdbeRunnerCreationTime = 0;
 #endif
         lastVdbe = nullptr;
     }
