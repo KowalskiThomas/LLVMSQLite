@@ -25,7 +25,7 @@ def main():
     queries = [x.split('.')[0] for x in os.listdir('ssb')]
     print(queries)
     query_number = get_arg("query", None)
-    query_count = int(get_arg("query-count", 11))
+    query_count = int(get_arg("query-count", 1))
 
     if query_number is not None:
         queries = [query_number] * query_count
