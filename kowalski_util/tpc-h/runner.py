@@ -89,6 +89,7 @@ print(f"Shell: '{shell}'")
 to_run = f'echo ".quit" | {shell} "{db_file}" -init {temp_file_path}'
 print(to_run)
 
+date = date_to_string(now())
 stdout, stderr = run_blocking(to_run, cwd=wd)
 with open(f"logs/stdout-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
     f.write(stdout)
@@ -116,7 +117,6 @@ assert len(data) > 0, "Didn't find any data points in the output. Check the valu
 # Skip initial schema retrieval query
 data = data[1:]
 
-date = date_to_string(now())
 print("Writing file", cwd)
 with open(f"{cwd}/Results-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
     f.write('\n'.join([str(x) for x in data]))
