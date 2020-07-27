@@ -4,7 +4,7 @@ import os
 import shutil
 
 from typing import Optional
-from generator import generate_query as generate_query_tpch
+from generator_tpch import generate_query as generate_query_tpch
 from generator_ssbm import generate_query as generate_query_ssbm
 from generator_micro import generate_query as generate_query_micro
 
