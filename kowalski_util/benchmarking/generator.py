@@ -148,12 +148,12 @@ def generate_dict(cons):
 def generate_query(number: Union[str, int]):
     if isinstance(number, int):
         number = str(number)
-    assert os.path.isfile(f"{number}.sql"), f"Couldn't find template for Query {number}"
+    assert os.path.isfile(f"tpch/{number}.sql"), f"Couldn't find template for Query {number}"
 
     constraints = q_types[number]
     parameter_dict = generate_dict(constraints)
 
-    with open(f"{number}.sql") as f:
+    with open(f"tpch/{number}.sql") as f:
         sql = f.read()
 
     sql = sql.format(**parameter_dict)
@@ -172,8 +172,8 @@ def main():
     result = ""
     for query_number in queries:
         sql = generate_query(query_number)
-#        sql = sql.replace("\n", "    ")
         result += sql
+        result += '\n'
 
     output(result)
 
