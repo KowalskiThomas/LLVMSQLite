@@ -23,7 +23,6 @@ def generate_query(number: Union[str, int]):
 
 def main():
     queries = [x.split('.')[0] for x in os.listdir('ssb')]
-    print(queries)
     query_number = get_arg("query", None)
     query_count = int(get_arg("query-count", 1))
 

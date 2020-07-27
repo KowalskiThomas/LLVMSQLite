@@ -1,13 +1,19 @@
 import random
 import sys
 import os
+import shutil
+
 from typing import Optional
 from generator import generate_query
+from generator_ssbm import generate_query as generate_query_ssbm
 
 from common import run_blocking, date_to_string, now
 
 cwd = os.getcwd()
 assert __name__ == '__main__', "runner.py should be the main programme!"
+
+if not os.path.isdir("logs"):
+    os.mkdir("logs")
 
 
 def find_shell(jit_enabled: bool, path="."):
@@ -50,6 +56,17 @@ elif "nojit" in args:
     enable_jit = False
 print(f"JIT Enabled: {'Yes' if enable_jit else 'No'}")
 
+assert not ("tpch" not in args and "ssbm" not in args), "Please give --mode tpch or --mode ssbm"
+for i, x in enumerate(args):
+    if x == "mode":
+        mode = args[i + 1]
+        break
+
+TPCH = 0
+SSBM = 1
+mode = TPCH if mode == "tpch" else SSBM
+print(f"Mode: {'TPC-H' if mode == TPCH else 'SSBM'}")
+
 db_file: Optional[str] = None
 for arg in args:
     if ".db" in arg:
@@ -76,8 +93,13 @@ temp_file_path = f"/tmp/sqlite{random.randint(1, 10000)}.sql"
 print("Generating SQL statement in", temp_file_path)
 complete_script = ""
 for _ in range(count):
-    sql = generate_query(query_index)
+    if mode == TPCH:
+        sql = generate_query(query_index)
+    else:
+        sql = generate_query_ssbm(query_index)
+
     complete_script += "  " + sql
+
 complete_script += "\n"
 
 with open(temp_file_path, 'w') as f:

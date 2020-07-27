@@ -26,4 +26,4 @@ group by d_year,
     p_category
 order by d_year,
     s_nation,
-    p_category
+    p_category;
