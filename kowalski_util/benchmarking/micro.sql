@@ -1,23 +1,26 @@
 -- Simple select
-SELECT * FROM CUSTOMER;
-
--- Aggregation
-SELECT SUM(C_CUSTKEY * C_NATIONKEY) FROM CUSTOMER;
+SELECT * FROM Items;
 
 -- Restricted SELECT on indexed column
-SELECT * FROM ORDERS WHERE O_ORDERKEY < 30000;
+SELECT * FROM Items WHERE I_ID < 30000;
 
 -- Restricted SELECT on non-indexed column
-SELECT * FROM ORDERS WHERE O_TOTALPRICE < 231964.11;
+SELECT * FROM Items WHERE I_Price < 231964.11;
+
+-- Aggregation
+SELECT SUM(I_ID * I_Category + I_Price) FROM Items;
 
 -- Join on indexed column
-SELECT * FROM LINEITEM JOIN ORDERS ON LINEITEM.L_ORDERKEY = ORDERS.O_ORDERKEY;
+SELECT * FROM Sales JOIN Clients ON Sales.S_Client = Clients.C_ID;
 
 -- Join on non-indexed column
--- SELECT * FROM 
+SELECT S_ID, S_Price, S_Client, S_Date, SI_I FROM Sales JOIN SaleItem ON Sales.S_ID = SaleItem.SI_S;
 
 -- Nested query
-SELECT * FROM (
-	SELECT * FROM LINEITEM
-	WHERE L_QUANTITY < 15
-) WHERE L_SHIPMODE = 'MAIL';
+SELECT S_ID, S_Price, S_Client, S_Date, I_ID, I_Name, I_Price, I_Category 
+FROM Items JOIN 
+	(
+		SELECT S_ID, S_Price, S_Client, S_Date, SI_I 
+		FROM Sales JOIN SaleItem ON Sales.S_ID = SaleItem.SI_S
+	) As Temp 
+ON Temp.SI_I = Items.I_ID;
