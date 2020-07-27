@@ -9,7 +9,7 @@ args = sys.argv
 date_format = "%Y-%m-%d"
 
 
-from generator import output, get_arg
+from generator_tpch import output, get_arg
 
 def generate_query(number: Union[str, int]):
     if isinstance(number, int):
