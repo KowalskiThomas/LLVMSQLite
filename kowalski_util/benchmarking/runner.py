@@ -4,8 +4,9 @@ import os
 import shutil
 
 from typing import Optional
-from generator import generate_query
+from generator import generate_query as generate_query_tpch
 from generator_ssbm import generate_query as generate_query_ssbm
+from generator_micro import generate_query as generate_query_micro
 
 from common import run_blocking, date_to_string, now
 
@@ -56,16 +57,17 @@ elif "nojit" in args:
     enable_jit = False
 print(f"JIT Enabled: {'Yes' if enable_jit else 'No'}")
 
-assert not ("tpch" not in args and "ssbm" not in args), "Please give --mode tpch or --mode ssbm"
+assert not ("tpch" not in args and "ssbm" not in args and "micro" not in args), "Please give --mode tpch, --mode micro or --mode ssbm"
 for i, x in enumerate(args):
     if x == "mode":
         mode = args[i + 1]
         break
 
-TPCH = 0
-SSBM = 1
-mode = TPCH if mode == "tpch" else SSBM
-print(f"Mode: {'TPC-H' if mode == TPCH else 'SSBM'}")
+TPCH = 1
+SSBM = 2
+MICRO = 3
+mode = TPCH if mode == "tpch" else SSBM if mode == "ssbm" else MICRO
+print(f"Mode: {'TPC-H' if mode == TPCH else 'SSBM' if mode == SSBM else 'Micro'}")
 
 db_file: Optional[str] = None
 for arg in args:
@@ -94,9 +96,12 @@ print("Generating SQL statement in", temp_file_path)
 complete_script = ""
 for _ in range(count):
     if mode == TPCH:
-        sql = generate_query(query_index)
-    else:
+        sql = generate_query_tpch(query_index)
+    elif mode == SSBM:
         sql = generate_query_ssbm(query_index)
+    else:
+        assert mode == MICRO
+        sql = generate_query_micro(query_index)
 
     complete_script += "  " + sql
 

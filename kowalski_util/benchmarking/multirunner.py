@@ -11,22 +11,31 @@ if not ".db" in db:
 
 do_run = "echo" not in argv
 
-TPCH = 0
-SSBM = 1
+TPCH = 1
+SSBM = 2
+MICRO = 3
 
 mode = TPCH
 if "ssbm" in argv or "ssb" in argv:
     mode = SSBM
 elif "tpch" in argv:
     mode = TPCH
+elif "micro" in argv:
+    mode = MICRO
 else:
-    print("Please give 'tpch' or 'ssbm' in arguments")
+    print("Please give 'tpch', 'micro' or 'ssbm' in arguments")
     sys.exit(1)
 
 if mode == TPCH:
     excluded = { 17 }
     queries = [x for x in range(1, 22) if not x in excluded]
+elif mode == MICRO:
+    files = [x for x in os.listdir("micro")]
+    files = [f.split('.')[0] for f in files]
+    files = [int(f) for f in files]
+    queries = files
 else:
+    assert mode == SSBM
     files = [x for x in os.listdir("ssb")]
     files = [f.split('.')[0] for f in files]
     files = [int(f) for f in files]
@@ -42,7 +51,7 @@ for i, arg in enumerate(argv):
 total_line = ""
 for q in queries:
     for jit in jit_config:
-        to_run = f"python3 runner.py {db} {jit} query {q} count {count} mode {'ssbm' if mode == SSBM else 'tpch'}"
+        to_run = f"python3 runner.py {db} {jit} query {q} count {count} mode {'ssbm' if mode == SSBM else 'tpch' if mode == TPCH else 'micro'}"
         if do_run:
             print(f">>> {to_run}")
             stdout, stderr = run_blocking(to_run)
