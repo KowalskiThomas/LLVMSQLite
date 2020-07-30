@@ -1,4 +1,6 @@
--- Nested query
+--- Nested query
+-- This allows to check whether nested subqueries (coroutines) are more / less
+-- efficient in the JIT.
 SELECT S_ID, S_Price, S_Client, S_Date, I_ID, I_Name, I_Price, I_Category 
 FROM Items JOIN 
 	(

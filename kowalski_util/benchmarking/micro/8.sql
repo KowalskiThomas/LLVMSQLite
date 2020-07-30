@@ -1,4 +1,6 @@
--- Two nested queries
+--- Two nested queries
+-- More complex nested query benchmark to see the influence of the number of 
+-- nested queries. 
 SELECT S_ID, S_Price, S_Client, S_Date, I_ID, I_Name, I_Price, I_Category 
 FROM Items JOIN 
 	(
