@@ -22,7 +22,7 @@ def generate_query(number: Union[str, int]):
     return sql
 
 def main():
-    queries = [x.split('.')[0] for x in os.listdir('micro')]
+    queries = [x.split('.')[0] for x in os.listdir('micro') if x.endswith("sql")]
     query_number = get_arg("query", None)
     query_count = int(get_arg("query-count", 1))
 
