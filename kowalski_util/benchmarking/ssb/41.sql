@@ -19,4 +19,4 @@ where lo_custkey = c_custkey
 group by d_year,
     c_nation
 order by d_year,
-    c_nation
+    c_nation;

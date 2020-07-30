@@ -20,4 +20,4 @@ where lo_custkey = c_custkey
     and p_category = 'MFGR#14'
 group by d_year,
     s_city,
-    p_brand1
+    p_brand1;
