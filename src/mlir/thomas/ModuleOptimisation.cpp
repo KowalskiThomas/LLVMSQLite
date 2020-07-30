@@ -147,9 +147,6 @@ void VdbeRunner::optimiseModule() {
                 "sqlite3IsNaN",
                 "sqlite3VdbeIntValue",
                 "applyAffinity",
-                "sqlite3_str_vappendf",
-                "sqlite3_str_append",
-                "sqlite3_str_appendchar",
                 "sqlite3VdbeMemShallowCopy",
                 "sqlite3VdbeMemExpandBlob",
                 "sqlite3VdbeMemTooBig",
@@ -181,7 +178,6 @@ void VdbeRunner::optimiseModule() {
                     "sqlite3VdbeMemGrow",
                     "sqlite3VdbeMemTranslate",
                     "vdbeMemAddTerminator",
-                    "sqlite3_str_appendf",
                     "strlen",
             };
 
