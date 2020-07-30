@@ -144,7 +144,8 @@ assert len(data) > 0, "Didn't find any data points in the output. Check the valu
 # Skip initial schema retrieval query
 data = data[1:]
 
-print("Writing file", cwd)
-with open(f"{cwd}/Results-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
+file_name = f"{cwd}/Results-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt"
+print("Writing file", f"{cwd}/{file_name}")
+with open(file_name, 'w') as f:
     f.write('\n'.join([str(x) for x in data]))
     f.write('\n')
