@@ -138,7 +138,23 @@ void VdbeRunner::optimiseModule() {
                 "sqlite3VdbeMemNulTerminate",
                 "sqlite3VdbeRecordUnpack",
                 "sqlite3GetVarint",
-                "sqlite3VdbeSerialGet"
+                "sqlite3VdbeSerialGet",
+                "sqlite3AddInt64",
+                "sqlite3SubInt64",
+                "numericType",
+                "sqlite3VdbeRealValue",
+                "sqlite3MulInt64",
+                "sqlite3IsNaN",
+                "sqlite3VdbeIntValue",
+                "applyAffinity",
+                "sqlite3_str_vappendf",
+                "sqlite3_str_append",
+                "sqlite3_str_appendchar",
+                "sqlite3VdbeMemShallowCopy",
+                "sqlite3VdbeMemExpandBlob",
+                "sqlite3VdbeMemTooBig",
+                "sqlite3BtreeMovetoUnpacked",
+                "sqlite3BtreeLast"
         };
 
         auto shouldInline = [&](const llvm::Function &f) {
@@ -166,7 +182,7 @@ void VdbeRunner::optimiseModule() {
                     "sqlite3VdbeMemTranslate",
                     "vdbeMemAddTerminator",
                     "sqlite3_str_appendf",
-                    "strlen"
+                    "strlen",
             };
 
             auto shouldCopy = toCopyNoInline.find(f.getName().str()) != toCopyNoInline.cend();
