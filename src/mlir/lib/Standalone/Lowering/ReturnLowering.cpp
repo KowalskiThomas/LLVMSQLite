@@ -44,9 +44,6 @@ namespace mlir::standalone::passes {
         // Store target in &vdbe->pc
         store(LOC, target, pcAddr);
 
-        // TODO: Debug
-        // print(LOCL, target, "Return: Returning to");
-
         // Branch to jumpsBlock
         branch(LOC, vdbeCtx->jumpsBlock);
         rewriter.eraseOp(retOp);

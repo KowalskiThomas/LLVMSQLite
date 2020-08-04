@@ -563,7 +563,6 @@ extern "C" {
     void* dbMallocRawFinish(void*);
     void* sqlite3CreateFunc(void*);
     void* btreeOverwriteContent(void*);
-    void* srandomdev(void*);
     void* pragmaFunclistLine(void*);
     void* checkAppendMsg(void*);
     void* proxyClose(void*);
@@ -625,7 +624,6 @@ extern "C" {
     void* row_numberStepFunc(void*);
     void* sqlite3_mutex_leave(void*);
     void* nfsIoFinderImpl(void*);
-    void* strlcpy(void*);
     void* sqlite3_global_recover(void*);
     void* sqlite3SetJoinExpr(void*);
     void* syncJournal(void*);

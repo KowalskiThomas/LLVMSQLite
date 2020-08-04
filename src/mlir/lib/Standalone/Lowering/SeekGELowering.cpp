@@ -498,7 +498,6 @@ namespace mlir::standalone::passes {
         auto blockNoJump = SPLIT_GO_BACK_TO(curBlock);
 
         /// if (res) goto jump_to_p2;
-        // TODO: Fix stack memory leak
         condBranch(LOC, resNotNull, jumpTo, blockNoJump);
 
         ip_start(blockNoJump);

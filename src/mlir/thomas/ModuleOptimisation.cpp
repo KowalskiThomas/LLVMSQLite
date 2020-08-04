@@ -363,7 +363,6 @@ void VdbeRunner::optimiseModule() {
 
             copyComdat(F, &I);
 
-            // TODO: FastCC
             F->setCallingConv(llvm::CallingConv::C);
             if (shouldInline(*F)) {
                 F->addFnAttr(llvm::Attribute::AlwaysInline);

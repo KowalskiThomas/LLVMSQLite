@@ -59,13 +59,6 @@ namespace mlir::standalone::passes {
 
             store(LOC, 0, nullRowAddr);
 
-            /* TODO: Hints counter
-            auto aCounterAddr = constants(T::i32PtrTy, &vdbe->aCounter[hints]);
-            auto counterVal = load(LOC, aCounterAddr);
-            auto counterValPlus1 = add(LOC, counterVal, 1);
-            store(LOC, counterValPlus1, aCounterAddr);
-            */
-
             branch(LOC, jumpTo);
             // print(LOCL, "goto jump_to_p2_and_check_for_interrupt");
             // branch(LOC, blockAfterRcIsOk);

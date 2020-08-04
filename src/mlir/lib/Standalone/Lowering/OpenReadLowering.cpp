@@ -8,6 +8,8 @@
 #include "Standalone/ErrorCodes.h"
 #include "Standalone/DebugUtils.h"
 
+extern LLVMFuncOp f_sqlite3VdbeMemIntegerify;
+
 namespace mlir::standalone::passes {
     LogicalResult OpenReadLowering::matchAndRewrite(OpenRead orOp, PatternRewriter &rewriter) const {
         auto op = &orOp;
@@ -59,8 +61,8 @@ namespace mlir::standalone::passes {
                      addressOfRegisters, /* This is the address of the sqlite3_value array */
                      rootPage, 0, 0);
 
-            out("TODO: Add 3826 sqlite3VdbeMemIntegerify(pIn2);")
-            exit(INCOMPLETE_LOWERING_USED);
+            auto pIn2 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, rootPage);
+            call(LOC, f_sqlite3VdbeMemIntegerify, pIn2);
 
             // Load the content at the address of the union
             auto regContent = load(LOC, adressOfValue);
