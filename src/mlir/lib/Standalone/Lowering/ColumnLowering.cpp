@@ -977,26 +977,10 @@ namespace mlir::standalone::passes {
                     rewriter.setInsertionPointToStart(blockNHdrParsedLtP2_2);
 
                     auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
-                    auto p4TypeAddr = rewriter.create<GEPOp>
-                        (LOC, T::i8PtrTy, pOp, ValueRange {
-                            constants(0, 32),
-                            constants(1, 32)
-                        });
-                    auto p4Type = rewriter.create<LoadOp>(LOC, p4TypeAddr);
-                    auto p4IsMem = rewriter.create<ICmpOp>
-                        (LOC, Pred::eq,
-                            p4Type, constants(P4_MEM, 8)
-                        );
-
-                    curBlock = rewriter.getBlock();
-                    auto blockP4IsMem = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-                    auto blockP4IsNotMem = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                     // TODO: Do that at compile time
-                    rewriter.create<CondBrOp>(LOC, p4IsMem, blockP4IsMem, blockP4IsNotMem);
-                    { // if (pOp->p4type == P4_MEM)
-                        rewriter.setInsertionPointToStart(blockP4IsMem);
-
+                    if (vdbe->aOp[pc].p4type == P4_MEM)
+                    {
                         /// sqlite3VdbeMemShallowCopy(pDest, pOp->p4.pMem, MEM_Static);
                         auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
                         auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
@@ -1010,15 +994,12 @@ namespace mlir::standalone::passes {
 
                         /// goto op_column_out;
                         rewriter.create<mlir::BranchOp>(LOC, blockColumnEnd);
-                    } // end if (pOp->p4type == P4_MEM)
+                    }
+                    else
                     { // else of if (pOp->p4type == P4_MEM)
-                        rewriter.setInsertionPointToStart(blockP4IsNotMem);
 
                         /// sqlite3VdbeMemSetNull(pDest);
                         memSetNull(LOC, pDest);
-                        //rewriter.create<mlir::LLVM::CallOp>(LOC, f_sqlite3VdbeMemSetNull, ValueRange {
-                        //    pDest
-                        //});
 
                         /// goto op_column_out;
                         rewriter.create<mlir::BranchOp>(LOC, blockColumnEnd);
