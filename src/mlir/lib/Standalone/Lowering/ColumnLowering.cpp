@@ -978,7 +978,6 @@ namespace mlir::standalone::passes {
 
                     auto pOp = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
 
-                    // TODO: Do that at compile time
                     if (vdbe->aOp[pc].p4type == P4_MEM)
                     {
                         /// sqlite3VdbeMemShallowCopy(pDest, pOp->p4.pMem, MEM_Static);

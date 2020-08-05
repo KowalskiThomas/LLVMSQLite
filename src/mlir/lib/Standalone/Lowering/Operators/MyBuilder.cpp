@@ -36,7 +36,7 @@ size_t MyBuilder::getBitWidth(Value v) const {
 
 
 MyBuilder::AllocaOp MyBuilder::insertAllocaOp(Location loc, mlir::Type ty) {
-    return rewriter.create<mlir::LLVM::AllocaOp>(loc, ty, constants(1, 32), 0);
+    return rewriter.create<mlir::LLVM::AllocaOp>(loc, ty, constants(1, 32), 8);
 }
 
 llvm::Optional<Value> MyBuilder::insertCallOp(Location loc, LLVMFuncOp func, ValueRange range) {

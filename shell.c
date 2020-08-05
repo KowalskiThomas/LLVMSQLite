@@ -18911,7 +18911,7 @@ int SQLITE_CDECL wmain(int argc, wchar_t **wargv){
       }
   }
 
-  // TODO: Remove
+  // TODO: Remove top-of-stack
   {
     extern size_t top_of_stack;
     char a;

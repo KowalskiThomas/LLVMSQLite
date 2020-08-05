@@ -44,6 +44,19 @@
 
 #include "Standalone/StandalonePassManager.h"
 
+#define LLVMSQLITE_FORCE_ENABLE_DUMPTODISK false
+#define LLVMSQLITE_FORCE_DISABLE_DUMPTODISK true
+
+#if LLVMSQLITE_DEBUG && !LLVMSQLITE_FORCE_ENABLE_DUMPTODISK
+#if LLVMSQLITE_FORCE_ENABLE_DUMPTODISK
+#define LLVMSQLITE_DUMPTODISK true
+#else
+#define LLVMSQLITE_DUMPTODISK false
+#endif
+#else
+#define LLVMSQLITE_DUMPTODISK true
+#endif
+
 namespace llvm {
     static void copyComdat(GlobalObject *Dst, const GlobalObject *Src) {
         const Comdat *SC = Src->getComdat();
@@ -150,11 +163,18 @@ void VdbeRunner::optimiseModule() {
                 "sqlite3VdbeMemShallowCopy",
                 "sqlite3VdbeMemExpandBlob",
                 "sqlite3VdbeMemTooBig",
-                "sqlite3BtreeMovetoUnpacked",
-                "sqlite3BtreeLast"
+                // "sqlite3BtreeMovetoUnpacked",
+                "sqlite3BtreeLast",
+                "sqlite3PutVarint",
+                "sqlite3VarintLen",
+                "sqlite3VdbeMemClearAndResize",
+                "sqlite3VdbeSerialPut"
         };
 
         auto shouldInline = [&](const llvm::Function &f) {
+            if (!doInlining)
+                return false;
+
             if (inlined.find(f.getName().str()) != inlined.cend()) {
                 debug("Should inline " << f.getName());
                 return true;
@@ -170,7 +190,7 @@ void VdbeRunner::optimiseModule() {
             }
 
             static auto toCopyNoInline = std::set<std::string>{
-                    "vdbeMemClearExternAndSetNull",
+/*                    "vdbeMemClearExternAndSetNull",
                     "sqlite3_log",
                     "getAndInitPage",
                     "sqlite3PcacheRelease",
@@ -178,7 +198,7 @@ void VdbeRunner::optimiseModule() {
                     "sqlite3VdbeMemGrow",
                     "sqlite3VdbeMemTranslate",
                     "vdbeMemAddTerminator",
-                    "strlen",
+                    "strlen",*/
             };
 
             auto shouldCopy = toCopyNoInline.find(f.getName().str()) != toCopyNoInline.cend();
@@ -468,13 +488,12 @@ void VdbeRunner::optimiseModule() {
     debug("Module preparation done");
     writeToFile("jit_llvm_final.ll", *llvmModule);
 
-    static const constexpr auto dumpToDisk = true;
-    if (dumpToDisk) { // Cache the module to disk
+#if LLVMSQLITE_DUMPTODISK
         VdbeHash vdbeHash;
         std::string moduleFileName = vdbeHash.getFileName(vdbe);
         debug("Dumping to '" << moduleFileName << "'");
         writeToFile(moduleFileName.c_str(), *llvmModule);
-    } // End module caching
+#endif
 
     auto tock = high_resolution_clock::now();
     functionOptimisationTime = duration_cast<milliseconds>(tock - tick).count();

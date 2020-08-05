@@ -674,7 +674,6 @@ namespace mlir::standalone::passes {
         }
 
         /// zHdr += putVarint32(zHdr, nHdr) <=> zHdr = &zHdr[putVarInt(...)]
-        // TODO: print(LOCL, "TODO: Replace function call with macro expansion");
         auto putVarIntResult = call(LOC, f_sqlite3PutVarint, zHdrValue, nHdrValue64).getValue();
         zHdrValue = getElementPtr(LOC, T::i8PtrTy, zHdrValue, putVarIntResult);
         store(LOC, zHdrValue, zHdrAddr);

@@ -58,23 +58,26 @@ namespace mlir::standalone::passes {
                 constants(9, 32)  // cacheCtr is 10-th element
                 );
 
+        /// p->cacheCtr = (p->cacheCtr + 2)|1;
         auto cacheCtrValue = load(LOC, cacheCtrAddr);
-            auto cacheCtrPlus2 = add(LOC, cacheCtrValue, 2);
+        cacheCtrValue = add(LOC, cacheCtrValue, 2);
         auto cacheCtrOr1 = bitOr(LOC, cacheCtrValue, 1);
         store(LOC, cacheCtrOr1, cacheCtrAddr);
 
-        int firstCol = rrOp.firstColAttr().getSInt();
         int nCol = rrOp.nColAttr().getSInt();
-        // Out of JIT
-        auto pMem = &vdbe->aMem[firstCol];
-        auto pMemJit = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstCol);
-        // In JIT
-        /// p->pResultSet = &aMem[pOp->p1];
+
+        /// pMem = p->pResultSet = &aMem[pOp->p1];
+        int firstCol = rrOp.firstColAttr().getSInt();
         auto aMemP1Addr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, firstCol);
+        auto pMem = aMemP1Addr;
+
+        /// p->pResultSet = &aMem[pOp->p1];
         auto pResultSetAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrPtrTy, p, 0, 27);
         store(LOC, aMemP1Addr, pResultSetAddr);
+
         for(size_t it = 0; it < nCol; it++) {
-            auto pMemIAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, pMemJit, i);
+            /// Deephemeralize(&pMem[i]);
+            auto pMemIAddr = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, pMem, i);
             { // De-ephemeralize
                 auto pMemFlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pMemIAddr, 0, 1);
                 auto pMemFlagsValue = load(LOC, pMemFlagsAddr);
@@ -86,25 +89,25 @@ namespace mlir::standalone::passes {
                 auto blockFlagsAndEphemNotNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
                 condBranch(LOC, flagsAndEphemNotNull, blockFlagsAndEphemNotNull, blockAfterFlagAndEphemNotNull);
-
                 { // if &pMem[i]->flags&MEM_Ephem
                     ip_start(blockFlagsAndEphemNotNull);
-                    auto rc = call(LOC, f_sqlite3VdbeMemMakeWriteable, pMemIAddr);
+
+                    auto rc = call(LOC, f_sqlite3VdbeMemMakeWriteable, pMemIAddr).getValue();
+                    auto rcNull = iCmp(LOC, Pred::eq, rc, 0);
+                    myAssert(LOCL, rcNull);
+
                     branch(LOC, blockAfterFlagAndEphemNotNull);
                 } // end if &pMem[i]->flags&MEM_Ephem
 
                 ip_start(blockAfterFlagAndEphemNotNull);
-
             } // End De-ephemeralize
+
+            /// sqlite3VdbeMemNulTerminate(&pMem[i]);
             call(LOC, f_sqlite3VdbeMemNulTerminate, pMemIAddr);
         }
 
         { // if (db->mallocFailed) goto no_mem;
-            auto dbAddr = getElementPtrImm(LOC, T::sqlite3PtrTy.getPointerTo(),
-                vdbeCtx->p,
-                0,
-                0
-            );
+            auto dbAddr = getElementPtrImm(LOC, T::sqlite3PtrTy.getPointerTo(), vdbeCtx->p, 0, 0);
             auto db = load(LOC, dbAddr);
             auto mallocFailedAddr = getElementPtrImm(LOC, T::i8PtrTy, db, 0, 19);
             auto mallocFailed = load(LOC, mallocFailedAddr);

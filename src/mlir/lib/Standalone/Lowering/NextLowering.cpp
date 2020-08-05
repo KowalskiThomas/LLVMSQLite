@@ -98,16 +98,6 @@ namespace mlir::standalone::passes {
             /// pC->nullRow = 0
             store(LOC, 0, nullRowAddr);
 
-
-            /// p->aCounter[pOp->p5]++
-            // TODO: Remove IntToPtr
-            /*
-             * auto aCounterAddr = constants(T::i32PtrTy, (int*)&vdbe->aCounter[p5Value]);
-             * auto aCounterValue = load(LOC, aCounterAddr);
-             * auto aCounterValuePlus1 = add(LOC, aCounterValue, 1);
-             * store(LOC, aCounterValuePlus1, aCounterAddr);
-             */
-
             branch(LOC, jumpTo);
         } // end if (rc == SQLITE_OK)
 

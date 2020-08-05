@@ -40,7 +40,6 @@ namespace mlir::standalone::passes {
 
         auto stackState = saveStack(LOC);
 
-        // TODO: Fix memory leak
         auto resAddr = alloca(LOC, T::i32PtrTy);
         auto iKeyAddr = alloca(LOC, T::i64PtrTy);
         auto rcAddr = alloca(LOC, T::i32PtrTy);
@@ -163,6 +162,7 @@ namespace mlir::standalone::passes {
                 store(LOC, SQLITE_CORRUPT_BKPT, rcAddr);
                 branch(LOC, blockAfterResNotNull);
             } else {
+                restoreStack(LOC, stackState);
                 branch(LOC, jumpTo);
             }
 

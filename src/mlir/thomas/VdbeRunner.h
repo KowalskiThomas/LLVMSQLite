@@ -53,11 +53,12 @@ using namespace std::chrono;
 
 void addToDynamicLibrary();
 
-const constexpr bool shouldOptimiseModule = true;
+const constexpr bool shouldOptimiseModule = false;
 const constexpr bool optimiseFunctions = true;
 const constexpr bool optimiseCodegen = true;
 const constexpr bool optimiseOthers = true;
 const constexpr bool duplicateFunctions = true;
+const constexpr bool doInlining = true;
 const constexpr int optLevel = 3;
 
 void initializeDialects();

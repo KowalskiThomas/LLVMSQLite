@@ -18,7 +18,6 @@ namespace mlir::standalone::passes {
         MyAssertOperator myAssert(rewriter, constants, ctx, __FILE_NAME__);
         Printer print(ctx, rewriter, __FILE_NAME__);
 
-        // TODO: This is not complete at all (in comparison with the vdbe.c implementation)
         print(LOCL, "-- Halt");
 
         // print(LOCL, "Halting execution");
