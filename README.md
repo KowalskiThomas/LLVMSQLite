@@ -73,32 +73,33 @@ LLVMSQLite works in the exact same way as the SQLite shell. The build process pr
 
 To carry out performance tests, I use the TPC-H benchmark. To do that, you'll need (1) a TPC-H database and (2) TPC-H compliant queries. 
 
-**Getting a TPC-H database**
+**Getting TPC-H and SSBM databases**
 
-I use the very good [TPC-H SQLite](https://github.com/lovasoa/TPCH-sqlite) repository.
-
-```
-git clone https://github.com/lovasoa/TPCH-sqlite tpch
-cd tpch
-SCALE_FACTOR=1.0 make
-```
-
-This will generate a `TPC-H.db` file that you can use with the SQLite shell:
+I use a modified version of the very good [TPC-H SQLite](https://github.com/lovasoa/TPCH-sqlite) repository. It can generate database files of various scales for both TPC-H and SSBM benchmarks.
 
 ```
-./shell /home/me/tpch/TPC-H.db
+git clone https://github.com/kowalskithomas/llvmsqlite_dbgen dbgen
+cd dbgen
+make -f MakefileTPCH
+```
+
+This will generate several `TPC-H-[Size].db` files that you can use with the SQLite shell:
+
+```
+./shell /home/me/tpch/TPC-H-big.db
 ```
 
 **Getting SQL queries**
 
-TPC-H is a set of 21 SQL queries that are randomly generated given some constraints. I have implemented a generator that you will find in `kowalski_util/tpc-h`. To use it, simply do the following:
+TPC-H is a set of 21 SQL queries that are randomly generated given some constraints. I have implemented a generator that you will find in `kowalski_util/benchmarking`. 
+To use it, simply do the following:
 
 ```
-cd kowalski_util/tpc-h
-python3 generator.py N > q.sql
+cd kowalski_util/benchmarking
+python3 generator_tpch.py N > q.sql
 ```
 
-Where N is any number between 1 and 21. (Compatible with Python >= 3.7.)
+Where *N* is any number between 1 and 21. (Compatible with Python >= 3.7.)
 
 To use the SQL statement directly in the shell, do the following:
 
