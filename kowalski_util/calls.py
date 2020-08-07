@@ -7,12 +7,22 @@ with open(f) as f:
 
 f_names = set()
 for line in contents:
-    if "call " not in line:
+    if not line.startswith("declare"):
         continue
 
-    l = line.split("call ")[1]
+    if "@" not in line:
+        continue
 
-    if "@" not in l:
+    l = line
+
+    end = l.split("@")[1]
+    name = end.split()[0]
+    name = name.split('(')[0]
+
+    if name.startswith("__"):
+        continue
+
+    if name.startswith("\\") or name.startswith('"'):
         continue
 
     f_name = l.split('@')[1]

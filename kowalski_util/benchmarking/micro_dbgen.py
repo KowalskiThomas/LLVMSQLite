@@ -30,13 +30,16 @@ class MicroGen:
 
     @staticmethod
     def get_permutation(n: int):
+        n = int(n)
         permut = list(range(n))
         random.shuffle(permut)
+        assert len(permut) == n
         return permut
 
-    def __init__(self, scale_factor: float = 1.0):
+    def __init__(self, output, scale_factor: float = 1.0):
         self.scale_factor: float = float(scale_factor)
 
+        self.output = output
         self.db: sqlite3.Connection = None
         self.connect()
 
@@ -46,7 +49,7 @@ class MicroGen:
         self.sales_items: List[Tuple[Any]] = list()
 
     def connect(self):
-        self.db = sqlite3.connect("micro.db")
+        self.db = sqlite3.connect(self.output)
 
     def create_schema(self):
         with open("microdb_schema.sql") as f:
@@ -93,11 +96,12 @@ class MicroGen:
 
     def insert_clients(self):
         print("Generating clients")
-        sql = "INSERT INTO Clients VALUES (?, ?, ?, ?, ?)"
+        sql = "INSERT INTO Clients (C_ID, C_Name, C_CreatedAt, C_Address, C_Balance) VALUES (?, ?, ?, ?, ?)"
         
         n_clients = int(self.scale_factor * 1000)
         ids = MicroGen.get_permutation(n_clients)
 
+        self.clients = list() 
         for i in ids:
             self.clients.append((
                 i, 
@@ -144,7 +148,13 @@ class MicroGen:
 
 
 def main():
-    output = "micro.db"
+    import sys
+    if len(sys.argv) > 1:
+        output = sys.argv[1]
+    else:
+        output = "micro.db"
+    print(f"Output: {output}")
+
     if os.path.isfile(output):
         overwrite = False
         answer = input(f"File '{output}' exists. Overwrite? [y/N] ")
@@ -164,7 +174,7 @@ def main():
         if x.lower() in ("scale_factor", "sf", "factor", "scale"):
             scale_factor = float(sys.argv[i + 1])
 
-    gen = MicroGen(scale_factor=scale_factor)
+    gen = MicroGen(output=output, scale_factor=scale_factor)
     print(f"Generating with scale factor {gen.scale_factor}")
     gen.generate()
     gen.finalise()
