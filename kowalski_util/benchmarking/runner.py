@@ -118,10 +118,12 @@ print(to_run)
 
 date = date_to_string(now())
 stdout, stderr = run_blocking(to_run, cwd=wd)
-with open(f"logs/stdout-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
-    f.write(stdout)
-with open(f"logs/stderr-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
-    f.write(stderr)
+write_logs = False
+if write_logs:
+    with open(f"logs/stdout-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
+        f.write(stdout)
+    with open(f"logs/stderr-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
+        f.write(stderr)
 
 if enable_jit:
     to_find = "JIT Vdbe execution time"

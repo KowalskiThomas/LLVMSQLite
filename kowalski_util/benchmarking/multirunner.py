@@ -31,13 +31,13 @@ if mode == TPCH:
     queries = [x for x in range(1, 22) if not x in excluded]
 elif mode == MICRO:
     files = [x for x in os.listdir("micro")]
-    files = [f.split('.')[0] for f in files]
+    files = [f.split('.')[0] for f in files if ".sql" in f]
     files = [int(f) for f in files]
     queries = files
 else:
     assert mode == SSBM
     files = [x for x in os.listdir("ssb")]
-    files = [f.split('.')[0] for f in files]
+    files = [f.split('.')[0] for f in files if ".sql" in f]
     files = [int(f) for f in files]
     queries = files
 
