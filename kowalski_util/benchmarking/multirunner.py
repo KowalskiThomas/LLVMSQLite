@@ -28,7 +28,7 @@ else:
 
 if mode == TPCH:
     excluded = { 17 }
-    queries = [x for x in range(1, 22) if not x in excluded]
+    queries = [x for x in range(1, 23) if not x in excluded]
 elif mode == MICRO:
     files = [x for x in os.listdir("micro")]
     files = [f.split('.')[0] for f in files]
