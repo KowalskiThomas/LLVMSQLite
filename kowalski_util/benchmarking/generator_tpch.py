@@ -37,10 +37,23 @@ def output(sql: str):
         with open(out_file_name, 'w') as f:
             f.write(sql)
 
+
 def generate_int(info):
     min = info["min"]
     max = info["max"]
     return random.randint(min, max)
+
+
+def generate_phone_number(_):
+    i1 = random.randint(100, 999)
+    i2 = random.randint(100, 999)
+    i3 = random.randint(1000, 9999)
+    return f"{i1}-{i2}-{i3}"
+
+
+def generate_country_code(_):
+    index = random.choice(range(len(data.nations)))
+    return index + 10
 
 
 def generate_date(info):
@@ -131,7 +144,8 @@ def generate_parameter(name, ty_info):
         "type": generate_type,
         "container": generate_container,
         "union": generate_union,
-        "constant": generate_constant
+        "constant": generate_constant,
+        "country_code": generate_country_code
     }
     generator = generators[type_name]
     return generator(ty_info)

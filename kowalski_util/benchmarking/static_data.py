@@ -251,6 +251,15 @@ types = {
         "nation": {
             "type": "nation"
         }
+    },
+    "22": {
+        "i1": {"type": "country_code"},
+        "i2": {"type": "country_code"},
+        "i3": {"type": "country_code"},
+        "i4": {"type": "country_code"},
+        "i5": {"type": "country_code"},
+        "i6": {"type": "country_code"},
+        "i7": {"type": "country_code"}
     }
 }
 
