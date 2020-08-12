@@ -57,6 +57,14 @@
 #define LLVMSQLITE_DUMPTODISK true
 #endif
 
+/** Copyright / legal / plagiarism notice
+ * This file is very much inspired (and copy / pasted from)
+ * the following official LLVM CloneModule.cpp file.
+ * Though much of it has been modified because the use case is
+ * different here, the core features are taken from it:
+ * https://llvm.org/doxygen/CloneModule_8cpp_source.html
+ **/
+
 namespace llvm {
     static void copyComdat(GlobalObject *Dst, const GlobalObject *Src) {
         const Comdat *SC = Src->getComdat();
