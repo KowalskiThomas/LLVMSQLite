@@ -4,3 +4,4 @@ stderr.txt
 __pycache__
 prog.txt
 script.sh
+*.txz
