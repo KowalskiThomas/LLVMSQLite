@@ -58,6 +58,7 @@ elif "nojit" in args:
 print(f"JIT Enabled: {'Yes' if enable_jit else 'No'}")
 
 assert not ("tpch" not in args and "ssbm" not in args and "micro" not in args), "Please give --mode tpch, --mode micro or --mode ssbm"
+mode = None
 for i, x in enumerate(args):
     if x == "mode":
         mode = args[i + 1]
@@ -118,12 +119,19 @@ print(to_run)
 
 date = date_to_string(now())
 stdout, stderr = run_blocking(to_run, cwd=wd)
-write_logs = False
+write_logs = "wlogs" in args
 if write_logs:
     with open(f"logs/stdout-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
         f.write(stdout)
     with open(f"logs/stderr-{query_index}-{'jit' if enable_jit else 'nojit'}-{date}.txt", 'w') as f:
         f.write(stderr)
+
+show_logs = "slogs" in args
+if show_logs:
+    print("------ OUT ------")
+    print(stdout)
+    print("------ ERR ------")
+    print(stderr)
 
 if enable_jit:
     to_find = "JIT Vdbe execution time"
