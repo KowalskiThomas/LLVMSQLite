@@ -8,34 +8,12 @@ from generator_tpch import generate_query as generate_query_tpch
 from generator_ssbm import generate_query as generate_query_ssbm
 from generator_micro import generate_query as generate_query_micro
 
-from common import run_blocking, date_to_string, now
+from common import run_blocking, date_to_string, now, find_shell, cwd
 
-cwd = os.getcwd()
 assert __name__ == '__main__', "runner.py should be the main programme!"
 
 if not os.path.isdir("logs"):
     os.mkdir("logs")
-
-
-def find_shell(jit_enabled: bool, path="."):
-    binary_name = "shell_jit" if jit_enabled else "shell_default"
-    path = os.path.abspath(path)
-    print(path)
-    path = path + "/../../"
-    path = os.path.abspath(path)
-
-    dirs = os.listdir(path)
-    dir = "release"
-    if dir in dirs:
-        path = path + '/' + dir + '/'
-    else:
-        print(f"Could not find directory '{dir}' in {path}")
-
-    wd = path
-    path = path + binary_name
-    path = os.path.abspath(path)
-
-    return wd, path
 
 
 args = sys.argv[1:]

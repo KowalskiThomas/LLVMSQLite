@@ -3,6 +3,7 @@ import os
 import subprocess
 import datetime
 import asyncio
+cwd = os.getcwd()
 
 def human_size(s: int):
     if s > 1E6:
@@ -19,13 +20,14 @@ def run_blocking(to_call, parameters = None, cwd: str = None):
         shell=True,
         universal_newlines=True,
         stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        cwd=cwd
+    stdout=subprocess.PIPE,
+    cwd=cwd
     )
     try:
         return process.communicate()
     except:
         return None, None
+
 
 def get_file_size(name: str):
     return os.stat(name).st_size
@@ -64,8 +66,22 @@ def get_mtime(copy_from: str) -> datetime.datetime:
     stat = os.stat(copy_from)
     return datetime.datetime.fromtimestamp(stat.st_mtime)
 
-def date_to_string(dt: datetime.datetime) -> str:
-    return dt.strftime("%m-%d-%H-%M-%S")
+def find_shell(jit_enabled: bool, path="."):
+    binary_name = "shell_jit" if jit_enabled else "shell_default"
+    path = os.path.abspath(path)
+    print(path)
+    path = path + "/../../"
+    path = os.path.abspath(path)
 
-def now() -> datetime.datetime:
-    return datetime.datetime.now()
+    dirs = os.listdir(path)
+    dir = "release"
+    if dir in dirs:
+        path = path + '/' + dir + '/'
+    else:
+        print(f"Could not find directory '{dir}' in {path}")
+
+    wd = path
+    path = path + binary_name
+    path = os.path.abspath(path)
+
+    return wd, path
