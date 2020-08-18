@@ -171,12 +171,12 @@ void VdbeRunner::optimiseModule() {
                 "sqlite3VdbeMemShallowCopy",
                 "sqlite3VdbeMemExpandBlob",
                 "sqlite3VdbeMemTooBig",
-                // "sqlite3BtreeMovetoUnpacked",
                 "sqlite3BtreeLast",
                 "sqlite3PutVarint",
                 "sqlite3VarintLen",
                 "sqlite3VdbeMemClearAndResize",
                 "sqlite3VdbeSerialPut"
+                // "sqlite3BtreeMovetoUnpacked",
         };
 
         auto shouldInline = [&](const llvm::Function &f) {
@@ -428,16 +428,14 @@ void VdbeRunner::optimiseModule() {
                     NewNMD->addOperand(MapMetadata(NMD.getOperand(i), VMap));
         }
 
+        // Set calling convention to C everywhere
         for (auto &g : *llvmModule) {
             for (auto &block : g) {
                 for (auto &inst : block) {
                     if (llvm::isa<llvm::CallInst>(inst)) {
                         auto &callInst = llvm::cast<llvm::CallInst>(inst);
-                        auto calledFunction = callInst.getCalledFunction();
-                        if (true) { // (calledFunction && !shouldInline(*calledFunction)) {
-                            callInst.setCallingConv(llvm::CallingConv::C);
-                            callInst.setTailCall(false);
-                        }
+                        callInst.setCallingConv(llvm::CallingConv::C);
+                        callInst.setTailCall(false);
                     }
                 }
             }
