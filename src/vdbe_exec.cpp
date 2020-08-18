@@ -30,10 +30,22 @@ extern "C" {
 
 int jitVdbeStep(Vdbe *);
 
+extern "C" {
+    extern int query_id;
+}
+
 int sqlite3VdbeExec(Vdbe *p) {
 #ifdef VTUNE
     __itt_resume();
 #endif
+
+  static void* last_vdbe = 0;
+  if (last_vdbe == 0)
+    last_vdbe = p;
+  else if (last_vdbe != p) {
+    last_vdbe = p;
+    query_id++;
+  }
 
     static Vdbe* lastVdbe = nullptr;
     static auto initialTick = decltype(high_resolution_clock::now()){};

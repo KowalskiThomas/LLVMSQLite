@@ -9,6 +9,8 @@
 
 extern GlobalOp aMem;
 
+// #define JIT_STATIC_TYPING
+
 ExternFuncOp f_numericType;
 ExternFuncOp f_sqlite3VdbeRealValue;
 ExternFuncOp f_sqlite3AddInt64;
@@ -17,6 +19,11 @@ ExternFuncOp f_sqlite3MulInt64;
 ExternFuncOp f_sqlite3IsNaN;
 ExternFuncOp f_sqlite3VdbeIntValue;
 ExternFuncOp f_printTypeOf;
+
+extern "C" {
+    extern const int* query_types[];
+    extern const int query_id;
+}
 
 namespace mlir::standalone::passes {
     LogicalResult ArithmeticLowering::matchAndRewrite(Arithmetic mathOp, PatternRewriter &rewriter) const {
@@ -44,8 +51,6 @@ namespace mlir::standalone::passes {
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(mathOp); GO_BACK_TO(curBlock);
 
-        auto blockResultIsNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-
         switch (pOp->opcode) {
             case OP_Add:
                 print(LOCL, "-- Arithmetic / Add"); break;
@@ -62,24 +67,127 @@ namespace mlir::standalone::passes {
 
         auto numericType = Inlining::NumericType(context, rewriter, print, constants);
 
+        CALL_DEBUG
+
         /// pIn1 = &aMem[pOp->p1];
         auto pIn1 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p1);
 
-        /// type1 = numericType(pIn1);
-        // auto type1 = call(LOC, f_numericType, pIn1).getValue();
-        auto type1 = numericType(LOC, pIn1);
-
         /// pIn2 = &aMem[pOp->p2];
         auto pIn2 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p2);
-
-        /// type2 = numericType(pIn2);
-        // auto type2 = call(LOC, f_numericType, pIn2).getValue();
-        auto type2 = numericType(LOC, pIn2);
 
         /// pOut = &aMem[pOp->p3];
         auto pOutAddr = &vdbe->aMem[resultReg];
         auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, resultReg);
         auto flagsOutAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
+
+#ifdef JIT_STATIC_TYPING
+        { // A priori typing
+            auto types = query_types[query_id];
+            auto p1val = op->P1Attr().getSInt();
+            auto t1 = types[p1val];
+            auto t2 = types[op->P2Attr().getSInt()];
+
+            if (t1 != 0 && t1 == t2) {
+                if (t1 == MEM_Real) {
+                    memSetTypeFlag(flagsOutAddr, MEM_Real);
+                    auto outRealAddr = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0, 0);
+
+                    auto r1Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0, 0);
+                    auto r1 = load(LOC, r1Addr);
+
+                    auto r2Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn2, 0, 0, 0);
+                    auto r2 = load(LOC, r2Addr);
+
+                    switch(pOp->opcode) {
+                        case OP_Add: {
+                            auto result = fAdd(LOC, r1, r2);
+                            store(LOC, result, outRealAddr);
+                            break;
+                        }
+                        case OP_Subtract: {
+                            auto result = fSub(LOC, r2, r1);
+                            store(LOC, result, outRealAddr);
+                            break;
+                        }
+                        case OP_Multiply: {
+                            auto result = fMul(LOC, r1, r2);
+                            store(LOC, result, outRealAddr);
+                            break;
+                        }
+                        case OP_Divide: {
+                            auto result = fDiv(LOC, r2, r1);
+                            store(LOC, result, outRealAddr);
+                            break;
+                        }
+                        case OP_Remainder: {
+                            auto result = fRem(LOC, r2, r1);
+                            store(LOC, result, outRealAddr);
+                            break;
+                        }
+                    }
+                    branch(LOC, endBlock);
+                    ip_start(endBlock);
+                    rewriter.eraseOp(mathOp);
+                    return success();
+                } else if (t1 == MEM_Int) {
+                    memSetTypeFlag(flagsOutAddr, MEM_Int);
+                    auto outRealAddr = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0, 0);
+                    auto outIntAddr = bitCast(LOC, outRealAddr, T::i64PtrTy);
+
+                    auto r1Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0, 0);
+                    auto i1Addr = bitCast(LOC, r1Addr, T::i64PtrTy);
+                    auto i1 = load(LOC, i1Addr);
+
+                    auto r2Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn2, 0, 0, 0);
+                    auto i2Addr = bitCast(LOC, r2Addr, T::i64PtrTy);
+                    auto i2 = load(LOC, i2Addr);
+
+                    switch(pOp->opcode) {
+                        case OP_Add: {
+                            auto result = add(LOC, i1, i2);
+                            store(LOC, result, outIntAddr);
+                            break;
+                        }
+                        case OP_Subtract: {
+                            auto result = sub(LOC, i2, i1);
+                            store(LOC, result, outIntAddr);
+                            break;
+                        }
+                        case OP_Multiply: {
+                            auto result = mul(LOC, i1, i2);
+                            store(LOC, result, outIntAddr);
+                            break;
+                        }
+                        case OP_Divide: {
+                            auto result = isDiv(LOC, i2, i1);
+                            store(LOC, result, outIntAddr);
+                            break;
+                        }
+                        case OP_Remainder: {
+                            auto result = isRem(LOC, i2, i1);
+                            store(LOC, result, outIntAddr);
+                            break;
+                        }
+                    }
+
+                    branch(LOC, endBlock);
+                    ip_start(endBlock);
+                    rewriter.eraseOp(mathOp);
+                    return success();
+                } else {
+                    /* Fallthrough */
+                }
+            }
+        } // End a priori typing
+#endif
+
+        auto blockResultIsNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+        out("fallthrough");
+        /// type1 = numericType(pIn1);
+        auto type1 = numericType(LOC, pIn1);
+
+        /// type2 = numericType(pIn2);
+        auto type2 = numericType(LOC, pIn2);
 
         /// flags = pIn1->flags | pIn2->flags;
         // Get pIn1->flags

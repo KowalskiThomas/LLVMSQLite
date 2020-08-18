@@ -93,6 +93,7 @@ const int query_2[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 #endif
 
 const int* query_types[] = { query_0, query_2 };
+int query_id = 0;
 
 #define LLVMSQLITE_NOTSTATICANYMORE
 
@@ -774,17 +775,6 @@ int VDBE_EXEC_NAME(
   u64 start;                 /* CPU clock count at start of opcode */
 #endif
   size_t vdbeSteps = 0;
-
-  /* Start Thomas Query ID */
-  static int query_id = 0;
-  static void* last_vdbe = 0;
-  if (last_vdbe == 0)
-    last_vdbe = p;
-  else if (last_vdbe != p) {
-    last_vdbe = p;
-    query_id++;
-  }
-  /* End Thomas Query ID */
 
   /*** INSERT STACK UNION HERE ***/
 
