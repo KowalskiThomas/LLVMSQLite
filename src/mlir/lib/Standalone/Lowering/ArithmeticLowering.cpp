@@ -9,7 +9,7 @@
 
 extern GlobalOp aMem;
 
-// #define JIT_STATIC_TYPING
+#define JIT_STATIC_TYPING_ARITHMETIC
 
 ExternFuncOp f_numericType;
 ExternFuncOp f_sqlite3VdbeRealValue;
@@ -67,8 +67,6 @@ namespace mlir::standalone::passes {
 
         auto numericType = Inlining::NumericType(context, rewriter, print, constants);
 
-        CALL_DEBUG
-
         /// pIn1 = &aMem[pOp->p1];
         auto pIn1 = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p1);
 
@@ -80,11 +78,10 @@ namespace mlir::standalone::passes {
         auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, resultReg);
         auto flagsOutAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
 
-#ifdef JIT_STATIC_TYPING
+#ifdef JIT_STATIC_TYPING_ARITHMETIC
         { // A priori typing
             auto types = query_types[query_id];
-            auto p1val = op->P1Attr().getSInt();
-            auto t1 = types[p1val];
+            auto t1 = types[op->P1Attr().getSInt()];
             auto t2 = types[op->P2Attr().getSInt()];
 
             if (t1 != 0 && t1 == t2) {
@@ -182,7 +179,6 @@ namespace mlir::standalone::passes {
 #endif
 
         auto blockResultIsNull = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-        out("fallthrough");
         /// type1 = numericType(pIn1);
         auto type1 = numericType(LOC, pIn1);
 

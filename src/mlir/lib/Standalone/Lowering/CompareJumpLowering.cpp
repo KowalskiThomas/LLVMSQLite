@@ -9,10 +9,17 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
+#define JIT_STATIC_TYPING_COMPARE
+
 // ExternFuncOp f_applyNumericAffinity;
 ExternFuncOp f_sqlite3VdbeMemStringify;
 ExternFuncOp f_sqlite3MemCompare;
 ExternFuncOp f_printTypeOf;
+
+extern "C" {
+    extern const int* query_types[];
+    extern const int query_id;
+}
 
 static std::unordered_map<int, int> types {
         { 14, MEM_Str },
@@ -53,8 +60,6 @@ namespace mlir::standalone::passes {
 
         auto tyLeft = types[lhs];
         auto tyRight = types[rhs];
-        // print(LOCL, constants(lhs, 32), "LHS");
-        // print(LOCL, constants(rhs, 32), "RHS");
         // LLVMSQLITE_ASSERT(tyLeft != 0 && "Type for LHS is not defined");
         // LLVMSQLITE_ASSERT(tyRight != 0 && "Type for RHS is not defined");
         // LLVMSQLITE_ASSERT(tyLeft == tyRight && "Types should be the same");
@@ -68,7 +73,6 @@ namespace mlir::standalone::passes {
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(cjOp); GO_BACK_TO(curBlock);
-        auto compareOpBlock = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
         auto stackState = rewriter.create<mlir::LLVM::StackSaveOp>(LOC, T::i8PtrTy);
 
@@ -92,9 +96,97 @@ namespace mlir::standalone::passes {
         /// u16 flags3 = pIn3->flags
         auto in3FlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pIn3, 0, 1);
         auto initialFlags3 = load(LOC, in3FlagsAddr);
-        // print(LOCL, initialFlags3, "Init flags3");
         auto flags3Addr = alloca(LOC, T::i16PtrTy);
         store(LOC, initialFlags3, flags3Addr);
+
+#ifdef JIT_STATIC_TYPING_COMPARE
+        {
+            auto types = query_types[query_id];
+            auto t1 = types[op->lhsAttr().getSInt()];
+            auto t3 = types[op->rhsAttr().getSInt()];
+
+            if (t1 != 0 && t1 == t3) {
+                if (t1 == MEM_Real) {
+                    auto r1Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0, 0);
+                    auto r1 = load(LOC, r1Addr);
+
+                    auto r3Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn3, 0, 0, 0);
+                    auto r3 = load(LOC, r3Addr);
+                    Value result;
+
+                    using FPred = mlir::LLVM::FCmpPredicate;
+                    auto fCmp = [&](Location loc, FPred pred, Value a, Value b) {
+                        return rewriter.create<mlir::LLVM::FCmpOp>(loc, pred, a, b);
+                    };
+
+                    switch (pOp->opcode) {
+                        case OP_Eq: {
+                            result = fCmp(LOC, FPred::oeq, r3, r1);
+                            break;
+                        }
+                        case OP_Ge: {
+                            result = fCmp(LOC, FPred::oge, r3, r1);
+                            break;
+                        }
+                        case OP_Gt: {
+                            result = fCmp(LOC, FPred::ogt, r3, r1);
+                            break;
+                        }
+                        case OP_Le: {
+                            result = fCmp(LOC, FPred::ole, r3, r1);
+                            break;
+                        }
+                        case OP_Lt: {
+                            result = fCmp(LOC, FPred::olt, r3, r1);
+                            break;
+                        }
+                        case OP_Ne: {
+                            result = fCmp(LOC, FPred::one, r3, r1);
+                            break;
+                        }
+                        default:
+                            llvm_unreachable("No CompareJump operation was found");
+                    }
+
+                    if (pOp->p5 & SQLITE_STOREP2) {
+                        auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p2);
+                        store(LOC, 1, vdbeCtx->iCompare);
+
+                        auto pOutFlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
+                        memSetTypeFlag(pOutFlagsAddr, MEM_Int);
+
+                        auto outRealAddr = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0, 0);
+                        auto outIntAddr = bitCast(LOC, outRealAddr, T::i64PtrTy);
+                        store(LOC, result, outIntAddr);
+                        err("Unimplemented iCompare");
+                        exit(99);
+                        // iCompare = r3 < r1 ? -1 : (r3 > r1 ? 1 : 0);
+
+                        branch(LOC, endBlock);
+                        ip_start(endBlock);
+                        rewriter.eraseOp(cjOp);
+                        return success();
+                    } else {
+                        auto resultNotNull = iCmp(LOC, Pred::ne, result, 0);
+                        restoreStack(LOC, stackState);
+                        condBranch(LOC, resultNotNull, jumpTo, fallthrough);
+                        ip_start(endBlock);
+                        branch(LOC, fallthrough);
+                        rewriter.eraseOp(cjOp);
+                        return success();
+                    }
+                } else if (t1 == MEM_Int) {
+                    exit(244);
+                    branch(LOC, endBlock);
+                    ip_start(endBlock);
+                    rewriter.eraseOp(cjOp);
+                    return success();
+                }
+            }
+        }
+#endif
+
+        auto compareOpBlock = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
         /// if ((flags1 | flags3) & MEM_Null)
         // flags1 | flags3
@@ -111,8 +203,6 @@ namespace mlir::standalone::passes {
         condBranch(LOC, condAnyNull, blockAnyNull, blockNotAnyNull);
         { // if ((flags1 | flags3) & MEM_Null)
             ip_start(blockAnyNull);
-
-            // print(LOCL, "One is null");
 
             if (flags & SQLITE_NULLEQ) {
                 // flags1 & flags3
@@ -241,7 +331,6 @@ namespace mlir::standalone::passes {
                     { // if ((flags1 & (MEM_Int | MEM_IntReal | MEM_Real | MEM_Str)) == MEM_Str)
                         ip_start(blockIn1IsString);
 
-                        // print(LOCL, constants(lhs, 32), "Applying numeric affinity to");
                         /// applyNumericAffinity(pIn1, 0);
                         applyNumericAffinity(LOC, pIn1, constants(0, 32));
                         /*call(LOC, f_applyNumericAffinity,
@@ -298,7 +387,6 @@ namespace mlir::standalone::passes {
                 // pIn1->flags & pIn3->flags
                 auto flags1And3 = bitAnd(LOC, flags1Val, flags2Val);
                 // (pIn1->flags & pIn3->flags & MEM_Int)
-                // print(LOCL, flags1And3, "flags1 & flags3");
                 auto bothAreInt = bitAnd(LOC, flags1And3, MEM_Int);
 
                 curBlock = rewriter.getBlock();
@@ -311,7 +399,6 @@ namespace mlir::standalone::passes {
                 condBranch(LOC, condBothAreInt, blockBothAreInt, blockAfterBothAreInt);
                 { // if ((pIn1->flags & pIn3->flags & MEM_Int) != 0)
                     ip_start(blockBothAreInt);
-                    // print(LOCL, "Both are int");
                     auto u1Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0);
                     auto int1Addr = bitCast(LOC, u1Addr, T::i64PtrTy);
                     auto u3Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn3, 0, 0);
@@ -362,7 +449,6 @@ namespace mlir::standalone::passes {
 
                     ip_start(blockAfter3Lt1);
 
-                    // print(LOCL, "Both int, jumping to compareOpBlock");
                     branch(LOC, compareOpBlock);
                  } // end if ((pIn1->flags & pIn3->flags & MEM_Int) != 0)
 
@@ -557,7 +643,7 @@ namespace mlir::standalone::passes {
             store(LOC, load(LOC, res2Addr), pOutIntegerAddr);
 
             branch(LOC, endBlock);
-        } else /* (pOp->p5 & SQLITE_STOREP2) */ {
+        } else /* of (pOp->p5 & SQLITE_STOREP2) */ {
             auto res2Value = load(LOC, res2Addr);
             auto res2NotNull = iCmp(LOC, Pred::ne, res2Value, 0);
             rewriter.create<mlir::LLVM::StackRestoreOp>(LOC, stackState);
