@@ -9,7 +9,7 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
-#define JIT_STATIC_TYPING_COMPARE
+// #define JIT_STATIC_TYPING_COMPARE
 
 // ExternFuncOp f_applyNumericAffinity;
 ExternFuncOp f_sqlite3VdbeMemStringify;
@@ -176,11 +176,71 @@ namespace mlir::standalone::passes {
                         return success();
                     }
                 } else if (t1 == MEM_Int) {
-                    exit(244);
-                    branch(LOC, endBlock);
-                    ip_start(endBlock);
-                    rewriter.eraseOp(cjOp);
-                    return success();
+                    auto r1Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0, 0);
+                    auto i1Addr = bitCast(LOC, r1Addr, T::i64PtrTy);
+                    auto r1 = load(LOC, i1Addr);
+
+                    auto r3Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn3, 0, 0, 0);
+                    auto i3Addr = bitCast(LOC, r3Addr, T::i64PtrTy);
+                    auto r3 = load(LOC, i3Addr);
+                    Value result;
+
+                    switch (pOp->opcode) {
+                        case OP_Eq: {
+                            result = iCmp(LOC, Pred::eq, r3, r1);
+                            break;
+                        }
+                        case OP_Ge: {
+                            result = iCmp(LOC, Pred::sge, r3, r1);
+                            break;
+                        }
+                        case OP_Gt: {
+                            result = iCmp(LOC, Pred::sgt, r3, r1);
+                            break;
+                        }
+                        case OP_Le: {
+                            result = iCmp(LOC, Pred::sle, r3, r1);
+                            break;
+                        }
+                        case OP_Lt: {
+                            result = iCmp(LOC, Pred::slt, r3, r1);
+                            break;
+                        }
+                        case OP_Ne: {
+                            result = iCmp(LOC, Pred::ne, r3, r1);
+                            break;
+                        }
+                        default:
+                            llvm_unreachable("No CompareJump operation was found");
+                    }
+
+                    if (pOp->p5 & SQLITE_STOREP2) {
+                        auto pOut = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, p2);
+                        store(LOC, 1, vdbeCtx->iCompare);
+
+                        auto pOutFlagsAddr = getElementPtrImm(LOC, T::i16PtrTy, pOut, 0, 1);
+                        memSetTypeFlag(pOutFlagsAddr, MEM_Int);
+
+                        auto outRealAddr = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0, 0);
+                        auto outIntAddr = bitCast(LOC, outRealAddr, T::i64PtrTy);
+                        store(LOC, result, outIntAddr);
+                        err("Unimplemented iCompare");
+                        exit(99);
+                        // iCompare = r3 < r1 ? -1 : (r3 > r1 ? 1 : 0);
+
+                        branch(LOC, endBlock);
+                        ip_start(endBlock);
+                        rewriter.eraseOp(cjOp);
+                        return success();
+                    } else {
+                        auto resultNotNull = iCmp(LOC, Pred::ne, result, 0);
+                        restoreStack(LOC, stackState);
+                        condBranch(LOC, resultNotNull, jumpTo, fallthrough);
+                        ip_start(endBlock);
+                        branch(LOC, fallthrough);
+                        rewriter.eraseOp(cjOp);
+                        return success();
+                    }
                 }
             }
         }

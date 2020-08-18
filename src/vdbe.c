@@ -92,7 +92,7 @@ const int query_1[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 const int query_2[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 #endif
 
-const int* query_types[] = { query_0, query_1 };
+const int* query_types[] = { query_0, query_2 };
 int query_id = 0;
 
 #define LLVMSQLITE_NOTSTATICANYMORE
