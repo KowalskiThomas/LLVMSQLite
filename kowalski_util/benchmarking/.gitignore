@@ -1,2 +1,3 @@
-q*.sql
+types_*.c
+*.sql
 Results-*.txt

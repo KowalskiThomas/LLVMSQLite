@@ -231,6 +231,7 @@ add_library(sqlite
     ${PROJECT_SOURCE_DIR}/src/whereexpr.c
     ${PROJECT_SOURCE_DIR}/src/whereInt.h
     ${PROJECT_SOURCE_DIR}/src/window.c
+    ${PROJECT_SOURCE_DIR}/src/query_types.c
     ${PROJECT_SOURCE_DIR}/opcodes.c
     ${PROJECT_SOURCE_DIR}/parse.c
     ${PROJECT_SOURCE_DIR}/sqlite3.h

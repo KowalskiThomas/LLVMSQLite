@@ -107,6 +107,7 @@ namespace mlir::standalone::passes {
 
             if (t1 != 0 && t1 == t3) {
                 if (t1 == MEM_Real) {
+                    out("Using REAL a priori knowledge on " << pOp->p1 << " and " << pOp->p3)
                     auto r1Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0, 0);
                     auto r1 = load(LOC, r1Addr);
 
@@ -176,6 +177,7 @@ namespace mlir::standalone::passes {
                         return success();
                     }
                 } else if (t1 == MEM_Int) {
+                    out("Using INTEGER a priori knowledge on " << pOp->p1 << " and " << pOp->p3)
                     auto r1Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0, 0);
                     auto i1Addr = bitCast(LOC, r1Addr, T::i64PtrTy);
                     auto r1 = load(LOC, i1Addr);

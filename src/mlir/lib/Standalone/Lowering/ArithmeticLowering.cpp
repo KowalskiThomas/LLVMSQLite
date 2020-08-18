@@ -86,6 +86,7 @@ namespace mlir::standalone::passes {
 
             if (t1 != 0 && t1 == t2) {
                 if (t1 == MEM_Real) {
+                    out("Using REAL a priori knowledge on " << pOp->p1 << " and " << pOp->p2)
                     memSetTypeFlag(flagsOutAddr, MEM_Real);
                     auto outRealAddr = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0, 0);
 
@@ -127,6 +128,7 @@ namespace mlir::standalone::passes {
                     rewriter.eraseOp(mathOp);
                     return success();
                 } else if (t1 == MEM_Int) {
+                    out("Using INTEGER a priori knowledge on " << pOp->p1 << " and " << pOp->p2)
                     memSetTypeFlag(flagsOutAddr, MEM_Int);
                     auto outRealAddr = getElementPtrImm(LOC, T::doublePtrTy, pOut, 0, 0, 0);
                     auto outIntAddr = bitCast(LOC, outRealAddr, T::i64PtrTy);

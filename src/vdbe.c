@@ -22,77 +22,11 @@
 #include "sqliteInt.h"
 #include "vdbeInt.h"
 
-const int query_0[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 #define STATIC_ARITHMETIC
 #define STATIC_COMPARISON
-#define DO_TYPES
-#ifdef DO_TYPES
-const int query_1[] = {
-    /* 0    */ 0,
-    /* 1    */ MEM_Real,
-    /* 2    */ MEM_Real,
-    /* 3    */ MEM_Real,
-    /* 4    */ MEM_Real,
-    /* 5    */ MEM_Real,
-    /* 6    */ MEM_Real,
-    /* 7    */ MEM_Real,
-    /* 8    */ MEM_Real,
-    /* 9    */ MEM_Real,
-    /* 10   */ MEM_Real,
-    /* 11   */ MEM_Real,
-    /* 12   */ MEM_Real,
-    /* 13   */ MEM_Real,
-    /* 14   */ MEM_Real,
-    /* 15   */ MEM_Real,
-    /* 16   */ MEM_Real,
-    /* 17   */
-    /* 18   */
-    /* 19   */
-    /* 20   */
-    /* 21   */
-    /* 22   */
-    /* 23   */
-    /* 24   */
-    /* 25   */
-    /* 26   */
-    /* 27   */
-};
-const int query_2[] = {
-    /* 0    */ 0,
-    /* 1    */ MEM_Int,
-    /* 2    */ MEM_Int,
-    /* 3    */ MEM_Int,
-    /* 4    */ MEM_Int,
-    /* 5    */ MEM_Int,
-    /* 6    */ MEM_Int,
-    /* 7    */ MEM_Int,
-    /* 8    */ MEM_Int,
-    /* 9    */ MEM_Int,
-    /* 10   */ MEM_Int,
-    /* 11   */ MEM_Int,
-    /* 12   */ MEM_Int,
-    /* 13   */ MEM_Int,
-    /* 14   */ MEM_Int,
-    /* 15   */ MEM_Int,
-    /* 16   */ MEM_Int,
-    /* 17   */
-    /* 18   */
-    /* 19   */
-    /* 20   */
-    /* 21   */
-    /* 22   */
-    /* 23   */
-    /* 24   */
-    /* 25   */
-    /* 26   */
-    /* 27   */
-};
-#else
-const int query_1[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-const int query_2[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-#endif
+// #define DO_TYPES
 
-const int* query_types[] = { query_0, query_2 };
+extern const int* query_types[];
 int query_id = 0;
 
 #define LLVMSQLITE_NOTSTATICANYMORE
@@ -2319,6 +2253,7 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
             break;
         } else {
 #ifdef DO_TYPES
+            printf("Bad types: %d %d\n", t1, t3);
             exit(125);
 #endif
         }
@@ -3150,6 +3085,27 @@ case OP_Column: {
 op_column_out:
   UPDATE_MAX_BLOBSIZE(pDest);
   REGISTER_TRACE(pOp->p3, pDest);
+  static int regDone[255];
+  static int regDone2[255];
+  static int last_query_id = -1;
+  if (last_query_id != query_id) {
+    for(int k = 0; k < 255; k++) {
+        regDone[k] = 0;
+        regDone2[k] = 0;
+    }
+    last_query_id = query_id;
+  }
+  if (regDone[pOp->p3] != 2 || regDone2[pOp->p3] != 2) {
+    printf("Column %d from %d -> %d (%s)\n", pOp->p2, pOp->p1, pOp->p3,
+        pDest->flags & MEM_Real || (pOp + 1)->opcode == OP_RealAffinity ? "Real" :
+            pDest->flags & MEM_Int ? "Int" :
+            pDest->flags & MEM_Str ? "Str" :
+            pDest->flags & MEM_IntReal ? "Real" :
+            pDest->flags & MEM_Null ? "NULL" :
+            pDest->flags & MEM_Blob ? "Blob" : "Unknown");
+    regDone[pOp->p3] = 2;
+    regDone2[pOp->p3] = 2;
+  }
   break;
 
 op_column_corrupt:
