@@ -21,19 +21,6 @@ extern "C" {
     extern const int query_id;
 }
 
-static std::unordered_map<int, int> types {
-        { 14, MEM_Str },
-        { 13, MEM_Int },
-        { 20, MEM_Int },
-        { 21, MEM_Int },
-        { 24, MEM_Int },
-        { 25, MEM_Int },
-        { 26, MEM_Int },
-        { 27, MEM_Str },
-        { 35, -1},
-        {36, -1}
-};
-
 namespace mlir::standalone::passes {
     LogicalResult CompareJumpLowering::matchAndRewrite(CompareJump cjOp, PatternRewriter &rewriter) const {
         auto op = &cjOp;
@@ -57,12 +44,6 @@ namespace mlir::standalone::passes {
         auto rhs = cjOp.rhsAttr().getSInt();
         auto collSeq = (CollSeq *) cjOp.comparatorAttr().getUInt();
         auto flags = cjOp.flagsAttr().getUInt();
-
-        auto tyLeft = types[lhs];
-        auto tyRight = types[rhs];
-        // LLVMSQLITE_ASSERT(tyLeft != 0 && "Type for LHS is not defined");
-        // LLVMSQLITE_ASSERT(tyRight != 0 && "Type for RHS is not defined");
-        // LLVMSQLITE_ASSERT(tyLeft == tyRight && "Types should be the same");
 
         USE_DEFAULT_BOILERPLATE
 
@@ -366,7 +347,6 @@ namespace mlir::standalone::passes {
             // LLVMSQLITE_ASSERT(tyLeft == 0 || tyLeft == -1 || tyRight == 0 || tyRight == -1 || tyLeft == tyRight);
 
             auto affinity = flags & SQLITE_AFF_MASK;
-#if true
             if (affinity >= SQLITE_AFF_NUMERIC) {
                 auto curBlock = rewriter.getBlock();
                 auto blockAfterAnyIsString = SPLIT_BLOCK; GO_BACK_TO(curBlock);
@@ -594,7 +574,6 @@ namespace mlir::standalone::passes {
                 ip_start(blockAfterIn3IsNumeric);
 
             }
-#endif
 
             /// res = sqlite3MemCompare(pIn3, pIn1, pOp->p4.pColl);
             auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
