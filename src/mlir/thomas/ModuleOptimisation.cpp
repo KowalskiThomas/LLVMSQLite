@@ -161,6 +161,7 @@ void VdbeRunner::optimiseModule() {
                 "sqlite3GetVarint",
                 "sqlite3VdbeSerialGet",
                 "sqlite3AddInt64",
+                "sqlite3MemCompare",
                 "sqlite3SubInt64",
                 "numericType",
                 "sqlite3VdbeRealValue",

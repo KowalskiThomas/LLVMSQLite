@@ -18,8 +18,81 @@
 ** in this file for details.  If in doubt, do not deviate from existing
 ** commenting and indentation practices when changing or adding code.
 */
+
 #include "sqliteInt.h"
 #include "vdbeInt.h"
+
+const int query_0[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+#define STATIC_ARITHMETIC
+#define STATIC_COMPARISON
+#define DO_TYPES
+#ifdef DO_TYPES
+const int query_1[] = {
+    /* 0    */ 0,
+    /* 1    */ MEM_Real,
+    /* 2    */ MEM_Real,
+    /* 3    */ MEM_Real,
+    /* 4    */ MEM_Real,
+    /* 5    */ MEM_Real,
+    /* 6    */ MEM_Real,
+    /* 7    */ MEM_Real,
+    /* 8    */ MEM_Real,
+    /* 9    */ MEM_Real,
+    /* 10   */ MEM_Real,
+    /* 11   */ MEM_Real,
+    /* 12   */ MEM_Real,
+    /* 13   */ MEM_Real,
+    /* 14   */ MEM_Real,
+    /* 15   */ MEM_Real,
+    /* 16   */ MEM_Real,
+    /* 17   */
+    /* 18   */
+    /* 19   */
+    /* 20   */
+    /* 21   */
+    /* 22   */
+    /* 23   */
+    /* 24   */
+    /* 25   */
+    /* 26   */
+    /* 27   */
+};
+const int query_2[] = {
+    /* 0    */ 0,
+    /* 1    */ MEM_Int,
+    /* 2    */ MEM_Int,
+    /* 3    */ MEM_Int,
+    /* 4    */ MEM_Int,
+    /* 5    */ MEM_Int,
+    /* 6    */ MEM_Int,
+    /* 7    */ MEM_Int,
+    /* 8    */ MEM_Int,
+    /* 9    */ MEM_Int,
+    /* 10   */ MEM_Int,
+    /* 11   */ MEM_Int,
+    /* 12   */ MEM_Int,
+    /* 13   */ MEM_Int,
+    /* 14   */ MEM_Int,
+    /* 15   */ MEM_Int,
+    /* 16   */ MEM_Int,
+    /* 17   */
+    /* 18   */
+    /* 19   */
+    /* 20   */
+    /* 21   */
+    /* 22   */
+    /* 23   */
+    /* 24   */
+    /* 25   */
+    /* 26   */
+    /* 27   */
+};
+#else
+const int query_1[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+const int query_2[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+#endif
+
+const int* query_types[] = { query_0, query_2 };
 
 #define LLVMSQLITE_NOTSTATICANYMORE
 
@@ -701,6 +774,17 @@ int VDBE_EXEC_NAME(
   u64 start;                 /* CPU clock count at start of opcode */
 #endif
   size_t vdbeSteps = 0;
+
+  /* Start Thomas Query ID */
+  static int query_id = 0;
+  static void* last_vdbe = 0;
+  if (last_vdbe == 0)
+    last_vdbe = p;
+  else if (last_vdbe != p) {
+    last_vdbe = p;
+    query_id++;
+  }
+  /* End Thomas Query ID */
 
   /*** INSERT STACK UNION HERE ***/
 
@@ -1689,11 +1773,88 @@ case OP_Remainder: {           /* same as TK_REM, in1, in2, out3 */
   double rB;      /* Real value of right operand */
 
   pIn1 = &aMem[pOp->p1];
-  type1 = numericType(pIn1);
   pIn2 = &aMem[pOp->p2];
-  type2 = numericType(pIn2);
   pOut = &aMem[pOp->p3];
+
+#ifdef STATIC_ARITHMETIC
+  {
+      const int* types = query_types[query_id];
+      int t1 = types[pOp->p1];
+      int t2 = types[pOp->p2];
+
+      if (t1 == t2 && t1 != 0) {
+        if (t1 == MEM_Real) {
+#ifdef LLVMSQLITE_DEBUG
+                if (pIn1->flags != MEM_Real || pIn3->flags != MEM_Real) {
+                    printf("Incorrect flags\n");
+                    exit(1);
+                }
+#endif
+            MemSetTypeFlag(pOut, MEM_Real);
+            switch(pOp->opcode) {
+                case OP_Add:
+                    pOut->u.r = pIn1->u.r + pIn2->u.r;
+                    break;
+                case OP_Subtract:
+                    pOut->u.r = pIn2->u.r - pIn1->u.r;
+                    break;
+                case OP_Multiply:
+                    pOut->u.r = pIn1->u.r * pIn2->u.r;
+                    break;
+                case OP_Divide:
+                    pOut->u.r = pIn2->u.r / pIn1->u.r;
+                    break;
+                case OP_Remainder: {
+                    int64_t a = (int64_t)pIn2->u.r;
+                    int64_t b = (int64_t)pIn1->u.r;
+                    pOut->u.r = (double)(a % b);
+                    break;
+                }
+            }
+        } else if (t1 == MEM_Int) {
+#ifdef LLVMSQLITE_DEBUG
+                if (pIn1->flags != MEM_Int || pIn3->flags != MEM_Int) {
+                    printf("Incorrect flags\n");
+                    exit(1);
+                }
+#endif
+            MemSetTypeFlag(pOut, MEM_Int);
+            switch(pOp->opcode) {
+                case OP_Add:
+                    pOut->u.i = pIn1->u.i + pIn2->u.i;
+                    break;
+                case OP_Subtract:
+                    pOut->u.i = pIn2->u.i - pIn1->u.i;
+                    break;
+                case OP_Multiply:
+                    pOut->u.i = pIn1->u.i * pIn2->u.i;
+                    break;
+                case OP_Divide:
+                    if (pIn1->u.i == 0)
+                    {
+                        MemSetTypeFlag(pOut, MEM_Null);
+                        break;
+                    }
+                    pOut->u.i = pIn2->u.i / pIn1->u.i;
+                    break;
+                case OP_Remainder:
+                    pOut->u.i = pIn2->u.i % pIn1->u.i;
+                    break;
+            }
+        } else {
+            /* Fallthrough */
+            goto default_impl_arithmetic;
+        }
+        break;
+      }
+  }
+#endif
+
+default_impl_arithmetic:
+  type1 = numericType(pIn1);
+  type2 = numericType(pIn2);
   flags = pIn1->flags | pIn2->flags;
+
   if( (type1 & type2 & MEM_Int)!=0 ){
     iA = pIn1->u.i;
     iB = pIn2->u.i;
@@ -2072,6 +2233,109 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
 
   pIn1 = &aMem[pOp->p1];
   pIn3 = &aMem[pOp->p3];
+
+#ifdef STATIC_COMPARISON
+    {
+        const int* types = query_types[query_id];
+        int t1 = types[pOp->p1];
+        int t3 = types[pOp->p3];
+
+        if (t1 != 0 && t1 == t3) {
+            if (t1 == MEM_Real) {
+#ifdef LLVMSQLITE_DEBUG
+                if (pIn1->flags != MEM_Real || pIn3->flags != MEM_Real) {
+                    printf("Incorrect flags\n");
+                    exit(1);
+                }
+#endif
+
+                double r1 = pIn1->u.r;
+                double r3 = pIn3->u.r;
+                int result;
+                switch(pOp->opcode) {
+                    case OP_Eq:
+                        result = r3 == r1;
+                        break;
+                    case OP_Ge:
+                        result = r3 >= r1;
+                        break;
+                    case OP_Gt:
+                        result = r3 > r1;
+                        break;
+                    case OP_Le:
+                        result = r3 <= r1;
+                        break;
+                    case OP_Lt:
+                        result = r3 < r1;
+                        break;
+                    case OP_Ne:
+                        result = r3 != r1;
+                        break;
+                }
+                if (pOp->p5 & SQLITE_STOREP2) {
+                    Mem* out = &p->aMem[pOp->p2];
+                    MemSetTypeFlag(out, MEM_Int);
+                    out->u.i = result;
+                    iCompare = r3 < r1 ? -1 : (r3 > r1 ? 1 : 0);
+                    break;
+                } else {
+                    if (result) {
+                        goto jump_to_p2;
+                    } else {
+                        break;
+                    }
+                }
+            } else if (t1 == MEM_Int) {
+                int64_t i3 = pIn3->u.i;
+                int64_t i2 = pIn1->u.i;
+                int result;
+                switch(pOp->opcode) {
+                    case OP_Eq:
+                        result = i3 == i2;
+                        break;
+                    case OP_Ge:
+                        result = i3 >= i2;
+                        break;
+                    case OP_Gt:
+                        result = i3 > i2;
+                        break;
+                    case OP_Le:
+                        result = i3 <= i2;
+                        break;
+                    case OP_Lt:
+                        result = i3 < i2;
+                        break;
+                    case OP_Ne:
+                        result = i3 != i2;
+                        break;
+                }
+                if (pOp->p5 & SQLITE_STOREP2) {
+                    Mem* out = &p->aMem[pOp->p2];
+                    MemSetTypeFlag(out, MEM_Int);
+                    out->u.i = result;
+                    iCompare = i3 < i2 ? -1 : (i3 > i2 ? 1 : 0);
+                    break;
+                } else {
+                    if (result) {
+                        goto jump_to_p2;
+                    } else {
+                        break;
+                    }
+                }
+            } else {
+                /* Fallthrough */
+                goto default_impl;
+            }
+            break;
+        } else {
+#ifdef DO_TYPES
+            exit(125);
+#endif
+        }
+    }
+#endif
+
+default_impl:
   flags1 = pIn1->flags;
   flags3 = pIn3->flags;
   if( (flags1 | flags3)&MEM_Null ){
@@ -2176,6 +2440,10 @@ compare_op:
     static const unsigned char aGTb[] = { 1,  0,  1,  0,  0,  1 };
     res2 = aGTb[pOp->opcode - OP_Ne];
   }
+
+  // double r1 = pIn1->u.r;
+  // double r3 = pIn3->u.r;
+  // printf("3: R[%d] = %f %s 1: R[%d] = %f => %d\n", pOp->p3, r3, sqlite3OpcodeName(pOp->opcode), pOp->p1, r1, res2);
 
   /* Undo any changes made by applyAffinity() to the input registers. */
   assert( (pIn3->flags & MEM_Dyn) == (flags3 & MEM_Dyn) );
