@@ -101,7 +101,7 @@ namespace mlir::standalone::passes {
 
 #ifdef JIT_STATIC_TYPING_COMPARE
         {
-            auto types = query_types[query_id];
+            auto types = query_types[query_id > 0 ? 1 : 0];
             auto t1 = types[op->lhsAttr().getSInt()];
             auto t3 = types[op->rhsAttr().getSInt()];
 

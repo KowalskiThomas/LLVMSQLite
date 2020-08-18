@@ -1702,7 +1702,7 @@ case OP_Remainder: {           /* same as TK_REM, in1, in2, out3 */
 
 #ifdef STATIC_ARITHMETIC
   {
-      const int* types = query_types[query_id];
+      const int* types = query_types[query_id > 0 ? 1 : 0];
       int t1 = types[pOp->p1];
       int t2 = types[pOp->p2];
 
@@ -2160,7 +2160,7 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
 
 #ifdef STATIC_COMPARISON
     {
-        const int* types = query_types[query_id];
+        const int* types = query_types[query_id > 0 ? 1 : 0];
         int t1 = types[pOp->p1];
         int t3 = types[pOp->p3];
 

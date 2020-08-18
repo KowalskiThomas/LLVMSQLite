@@ -80,7 +80,7 @@ namespace mlir::standalone::passes {
 
 #ifdef JIT_STATIC_TYPING_ARITHMETIC
         { // A priori typing
-            auto types = query_types[query_id];
+            auto types = query_types[query_id > 0 ? 1 : 0];
             auto t1 = types[op->P1Attr().getSInt()];
             auto t2 = types[op->P2Attr().getSInt()];
 
