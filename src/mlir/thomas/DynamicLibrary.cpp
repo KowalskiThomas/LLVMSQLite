@@ -136,6 +136,7 @@ extern "C" {
     void* sqlite3_keyword_count(void*);
     void* codeCompare(void*);
     void* sqlite3_extended_errcode(void*);
+    void* sqlite3VdbeMemTranslate(void*);
     void* attachFunc(void*);
     void* sqlite3_status64(void*);
     void* sqlite3WhereClauseClear(void*);
@@ -1120,7 +1121,7 @@ void addToDynamicLibrary() {
     llvm::sys::DynamicLibrary::AddSymbol("sqlite3_str_appendf", (void*)sqlite3_str_appendf);
     llvm::sys::DynamicLibrary::AddSymbol("sqlite3_str_appendf", (void*)sqlite3_str_appendf);
     llvm::sys::DynamicLibrary::AddSymbol("sqlite3_str_vappendf", (void*)sqlite3_str_vappendf);
-    llvm::sys::DynamicLibrary::AddSymbol("sqlite3_str_appendf", (void*)sqlite3_str_appendf);
+    llvm::sys::DynamicLibrary::AddSymbol("sqlite3VdbeMemTranslate", (void*)sqlite3VdbeMemTranslate);
     llvm::sys::DynamicLibrary::AddSymbol("atoi", (void*)atoi);
     llvm::sys::DynamicLibrary::AddSymbol("sqlite3_initialize", (void*)sqlite3_initialize);
     llvm::sys::DynamicLibrary::AddSymbol("sqlite3BitvecClear", (void*)sqlite3BitvecClear);
