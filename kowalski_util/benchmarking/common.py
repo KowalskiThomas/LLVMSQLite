@@ -5,6 +5,27 @@ import datetime
 import asyncio
 cwd = os.getcwd()
 
+date_format = "%Y-%m-%d %H:%M:%S"
+
+
+def now():
+    return datetime.datetime.now()
+
+
+def date_from_string(s: str):
+    if not s:
+        return None
+
+    return datetime.datetime.strptime(s, date_format)
+
+
+def date_to_string(dt: datetime.datetime):
+    if dt is None:
+        return None
+
+    return dt.strftime(date_format)
+
+
 def human_size(s: int):
     if s > 1E6:
         return f"{s / 1E6:.2f}M"
