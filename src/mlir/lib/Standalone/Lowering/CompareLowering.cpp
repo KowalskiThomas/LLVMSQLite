@@ -7,6 +7,13 @@
 
 ExternFuncOp f_sqlite3MemCompare;
 
+#define JIT_STATIC_TYPING_COMPARE
+
+extern "C" {
+    extern const int* query_types[];
+    extern const int query_id;
+}
+
 namespace mlir::standalone::passes {
     LogicalResult CompareLowering::matchAndRewrite(Compare compOp, PatternRewriter &rewriter) const {
         auto op = &compOp;
@@ -22,8 +29,6 @@ namespace mlir::standalone::passes {
         print(LOCL, "-- Compare");
 
         auto stackState = saveStack(LOC);
-
-        auto firstBlock = rewriter.getBlock();
 
         // First LHS = p1
         auto firstLhs = compOp.firstLhsAttr().getSInt();
@@ -43,6 +48,82 @@ namespace mlir::standalone::passes {
 
         auto curBlock = rewriter.getBlock();
         auto endBlock = curBlock->splitBlock(compOp); GO_BACK_TO(curBlock);
+
+        auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
+        auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
+        auto p4KeyInfoPtrAddr = bitCast(LOC, p4UAddr, T::KeyInfoPtrTy.getPointerTo());
+        auto p4KeyInfoPtr = load(LOC, p4KeyInfoPtrAddr);
+        auto aColl = getElementPtrImm(LOC, T::CollSeqPtrTy.getPointerTo(), p4KeyInfoPtr, 0, 6, 0);
+
+
+#ifdef JIT_STATIC_TYPING_COMPARE
+        using FPred = mlir::LLVM::FCmpPredicate;
+        auto fCmp = [&](Location loc, FPred pred, Value a, Value b) {
+            return rewriter.create<mlir::LLVM::FCmpOp>(loc, pred, a, b);
+        };
+
+        bool canDoStatic = true;
+        for(auto i = 0llu; i < nReg; i++) {
+            if (query_types[query_id][firstLhs + i] != query_types[query_id][firstRhs + i]) {
+                out("Can't do static typing in compare because of registers " << firstLhs + i << " and " << firstRhs + i);
+                canDoStatic = false;
+                break;
+            }
+        }
+
+        if (canDoStatic) {
+            for(auto i = 0llu; i < nReg; i++) {
+                auto lhs = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, (long long) (firstLhs + i));
+                auto rhs = getElementPtrImm(LOC, T::sqlite3_valuePtrTy, vdbeCtx->aMem, (long long) (firstRhs + i));
+
+                auto ty = query_types[query_id][firstLhs + i];
+                LLVMSQLITE_ASSERT(ty == query_types[query_id][firstRhs + i]);
+
+                Value result;
+                switch (ty) {
+                    case MEM_Int: {
+                        auto r1Addr = getElementPtrImm(LOC, T::doublePtrTy, lhs, 0, 0, 0);
+                        auto i1Addr = bitCast(LOC, r1Addr, T::i64PtrTy);
+                        auto i1 = load(LOC, i1Addr);
+
+                        auto r3Addr = getElementPtrImm(LOC, T::doublePtrTy, rhs, 0, 0, 0);
+                        auto i3Addr = bitCast(LOC, r3Addr, T::i64PtrTy);
+                        auto i3 = load(LOC, i3Addr);
+
+                        result = sub(LOC, i1, i3);
+
+                        break;
+                    } case MEM_Real: {
+                        auto r1Addr = getElementPtrImm(LOC, T::doublePtrTy, lhs, 0, 0, 0);
+                        auto r1 = load(LOC, r1Addr);
+
+                        auto r3Addr = getElementPtrImm(LOC, T::doublePtrTy, rhs, 0, 0, 0);
+                        auto r3 = load(LOC, r3Addr);
+                        result = fSub(LOC, r1, r3);
+
+                        store(LOC, result, vdbeCtx->iCompare);
+
+                        break;
+                    } default: {
+                        auto pCollAddr = getElementPtrImm(LOC, T::CollSeqPtrTy, aColl, (int)i);
+                        auto pColl = load(LOC, pCollAddr);
+                        result = call(LOC, f_sqlite3MemCompare, lhs, rhs, pColl).getValue();
+                        store(LOC, result, vdbeCtx->iCompare);
+                    }
+                }
+
+                auto resultNotNull = iCmp(LOC, Pred::ne, result, 0);
+                auto curBlock = rewriter.getBlock();
+                auto blockNextComp = SPLIT_BLOCK; GO_BACK_TO(curBlock);
+                condBranch(LOC, resultNotNull, endBlock, blockNextComp);
+                ip_start(blockNextComp);
+            }
+
+            branch(LOC, endBlock);
+            restoreStack(LOC, stackState);
+            rewriter.eraseOp(compOp);
+        }
+#endif
 
         auto aPermuteInitValue = (int*)(nullptr);
         auto aPermuteAddr = alloca(LOC, T::i32PtrTy.getPointerTo());
@@ -69,11 +150,6 @@ namespace mlir::standalone::passes {
         curBlock = rewriter.getBlock();
         auto blockAfterFor = SPLIT_BLOCK; GO_BACK_TO(curBlock);
 
-        auto pOpValue = getElementPtrImm(LOC, T::VdbeOpPtrTy, vdbeCtx->aOp, (int)pc);
-        auto p4UAddr = getElementPtrImm(LOC, T::p4unionPtrTy, pOpValue, 0, 6);
-        auto p4KeyInfoPtrAddr = bitCast(LOC, p4UAddr, T::KeyInfoPtrTy.getPointerTo());
-        auto p4KeyInfoPtr = load(LOC, p4KeyInfoPtrAddr);
-        auto aColl = getElementPtrImm(LOC, T::CollSeqPtrTy.getPointerTo(), p4KeyInfoPtr, 0, 6, 0);
         auto aSortFlagsAddr = getElementPtrImm(LOC, T::i8PtrTy, p4KeyInfoPtr, 0, 5);
         auto aSortFlags = load(LOC, aSortFlagsAddr);
 

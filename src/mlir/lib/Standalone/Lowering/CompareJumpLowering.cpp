@@ -9,7 +9,7 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
-// #define JIT_STATIC_TYPING_COMPARE
+#define JIT_STATIC_TYPING_COMPARE
 
 // ExternFuncOp f_applyNumericAffinity;
 ExternFuncOp f_sqlite3VdbeMemStringify;
@@ -161,36 +161,36 @@ namespace mlir::standalone::passes {
                     out("Using INTEGER a priori knowledge on " << pOp->p1 << " and " << pOp->p3)
                     auto r1Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn1, 0, 0, 0);
                     auto i1Addr = bitCast(LOC, r1Addr, T::i64PtrTy);
-                    auto r1 = load(LOC, i1Addr);
+                    auto i1 = load(LOC, i1Addr);
 
                     auto r3Addr = getElementPtrImm(LOC, T::doublePtrTy, pIn3, 0, 0, 0);
                     auto i3Addr = bitCast(LOC, r3Addr, T::i64PtrTy);
-                    auto r3 = load(LOC, i3Addr);
+                    auto i3 = load(LOC, i3Addr);
                     Value result;
 
                     switch (pOp->opcode) {
                         case OP_Eq: {
-                            result = iCmp(LOC, Pred::eq, r3, r1);
+                            result = iCmp(LOC, Pred::eq, i3, i1);
                             break;
                         }
                         case OP_Ge: {
-                            result = iCmp(LOC, Pred::sge, r3, r1);
+                            result = iCmp(LOC, Pred::sge, i3, i1);
                             break;
                         }
                         case OP_Gt: {
-                            result = iCmp(LOC, Pred::sgt, r3, r1);
+                            result = iCmp(LOC, Pred::sgt, i3, i1);
                             break;
                         }
                         case OP_Le: {
-                            result = iCmp(LOC, Pred::sle, r3, r1);
+                            result = iCmp(LOC, Pred::sle, i3, i1);
                             break;
                         }
                         case OP_Lt: {
-                            result = iCmp(LOC, Pred::slt, r3, r1);
+                            result = iCmp(LOC, Pred::slt, i3, i1);
                             break;
                         }
                         case OP_Ne: {
-                            result = iCmp(LOC, Pred::ne, r3, r1);
+                            result = iCmp(LOC, Pred::ne, i3, i1);
                             break;
                         }
                         default:
@@ -209,7 +209,7 @@ namespace mlir::standalone::passes {
                         store(LOC, result, outIntAddr);
                         err("Unimplemented iCompare");
                         exit(99);
-                        // iCompare = r3 < r1 ? -1 : (r3 > r1 ? 1 : 0);
+                        // iCompare = i3 < i1 ? -1 : (i3 > i1 ? 1 : 0);
 
                         branch(LOC, endBlock);
                         ip_start(endBlock);
