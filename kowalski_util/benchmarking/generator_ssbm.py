@@ -8,6 +8,7 @@ args = sys.argv
 
 date_format = "%Y-%m-%d"
 
+explain = "explain" in args
 
 from generator_tpch import output, get_arg
 
@@ -34,6 +35,8 @@ def main():
     result = ""
     for query_number in queries:
         sql = generate_query(query_number)
+        if explain:
+            sql = "EXPLAIN " + sql
         result += sql
         result += '\n'
 
