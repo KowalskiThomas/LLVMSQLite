@@ -15,7 +15,7 @@ while cur_price < max_price + step:
     prices.append(cur_price)
     cur_price += step
 
-enable_jit = True
+enable_jit = False
 if enable_jit:
     to_find = "JIT Vdbe execution time"
 else:
