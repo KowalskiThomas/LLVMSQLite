@@ -56,8 +56,8 @@ total_size = sum([get_size(f) for f, _ in out])
 print(f"Total size: {human_size(total_size)}")
 
 
-archive_name = "software.txz"
-tar = tarfile.open(archive_name, mode='w:xz')
+archive_name = "software.tgz"
+tar = tarfile.open(archive_name, mode='w:gz')
 
 for f_from, f_to in out:
     print(f"Adding {f_from} -> {f_to}")
