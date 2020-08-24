@@ -64,7 +64,7 @@ namespace mlir::standalone::passes {
 
         bool canDoStatic = true;
         for(auto i = 0llu; i < nReg; i++) {
-            if (query_types[query_id][firstLhs + i] != query_types[query_id][firstRhs + i]) {
+            if (query_types[query_id][firstLhs + i] == 0 || (query_types[query_id][firstLhs + i] != query_types[query_id][firstRhs + i])) {
                 out("Can't do static typing in compare because of registers " << firstLhs + i << " and " << firstRhs + i);
                 canDoStatic = false;
                 break;
@@ -122,6 +122,7 @@ namespace mlir::standalone::passes {
             branch(LOC, endBlock);
             restoreStack(LOC, stackState);
             rewriter.eraseOp(compOp);
+            return success();
         }
 #endif
 
