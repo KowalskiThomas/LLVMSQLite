@@ -1,17 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
 
-if(APPLE)
-  set(LLVM_DIR "/Users/kowalski/llvm/")
-  set(LLVM_BUILD_DIR "/Users/kowalski/Downloads/llvm-project/build")
-  set(PREFIX "/Users/kowalski/llvm/usr/local")
-else()
-  set(LLVM_DIR "/home/kowalski/llvm/")
-  set(LLVM_BUILD_DIR "/home/kowalski/llvm-project/build")
-  set(PREFIX "/home/kowalski/libs/usr/local")
-endif()
+# The directory where LLVM libraries are installed
+set(PREFIX "$ENV{HOME}/llvm/usr/local/")
 
-set(MLIR_DIR "${PREFIX}/lib/cmake/mlir")
-# set(LLVM_EXTERNAL_LIT "${LLVM_BUILD_DIR}/bin/llvm-lit")
+# CMake path for LLVM Core
+set(LLVM_DIR "${PREFIX}/lib/cmake/llvm/")
+
+# CMake path for MLIR
+set(MLIR_DIR "${PREFIX}/lib/cmake/mlir/")
 
 if(POLICY CMP0068)
   cmake_policy(SET CMP0068 NEW)
@@ -55,8 +51,6 @@ include(HandleLLVMOptions)
 
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
-# include_directories(${PROJECT_SOURCE_DIR}/include)
-# include_directories(${PROJECT_BINARY_DIR}/include)
 message("Source Dir: '${PROJECT_SOURCE_DIR}'")
 message("Binary Dir: '${PROJECT_BINARY_DIR}'")
 include_directories(${PROJECT_SOURCE_DIR}/include)
@@ -66,6 +60,4 @@ add_definitions(${LLVM_DEFINITIONS})
 
 add_subdirectory(include)
 add_subdirectory(lib)
-# add_subdirectory(test)
-# add_subdirectory(standalone-opt)
 add_subdirectory(thomas)
