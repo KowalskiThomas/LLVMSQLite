@@ -115,8 +115,17 @@ int sqlite3VdbeExec(Vdbe *p) {
                 vdbeRunnerCreationTime + functionPreparationTime + functionOptimisationTime + functionCompilationTime);
         printf("InitialDiff: %llu\n", initialDiff);
 #endif
-        printf("Default Implementation Vdbe execution time: %llu ms\n", initialDiff);
+#if ENABLE_JIT && ENABLE_DEFAULT
+	if (enableJit == 0)
+#endif
+#if ENABLE_DEFAULT
+	    printf("Default Implementation Vdbe execution time: %llu ms\n", (unsigned long long)(initialDiff));
+#endif
+#if ENABLE_JIT && ENABLE_DEFAULT
+	else {
+#endif
 #if ENABLE_JIT
+	printf("Total execution time with compilation and optimisation: %llu ms\n", initialDiff);
         printf("JIT Vdbe execution time: %llu ms\n",
                 initialDiff
                 - functionPreparationTime
@@ -129,6 +138,9 @@ int sqlite3VdbeExec(Vdbe *p) {
         functionOptimisationTime = 0;
         functionCompilationTime = 0;
         vdbeRunnerCreationTime = 0;
+#endif
+#if ENABLE_JIT && ENABLE_DEFAULT
+        }
 #endif
         lastVdbe = nullptr;
     }
