@@ -75,7 +75,7 @@ LIBOBJ+= vdbe.o parse.o \
          update.o upsert.o userauth.o util.o vacuum.o \
          vdbeapi.o vdbeaux.o vdbeblob.o vdbemem.o vdbesort.o \
 	 vdbetrace.o wal.o walker.o where.o wherecode.o whereexpr.o \
-         utf.o vtab.o window.o thomas.o
+         utf.o vtab.o window.o
 
 LIBOBJ += sqlite3session.o
 
@@ -183,7 +183,7 @@ SRC = \
   $(TOP)/src/wherecode.c \
   $(TOP)/src/whereexpr.c \
   $(TOP)/src/whereInt.h \
-  $(TOP)/src/window.c $(TOP)/src/thomas.cpp
+  $(TOP)/src/window.c
 
 # Source code for extensions
 #
@@ -695,10 +695,6 @@ mksourceid:	$(TOP)/tool/mksourceid.c
 #
 %.o: $(TOP)/src/%.c $(HDR)
 	$(TCCX) -c $<
-
-thomas.o: $(TOP)/src/thomas.cpp $(HDR)
-	$(TCCX) -c src/thomas.cpp -std=c++17
-	echo "hello"
 
 tclsqlite.o:	$(TOP)/src/tclsqlite.c $(HDR)
 	$(TCCX) $(TCL_FLAGS) -c $(TOP)/src/tclsqlite.c

@@ -194,8 +194,7 @@ def main():
             Data.struct_names.append(type_name)
 
     with open("../src/type_definitions.h", 'w') as f:
-        s = ('#include "thomas.h"\n'
-             '#define SQLITE_JIT_IR_TYPE static inline llvm::Type*\n'
+        s = ('#define SQLITE_JIT_IR_TYPE static inline llvm::Type*\n'
              'void load_type_definitions(LLVMContext&);\n\n'
              'struct T {\n')
 

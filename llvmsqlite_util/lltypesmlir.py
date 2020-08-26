@@ -199,8 +199,7 @@ def main():
             Data.struct_names.append(type_name)
 
     with open(output_h, 'w') as f:
-        s = ('// #include "thomas.h\n'
-             '#include "mlir/Target/LLVMIR.h"\n'
+        s = ('#include "mlir/Target/LLVMIR.h"\n'
              '#include "mlir/IR/Types.h"\n'
              '#include "mlir/Dialect/LLVMIR/LLVMDialect.h"\n\n'
              '#define SQLITE_JIT_IR_TYPE static inline t\n\n'
