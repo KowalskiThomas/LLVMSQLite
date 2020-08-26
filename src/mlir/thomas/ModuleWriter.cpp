@@ -120,7 +120,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
 
     // Each time we translate an instruction, we need to branch from its block to the next block
     // We store the last instruction's block to this end.
-    mlir::Block* lastBlock = entryBlock;
+    mlir::Block* lastBlock = nullptr;
 
     print(LOCL, "-- Entered JITted function");
 
@@ -136,8 +136,10 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
     auto pcValue = load(LOC, pcAddr);
     // print(LOCL, pcValue, "PC: ");
 
-    Block* targetBlock = nullptr;
-    Block* blockAfterJump = nullptr;
+    llvm::SmallVector<mlir::Value, 128> cases = { pcValue };
+    llvm::SmallVector<mlir::Block*, 128> switchDests;
+    llvm::SmallVector<int, 128> targetPcs;
+
     for(auto targetPc = 0; targetPc < vdbe->nOp; targetPc++) {
         auto curBlock = opBuilder.getBlock();
         // Only certain codes can be jumped back to. This saves a lot of branching.
@@ -145,28 +147,18 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         if (targetOpCode != OP_Next && targetOpCode != OP_Halt
             && targetOpCode != OP_Return
             && !(targetPc > 0 && (
-                  vdbe->aOp[targetPc - 1].opcode == OP_ResultRow
-                 || vdbe->aOp[targetPc - 1].opcode == OP_Goto
-                 || vdbe->aOp[targetPc - 1].opcode == OP_Gosub))
-            ) {
+                vdbe->aOp[targetPc - 1].opcode == OP_ResultRow
+                || vdbe->aOp[targetPc - 1].opcode == OP_Goto
+                || vdbe->aOp[targetPc - 1].opcode == OP_Gosub))
+                ) {
             if (!anyDefaultImplUsed()) {
                 // Uncomment this when you're sure it works (to generate less branching)
                 continue;
             }
         }
 
-        targetBlock = blocks.find(targetOpCode) != blocks.end() ? blocks[targetOpCode] : entryBlock;
-
-        // The next block
-        blockAfterJump = SPLIT_BLOCK; GO_BACK_TO(curBlock);
-        auto pcValueIsTarget = iCmp(LOC, ICmpPredicate::eq, pcValue, targetPc);
-
-        auto brOp = opBuilder.create<CondBrOp>(LOC, pcValueIsTarget, targetBlock, blockAfterJump);
-        if (targetBlock == entryBlock)
-            operations_to_update[targetPc].emplace_back(brOp, 0);
-
-        opBuilder.setInsertionPointToStart(blockAfterJump);
-        lastBlock = blockAfterJump;
+        targetPcs.push_back(targetPc);
+        cases.push_back(constants(targetPc, 32));
     }
 
 #ifdef LLVMSQLITE_DEBUG && !LLVMSQLITE_DONT_PRINT_VDBE
@@ -1562,7 +1554,7 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         operations_to_update.erase(pc);
 
         // Add a branch from the latest block to this one
-        if (writeBranchOut) {
+        if (writeBranchOut && lastBlock) {
             opBuilder.setInsertionPointToEnd(lastBlock);
             vdbeCtx->outBranches[pc] = opBuilder.create<BranchOp>(LOC, block);
             opBuilder.setInsertionPointToStart(block);
@@ -1572,6 +1564,27 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         lastBlock = block;
         writeBranchOut = newWriteBranchOut;
     }
+
+    // Default dest: first block
+    switchDests.push_back(blocks[0]);
+    for(int i = 0; i < targetPcs.size(); i++) {
+        auto targetPc = targetPcs[i];
+        auto targetBlock = blocks[targetPc];
+        LLVMSQLITE_ASSERT(targetBlock);
+        switchDests.push_back(targetBlock);
+    }
+    auto ip = opBuilder.saveInsertionPoint();
+    jumpsBlock->dump();
+    opBuilder.setInsertionPointToEnd(jumpsBlock);
+    // N (cases) + 1 (value to switch on) operands / N (dests) + 1 (default) successors
+    LLVMSQLITE_ASSERT(cases.size() == switchDests.size());
+    auto jumpSwitch = opBuilder.create<mlir::LLVM::SwitchOp>(LOC,
+        ArrayRef<Type>{},
+        ArrayRef<Value>{cases},
+        ArrayRef<Block*>{switchDests}
+    );
+    jumpSwitch.dump();
+    opBuilder.restoreInsertionPoint(ip);
 
     if (unsupportedOpCodeSeen) {
         out("Exiting after seeing unsupported opcodes")

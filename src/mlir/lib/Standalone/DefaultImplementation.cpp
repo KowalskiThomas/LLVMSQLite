@@ -84,7 +84,7 @@ static unordered_map<string, bool> useDefaultImplMap {
     // { "standalone.OpenWrite", true },
     // { "standalone.ParseSchema", true },
 
-    { "standalone.Template", true },  // TODO: Implement
+    { "standalone.Template", false },  // TODO: Implement
 };
 
 bool useDefaultImpl(mlir::Operation* op) {
