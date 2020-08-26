@@ -60,4 +60,4 @@ add_definitions(${LLVM_DEFINITIONS})
 
 add_subdirectory(include)
 add_subdirectory(lib)
-add_subdirectory(thomas)
+add_subdirectory(sqlite_bridge)
