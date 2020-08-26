@@ -33,8 +33,8 @@ cmake-build*
 .idea
 *.o
 /profile/
-/kowalski_util/map.txt
-/kowalski_util/stack.txt
+/llvmsqlite_util/map.txt
+/llvmsqlite_util/stack.txt
 libtool
 mksourceid
 sqlite3.pc
@@ -60,5 +60,5 @@ parse.y
 sqlite3.c
 sqlite3.h
 sqlite3ext.h
-/kowalski_util/DynamicLibrary.cpp
+/llvmsqlite_util/DynamicLibrary.cpp
 /venv/
