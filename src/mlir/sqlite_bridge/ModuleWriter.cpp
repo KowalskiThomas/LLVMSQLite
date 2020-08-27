@@ -144,16 +144,17 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         auto curBlock = opBuilder.getBlock();
         // Only certain codes can be jumped back to. This saves a lot of branching.
         auto targetOpCode = vdbe->aOp[targetPc].opcode;
-        if (targetOpCode != OP_Next && targetOpCode != OP_Halt
-            && targetOpCode != OP_Return
-            && !(targetPc > 0 && (
+        if (!(targetPc > 0 && (
                 vdbe->aOp[targetPc - 1].opcode == OP_ResultRow
                 || vdbe->aOp[targetPc - 1].opcode == OP_Goto
-                || vdbe->aOp[targetPc - 1].opcode == OP_Gosub))
+                || vdbe->aOp[targetPc - 1].opcode == OP_Gosub
+                || vdbe->aOp[targetPc - 1].opcode == OP_Yield
+                || vdbe->aOp[targetPc - 1].opcode == OP_Transaction
+                || vdbe->aOp[targetPc - 1].opcode == OP_Return))
                 ) {
             if (!anyDefaultImplUsed()) {
                 // Uncomment this when you're sure it works (to generate less branching)
-                continue;
+                // continue;
             }
         }
 
