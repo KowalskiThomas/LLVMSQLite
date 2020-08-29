@@ -5,7 +5,7 @@ import datetime
 import asyncio
 cwd = os.getcwd()
 
-date_format = "%Y-%m-%d %H:%M:%S"
+date_format = "%Y-%m-%d %H-%M-%S"
 
 
 def now():
