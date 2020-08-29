@@ -3085,6 +3085,7 @@ case OP_Column: {
 op_column_out:
   UPDATE_MAX_BLOBSIZE(pDest);
   REGISTER_TRACE(pOp->p3, pDest);
+#ifdef TRACE_TYPES
   static int regDone[255];
   static int regDone2[255];
   static int last_query_id = -1;
@@ -3106,6 +3107,7 @@ op_column_out:
     regDone[pOp->p3] = 2;
     regDone2[pOp->p3] = 2;
   }
+#endif
   break;
 
 op_column_corrupt:
