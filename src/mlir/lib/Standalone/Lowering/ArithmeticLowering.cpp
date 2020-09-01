@@ -9,7 +9,7 @@
 
 extern GlobalOp aMem;
 
-#define JIT_STATIC_TYPING_ARITHMETIC
+// #define JIT_STATIC_TYPING_ARITHMETIC
 
 ExternFuncOp f_numericType;
 ExternFuncOp f_sqlite3VdbeRealValue;

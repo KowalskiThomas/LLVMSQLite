@@ -9,7 +9,7 @@
 #include "Standalone/StandalonePrerequisites.h"
 #include "Standalone/TypeDefinitions.h"
 
-#define JIT_STATIC_TYPING_COMPARE
+// #define JIT_STATIC_TYPING_COMPARE
 
 // ExternFuncOp f_applyNumericAffinity;
 ExternFuncOp f_sqlite3VdbeMemStringify;
