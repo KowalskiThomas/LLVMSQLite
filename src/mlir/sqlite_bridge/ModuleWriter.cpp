@@ -1575,7 +1575,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         switchDests.push_back(targetBlock);
     }
     auto ip = opBuilder.saveInsertionPoint();
-    jumpsBlock->dump();
     opBuilder.setInsertionPointToEnd(jumpsBlock);
     // N (cases) + 1 (value to switch on) operands / N (dests) + 1 (default) successors
     LLVMSQLITE_ASSERT(cases.size() == switchDests.size());
@@ -1584,7 +1583,6 @@ void writeFunction(MLIRContext& mlirContext, LLVMDialect* llvmDialect, FuncOp& f
         ArrayRef<Value>{cases},
         ArrayRef<Block*>{switchDests}
     );
-    jumpSwitch.dump();
     opBuilder.restoreInsertionPoint(ip);
 
     if (unsupportedOpCodeSeen) {
