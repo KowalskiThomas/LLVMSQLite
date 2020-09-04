@@ -111,9 +111,8 @@ int sqlite3VdbeExec(Vdbe *p) {
         printf("Preparation time: %llu ms\n", functionPreparationTime);
         printf("Optimisation time: %llu ms\n", functionOptimisationTime);
         printf("Compilation time: %llu ms\n", functionCompilationTime);
-        printf("Sum: %llu\n",
+        printf("Sum: %llu ms\n",
                 vdbeRunnerCreationTime + functionPreparationTime + functionOptimisationTime + functionCompilationTime);
-        printf("InitialDiff: %llu\n", initialDiff);
 #endif
 #if ENABLE_JIT && ENABLE_DEFAULT
 	if (enableJit == 0)
