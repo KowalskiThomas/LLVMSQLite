@@ -1,5 +1,10 @@
 <h1 align="center">LLVMSQLite</h1>
 
+LLVMSQLite was built for my MSc. Thesis at Imperial College London.
+
+If you want to read more about it and the design choices I made,
+[the thesis PDF is available in the repository](https://github.com/KowalskiThomas/LLVMSQLite/blob/master/Thesis.pdf).
+
 # Building LLVMSQLite 
 
 LLVMSQLite does not use the canonical build process used by SQLite, but rather a mix between their configure script and Makefiles and CMake, for everything LLVM-related.
